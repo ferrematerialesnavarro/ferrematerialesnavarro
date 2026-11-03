@@ -108,7 +108,7 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
 (function(){
  if(document.querySelector('script[data-navarro-carrito-seguro]'))return;
  const s=document.createElement('script');
- s.src='./carrito-seguro.js?v=1';
+ s.src='./carrito-seguro.js?v=2';
  s.dataset.navarroCarritoSeguro='1';
  s.async=true;
  document.head.appendChild(s);
