@@ -87,11 +87,21 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.async=true;
  document.head.appendChild(s);
 })();
-/* NAVARRO 360 · completar y ordenar destacados de Materiales sin crear otra categoría. */
+/* NAVARRO 360 · Materiales: fotos aprobadas antes de restaurar la cuadrícula clásica. */
 (function(){
- if(document.querySelector('script[data-navarro-materiales-v2]'))return;
- const s=document.createElement('script');
- s.src='./materiales-destacados-v2.js?v=2';s.dataset.navarroMaterialesV2='1';s.async=true;
- document.head.appendChild(s);
+ if(document.querySelector('script[data-navarro-materiales-v3]'))return;
+ const loader=document.createElement('script');
+ loader.src='./materiales-destacados-v2.js?v=3';
+ loader.dataset.navarroMaterialesV3='1';
+ loader.async=true;
+ const photos=[1,2,3].map(n=>new Promise(resolve=>{
+  const s=document.createElement('script');
+  s.src='./materiales-fotos-'+n+'.js?v=1';
+  s.async=true;
+  s.onload=resolve;
+  s.onerror=()=>{console.warn('NAVARRO Materiales: falta tira fotográfica '+n);resolve();};
+  document.head.appendChild(s);
+ }));
+ Promise.all(photos).then(()=>document.head.appendChild(loader));
 })();
 })();
