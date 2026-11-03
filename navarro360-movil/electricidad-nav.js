@@ -10,7 +10,7 @@ function classifyElec(name){
   type=/CHALUPA/.test(n)?"Chalupas":/TAPA/.test(n)?"Tapas":"Sujeción de cable";
  }else if(/\bCABLE\b|CORDON ELECTRIC/.test(n)){
   family="Cables y conductores";
-  type=/DUPLEX/.test(n)?"Cable dúplex":/1 POLO/.test(n)?"Cable unipolar":/USO RUDO/.test(n)?"Cable uso rudo":/TELEFONO|ANTENA|BOCINA|GRABADORA/.test(n)?"Telefonía y señal":"Otros cables";
+  type=/DUPLEX/.test(n)?"Cable dúplex":/1 POLO/.test(n)?"Cable unipolar":/USO RUDO DEL 3 X/.test(n)?"Cable 3 polos (uso rudo)":/USO RUDO DEL 2 X/.test(n)?"Cable 2 polos (uso rudo)":/USO RUDO/.test(n)?"Cable uso rudo":/TELEFONO|ANTENA|BOCINA|GRABADORA/.test(n)?"Telefonía y señal":"Otros cables";
   const mx=n.match(/USO RUDO DEL (\d+) X (\d+)/),g=n.match(/\b(?:DEL|CALIBRE)\s+(\d{1,2})\b/);
   if(mx)size=mx[1]+" × "+mx[2];else if(g)size="Cal. "+g[1];
  }else if(/CONDUIT|POLIDUCTO/.test(n)){
