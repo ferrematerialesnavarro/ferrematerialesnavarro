@@ -87,4 +87,11 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360 · completar y ordenar destacados de Materiales sin crear otra categoría. */
+(function(){
+ if(document.querySelector('script[data-navarro-materiales-v2]'))return;
+ const s=document.createElement('script');
+ s.src='./materiales-destacados-v2.js?v=2';s.dataset.navarroMaterialesV2='1';s.async=true;
+ document.head.appendChild(s);
+})();
 })();
