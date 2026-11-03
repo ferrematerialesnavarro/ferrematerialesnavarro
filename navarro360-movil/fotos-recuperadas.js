@@ -70,4 +70,12 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360: nueva sección Cerraduras y herrajes, aislada de las demás. */
+(function(){
+ if(document.querySelector('script[data-navarro-herrajes]'))return;
+ const s=document.createElement('script');
+ s.src='./herrajes-nav.js?v=1';
+ s.dataset.navarroHerrajes='1';s.async=true;
+ document.head.appendChild(s);
+})();
 })();
