@@ -30,11 +30,14 @@ function searchCode(code){
  var options=[...document.querySelectorAll('#filters [data-cat], [data-category]')];
  var reset=options.find(el=>/^(todos?|todas?|general)$/i.test(String(el.dataset.cat||el.dataset.category||'').trim()));
  if(reset&&!reset.classList.contains('active'))reset.click();
- var input=searchInput();if(!input)return false;
+ var primary=searchInput();if(!primary)return false;
+ var inputs=[...new Set([document.getElementById('search'),document.getElementById('search-mobile'),primary].filter(Boolean))];
  var setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')?.set;
- if(setter)setter.call(input,code);else input.value=code;
- input.dispatchEvent(new Event('input',{bubbles:true}));
- input.dispatchEvent(new Event('change',{bubbles:true}));
+ for(var input of inputs){
+  if(setter)setter.call(input,code);else input.value=code;
+  input.dispatchEvent(new Event('input',{bubbles:true}));
+  input.dispatchEvent(new Event('change',{bubbles:true}));
+ }
  return true;
 }
 function findCard(code){
