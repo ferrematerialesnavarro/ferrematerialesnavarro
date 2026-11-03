@@ -19,6 +19,9 @@ const CATEGORIES=[
 const escapeHTML=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
 const normalized=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
 const cash=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
+/* Banco oficial Truper: referencias contrastadas con nombre/modelo exacto. */
+const VERIFIED_PHOTOS={"7501206609538":"https://www.truper.com/media/import/imagenes/BAL-CM-BP.jpg","7506240640363":"https://www.truper.com/media/import/imagenes/CH-20P.jpg","7501206692325":"https://www.truper.com/media/import/imagenes/BC-301PP.jpg","7501206624272":"https://www.truper.com/media/import/imagenes/KIT-3P.jpg","7506240677192":"https://www.truper.com/media/import/imagenes/KIT-4P.jpg"};
+
 function classify(name){
  const n=normalized(name);
  if(/^JUEGO DE [34] PIEZAS PARA INSTALAR CERRADURAS\b/.test(n))
@@ -101,6 +104,7 @@ function finishOf(name){
 }
 function rank(item){
  let score=item.price;
+ if(Object.prototype.hasOwnProperty.call(VERIFIED_PHOTOS,item.id))score-=900;
  if(item.brand==='Hermex Basic'||item.brand==='Básico (catálogo)')score-=17;
  if(item.brand==='Pretul')score-=20;
  if(item.brand==='Truper')score-=8;
@@ -211,7 +215,7 @@ function init(){
   try{const o=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}catch{return {}}
  }
  function photoTag(row,atlas){
-  const saved=window.NAVARRO_FOTOS_PAGINA?.[row.id];
+  const saved=VERIFIED_PHOTOS[row.id]||window.NAVARRO_FOTOS_PAGINA?.[row.id];
   const lookup=atlas?.byCode?.[row.id];
   const file=saved||lookup;
   const spriteIndex=atlas?.files?.[file];
