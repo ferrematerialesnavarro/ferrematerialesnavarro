@@ -1,4 +1,4 @@
-/* NAVARRO 360 · MATERIALES DESTACADOS V2 — 03/nov/2026
+/* NAVARRO 360 · MATERIALES DESTACADOS V3 · FORMATO CLÁSICO — 03/nov/2026
  * Completa y ordena la sección EXISTENTE Construcción / Materiales.
  * No crea otra categoría, no reescribe catálogo, carrito, WhatsApp, escáner ni SIFO.
  * Conserva las 42 tarjetas destacadas ya publicadas y sus fotografías.
@@ -24,6 +24,20 @@ const EXTRA=[
  ['7777001662','Acero y estructuras'],         // MALLA DE POLLO
  ['7777001678','Pegapisos y acabados']         // CINTA MALLA
 ];
+const PHOTO_INDEX=Object.freeze({
+ '7777001058':[0,0], // azotea: imagen corregida
+ '7777000880':[0,1], // block
+ '7777000225':[0,2], // cal por kilo
+ '7777001165':[1,0], // pega azulejo por kilo
+ '7777000020':[1,1], // alambre recocido
+ '7777000848':[1,2], // alambron
+ '7777000550':[2,0], // malla yesera
+ '7777001662':[2,1], // malla pollo
+ '7777001678':[2,2], // cinta malla
+ '7777001647':[1,0], // cemento gris kilo (ilustración)
+ '7777001636':[0,2], // cemento blanco kilo (ilustración)
+ '7777000596':[0,2]  // yeso kilo (ilustración)
+});
 const RANK={
  'Cementos y morteros':['7777001648','7777001647','7777000023','7777001635','7777001636','7777001661','7777000225','7777000019','7777000875'],
  'Arenas y agregados':['7777001629','7777001051','7777001053','7777001052','7777001049'],
@@ -84,6 +98,24 @@ function start(){
  const noSearch=()=>!document.getElementById('search')?.value.trim()&&!document.getElementById('search-mobile')?.value.trim();
  const active=()=>!!filters.querySelector('button[data-cat="Construcción"].active')&&noSearch();
  const cart=()=>{try{const c=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');return c&&typeof c==='object'&&!Array.isArray(c)?c:{}}catch{return {}}};
+ function ensurePhoto(card){
+  const id=card.getAttribute('data-card');
+  const pos=PHOTO_INDEX[id];
+  if(!pos)return;
+  const visual=card.querySelector('.product-visual');
+  if(!visual)return;
+  // Respetar las fotografías originales del catálogo.
+  if(visual.querySelector('.product-sprite,img,.nav-material-photo'))return;
+  if(!window.NAVARRO_MAT_STRIPS?.[pos[0]])return;
+  const span=document.createElement('span');
+  span.className='nav-material-photo';
+  span.dataset.matStrip=String(pos[0]);
+  span.style.backgroundPosition=(pos[1]*50)+'% 50%';
+  span.setAttribute('role','img');
+  span.setAttribute('aria-label','Imagen ilustrativa: '+String(dictionary.get(id)?.[1]||'material'));
+  visual.insertBefore(span,visual.querySelector('.product-cat')||null);
+  visual.querySelectorAll('.product-symbol').forEach(el=>{el.style.display='none'});
+ }
  function extraCard(p,qty){
   const article=document.createElement('article');
   const quantity=Math.max(0,Math.min(9999,Math.trunc(Number(qty)||0)));
@@ -131,26 +163,11 @@ function start(){
     (priority.has(ca)?priority.get(ca):999)-(priority.has(cb)?priority.get(cb):999)||
     (dictionary.get(ca)?.[1]||'').localeCompare(dictionary.get(cb)?.[1]||'','es',{numeric:true});
   });
-  // Conservar las mismas tarjetas y fotos existentes; no volver a crear su contenido.
-  const oldHeadings=new Map([...grid.querySelectorAll(':scope > .nav-material-heading')].map(el=>[el.dataset.group,el]));
-  const desired=[];
-  let previous=null;
-  for(const card of ordered){
-   const family=names.get(card.getAttribute('data-card'))||'Otros materiales';
-   if(group==='Todos'&&family!==previous){
-    let heading=oldHeadings.get(family);
-    if(!heading){
-     heading=document.createElement('h3');heading.className='nav-material-heading';heading.dataset.group=family;
-     heading.textContent=LABELS[family]||family;
-    }
-    desired.push(heading);
-    previous=family;
-   }
-   desired.push(card);
-  }
+  // Mantener el formato de tarjetas de antes; solo ordenar y completar las fotos.
+  for(const card of ordered)ensurePhoto(card);
   const existing=[...grid.children];
-  if(existing.length!==desired.length||existing.some((el,i)=>el!==desired[i])){
-   grid.replaceChildren(...desired);
+  if(existing.length!==ordered.length||existing.some((el,i)=>el!==ordered[i])){
+   grid.replaceChildren(...ordered);
   }
   if(info)info.textContent=ordered.length+' materiales disponibles · Catálogo de referencia';
   const none=document.getElementById('no-results');
@@ -162,7 +179,11 @@ function start(){
   Promise.resolve().then(()=>{scheduled=false;apply()});
  }
  const style=document.createElement('style');style.id='navarro-materiales-v2-style';
- style.textContent='.nav-material-heading{grid-column:1/-1;display:block;width:100%;padding:11px 12px 10px;margin:14px 0 3px;border-left:4px solid #d4aa52;border-radius:5px;background:linear-gradient(90deg,#eaf0f7,#f7f9fc);font-size:14px;line-height:1.35;font-weight:850;letter-spacing:-.015em;color:#0c294b}.nav-material-heading:first-child{margin-top:0}';
+ style.textContent='.nav-material-photo{display:block;width:128px;height:128px;max-width:100%;flex-shrink:0;background-color:white;background-size:300% 100%;background-repeat:no-repeat}';
+ (window.NAVARRO_MAT_STRIPS||[]).forEach((url,index)=>{
+  if(typeof url==='string'&&url.startsWith('data:image/webp;base64,')&&!url.includes('"'))
+   style.textContent+='.nav-material-photo[data-mat-strip="'+index+'"]{background-image:url("'+url+'")}';
+ });
  document.head.appendChild(style);
  new MutationObserver(schedule).observe(grid,{childList:true,subtree:false});
  new MutationObserver(schedule).observe(tabs,{childList:true,subtree:false});
@@ -170,7 +191,7 @@ function start(){
  ['search','search-mobile'].forEach(id=>document.getElementById(id)?.addEventListener('input',schedule));
  schedule();
  window.NAVARRO_MATERIALES_V2_ESTADO=Object.freeze({
-  version:2,catalogSize:window.NAVARRO_DB.length,existing:highlights.size,
+  version:3,classicLayout:true,approvedPhotoCodes:Object.keys(PHOTO_INDEX).length,catalogSize:window.NAVARRO_DB.length,existing:highlights.size,
   appended:extras.size,rejected:Object.freeze(rejected),
   total:highlights.size+extras.size,
   subcategories:Object.freeze([...GROUPS]),
