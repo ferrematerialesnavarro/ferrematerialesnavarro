@@ -1,4 +1,4 @@
-const VERSION='navarro360-fullstore-v9-cables-dos-polos';
+const VERSION='navarro360-fullstore-v10-herramientas-100';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=7','./electricidad.css?v=6','./fotos-recuperadas.js?v=9'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
