@@ -1,12 +1,12 @@
 {
-  "name": "NAVARRO 360 Móvil — Vista previa",
+  "name": "NAVARRO 360 — Tienda completa",
   "short_name": "NAVARRO 360",
-  "description": "Versión móvil de desarrollo independiente del bot y SIFO",
+  "description": "Ferremateriales Navarro: tienda móvil, carrito y pedidos por WhatsApp",
   "id": "/ferrematerialesnavarro/navarro360-movil/",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f6fa",
+  "background_color": "#f4f6f9",
   "theme_color": "#071a39",
   "icons": [
     {
