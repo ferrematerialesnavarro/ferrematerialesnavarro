@@ -28,6 +28,8 @@ function lengthFor(input){
  m=n.match(/\b(\d+)\s+(?:Y\s+)?MEDIA\b/);
  if(m)return m[1]+'½″';
  if(/\bMEDIA\b/.test(n))return '½″';
+ m=n.match(/\b(\d+)\s+(\d+)(?:\s|$)/);
+ if(m&&Number(m[1])<=14&&Number(m[2])<=16)return frac(m[1],m[2])+'″';
  m=n.match(/\b(\d+)[-\/](\d+)\b/);
  if(m)return frac(m[1],m[2])+'″';
  m=n.match(/\b(\d+)\.(\d+)\b/);
