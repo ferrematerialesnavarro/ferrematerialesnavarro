@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es-MX"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#071a39"><meta name="description" content="NAVARRO 360 Móvil: vista previa de catálogo y navegación de Ferremateriales Navarro.">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="NAVARRO 360">
+<title>NAVARRO 360 Móvil · Desarrollo</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon.svg">
+<link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css?v=3">
+<script defer src="./app.js?v=3"></script>
+</head><body>
+<header class="header"><div class="brand"><div class="brand-mark">N<span>360</span></div><div><span class="brand-over">FERREMATERIALES</span><strong>NAVARRO</strong></div></div><button id="header-cart" class="cart-trigger" aria-label="Abrir pedido">🛒 <span id="cart-count">0</span></button></header>
+<div class="env"><span class="env-dot"></span> APP MÓVIL DE PRUEBA V3 · Independiente de la PC</div>
+<main>
+<section class="screen" id="screen-inicio">
+ <div class="hero"><span class="hero-tag">Tu ferretería, siempre a la mano</span><h1>Todo para tu obra<br><em>desde tu celular.</em></h1><p>Explora materiales, guarda tu selección y diseña tu pedido sin perder el avance.</p><button class="gold-button" data-nav="plomeria">Explorar Plomería <span>›</span></button></div>
+ <div class="notice"><span>🛡️</span><div><b>Versión de desarrollo</b><p>Catálogo parcial de demostración. No se conecta a la computadora, SIFO ni al bot y no envía pedidos reales.</p></div></div>
+ <div class="sectionhead"><div><small>EXPLORA</small><h2>¿Qué necesitas hoy?</h2></div></div>
+ <div class="quick-grid"><button data-nav="buscar"><span>🔎</span><b>Buscar producto</b><small>Por nombre o código</small></button><button data-nav="plomeria"><span>🚰</span><b>Plomería</b><small>Material, medida y tipo</small></button><button data-nav="catalogos"><span>📚</span><b>Catálogos</b><small>PDF de tu página</small></button><button data-nav="pedido"><span>🛒</span><b>Mi selección</b><small>Lista de prueba</small></button></div>
+ <div class="sectionhead"><div><small>FAMILIAS</small><h2>Plomería a tu manera</h2></div></div><div class="chips" id="home-materials"></div>
+ <div class="helpbar">💬 <span>Contacto comercial: <a href="https://wa.me/525639129040" target="_blank" rel="noopener">WhatsApp Navarro</a></span></div>
+</section>
+<section class="screen" id="screen-buscar" hidden>
+ <div class="page-title"><small>CATÁLOGO DE PRUEBA</small><h1>Buscar productos</h1><p>Busca entre los artículos de muestra aprobados. Los productos de Grupo Truper no están publicados aquí.</p></div>
+ <label class="searchbox" for="search"><span>⌕</span><input id="search" autocomplete="off" inputmode="search" placeholder="Nombre o código de barras"><button id="clear-search" aria-label="Borrar búsqueda">×</button></label>
+ <div class="results-head"><b id="search-title">Productos disponibles</b><small id="search-count"></small></div>
+ <div class="product-grid" id="search-results"></div>
+</section>
+<section class="screen" id="screen-plomeria" hidden>
+ <div class="page-title"><small>NAVEGACIÓN POR PASOS</small><h1>Plomería</h1><p>Los menús permanecen abiertos para cambiar de medida o presentación sin empezar de nuevo.</p></div>
+ <div class="filter-block"><div class="filter-head"><span class="step">1</span><b>Material</b></div><div class="chips" id="plom-materials"></div></div>
+ <div class="filter-block"><div class="filter-head"><span class="step">2</span><b>Medida</b></div><div class="chips" id="plom-measures"></div></div>
+ <div class="filter-block"><div class="filter-head"><span class="step">3</span><b>Presentación</b></div><div class="chips" id="plom-types"></div></div>
+ <div class="results-head"><b>Artículos de muestra</b><small id="plom-count"></small></div>
+ <div class="product-grid" id="plom-results"></div>
+ <p class="hint">Solo se muestran artículos de la versión preliminar, no los 559 artículos completos de la tienda local.</p>
+</section>
+<section class="screen" id="screen-catalogos" hidden>
+ <div class="page-title"><small>RECURSOS PUBLICADOS</small><h1>Catálogos originales</h1><p>Abre directamente los PDF de tu página actual mientras seguimos integrando las fotografías a NAVARRO 360.</p></div>
+ <div class="pdf-list">
+ <a href="../catalogo-pvc.pdf" target="_blank" rel="noopener"><span>⚪</span><b>PVC sanitario</b><i>Ver PDF ›</i></a>
+ <a href="../catalago-conexiones-cpvc.pdf" target="_blank" rel="noopener"><span>🟡</span><b>CPVC</b><i>Ver PDF ›</i></a>
+ <a href="../catalogo-pvc-hidraulico.pdf" target="_blank" rel="noopener"><span>🔵</span><b>PVC hidráulico</b><i>Ver PDF ›</i></a>
+ <a href="../catalogo-polimex.pdf" target="_blank" rel="noopener"><span>🔴</span><b>Polimex</b><i>Ver PDF ›</i></a>
+ <a href="../catalogo-galvanizado.pdf" target="_blank" rel="noopener"><span>🔩</span><b>Galvanizado</b><i>Ver PDF ›</i></a>
+ <a href="../catalogo-malla.pdf" target="_blank" rel="noopener"><span>🧱</span><b>Mallas</b><i>Ver PDF ›</i></a>
+ <a href="../catalogo-mosquiteros.pdf" target="_blank" rel="noopener"><span>🪟</span><b>Mosquiteros</b><i>Ver PDF ›</i></a>
+ </div>
+</section>
+<section class="screen" id="screen-pedido" hidden>
+ <div class="page-title"><small>LISTA LOCAL</small><h1>Mi selección</h1><p>Solo prueba la experiencia del carrito. No manda mensajes ni registra ventas.</p></div>
+ <div id="cart-items" class="cart-items"></div><div class="cart-foot"><div id="cart-summary"></div><button class="gold-button" id="copy-order" disabled><span>▣</span> Copiar lista de prueba</button><button id="clear-cart" class="clear-cart" disabled>Vaciar mi lista</button><p>Esta lista no se envía al bot. Formato de copia: CANTIDAD CÓDIGO. Los precios se confirmarán desde el catálogo vigente de la PC.</p></div>
+</section>
+</main>
+<nav class="bottom-nav" aria-label="Navegación de la aplicación"><button data-nav="inicio" class="active"><span>⌂</span>Inicio</button><button data-nav="buscar"><span>⌕</span>Buscar</button><button data-nav="plomeria"><span>🚰</span>Plomería</button><button data-nav="pedido"><span>🛒</span>Pedido <small id="bottom-cart-count" class="bottom-cart-count" hidden>0</small></button></nav>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body></html>
