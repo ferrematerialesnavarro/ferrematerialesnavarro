@@ -6,9 +6,10 @@ const photos={"7777000388":"navarro-publicada-7777000388.jpg","7777000428":"nava
 const CABLE_FOTOS_TIPO=Object.freeze({
  duplex:"navarro-cable-duplex.webp",
  unipolar:"navarro-cable-1-polo.webp",
- tresPolos:"navarro-cable-3-polos.webp"
+ tresPolos:"navarro-cable-3-polos.webp",
+ dosPolos:"navarro-cable-uso-rudo-2-ilustrado.webp"
 });
-const cableFotosConteo={duplex:0,unipolar:0,tresPolos:0};
+const cableFotosConteo={duplex:0,unipolar:0,tresPolos:0,dosPolos:0};
 const cableAprobado=window.NAVARRO_BUSCADOR_GENERICO?.isApproved;
 if(typeof cableAprobado==='function'&&Array.isArray(window.NAVARRO_DB)){
  for(const row of window.NAVARRO_DB){
@@ -17,7 +18,8 @@ if(typeof cableAprobado==='function'&&Array.isArray(window.NAVARRO_DB)){
   const n=name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().trim();
   const tipo=/^CABLE DUPLEX\b/.test(n)?"duplex":
    /^CABLE 1 POLO\b/.test(n)?"unipolar":
-   /^CABLE USO RUDO DEL 3 X\b/.test(n)?"tresPolos":null;
+   /^CABLE USO RUDO DEL 3 X\b/.test(n)?"tresPolos":
+   /^CABLE USO RUDO DEL 2 X\b/.test(n)?"dosPolos":null;
   if(!tipo)continue;
   photos[code]=CABLE_FOTOS_TIPO[tipo];cableFotosConteo[tipo]++;
  }
