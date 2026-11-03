@@ -47,4 +47,11 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360 - botón de cámara y lector de códigos, módulo aislado. */
+(function(){
+ if(document.querySelector('script[data-navarro-escaner]'))return;
+ const s=document.createElement('script');
+ s.src='./escaner-barras.js?v=1';s.dataset.navarroEscaner='1';s.async=true;
+ document.head.appendChild(s);
+})();
 })();
