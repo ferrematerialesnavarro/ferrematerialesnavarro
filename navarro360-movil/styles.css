@@ -43,3 +43,13 @@
 .bottom-cart-count[hidden]{display:none}
 @media(min-width:570px){.product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.product-art{min-height:155px}}
 @media(max-width:350px){.product-grid{gap:8px}.product{padding:7px}.product-name{font-size:12px}.product .quantity-button{min-width:32px;width:32px}}
+
+/* NAVARRO 360 MÓVIL V3 — Selección desde toda la tarjeta */
+.product-tappable{cursor:pointer;touch-action:manipulation;transition:border-color .16s ease,box-shadow .16s ease,transform .12s ease;-webkit-tap-highlight-color:transparent}
+.product-tappable:active{transform:scale(.987);background:#fffdf7}
+.product-tappable:focus-visible{outline:3px solid #bd8c20;outline-offset:3px}
+.product-tappable.is-selected{border-color:#d8b266;box-shadow:0 2px 12px rgba(181,134,35,.13)}
+.product-tap-hint{display:flex;align-items:center;justify-content:center;gap:7px;min-height:42px;background:var(--navy);border-radius:11px;color:white;font-size:12px;font-weight:850;user-select:none}
+.product-tap-hint span{font-size:20px;line-height:1}
+.product-tappable .quantity-button{touch-action:manipulation}
+.product-tappable .product-quantity{cursor:default}

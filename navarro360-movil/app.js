@@ -30,12 +30,14 @@ function productControls(p){
  var qty=getQty(p.code);
  return qty>0?
  '<div class="product-quantity" aria-label="Cantidad de '+esc(p.name)+'"><button class="quantity-button" data-minus="'+esc(p.code)+'" aria-label="Quitar una unidad de '+esc(p.name)+'">−</button><span class="quantity-current" aria-live="polite">'+qty+'</span><button class="quantity-button" data-plus="'+esc(p.code)+'" aria-label="Agregar una unidad de '+esc(p.name)+'">+</button></div>':
- '<button class="product-add" data-add="'+esc(p.code)+'" aria-label="Añadir '+esc(p.name)+' a la lista de prueba"><span>＋</span> Agregar</button>';
+ '<div class="product-tap-hint" aria-hidden="true"><span>＋</span> Toca para agregar</div>';
 }
 function products(container,arr){
  $(container).innerHTML=arr.length?arr.slice(0,80).map(function(p){
   var colour=norm(p.mat).toLowerCase();
-  return '<article class="product"><div class="product-art '+esc(colour)+'" role="img" aria-label="Ilustración de referencia, no fotografía exacta"><span class="picture-symbol" aria-hidden="true">'+pictureSymbol(p)+'</span><span class="art-type">'+esc(p.kind)+'</span><span class="art-notice">IMAGEN REFERENCIAL</span></div>'+
+  var qty=getQty(p.code);
+  var label=qty>0?p.name+'. '+qty+' unidades. Toca para agregar otra unidad o usa los botones de cantidad.':p.name+'. Toca para agregar una unidad.';
+  return '<article class="product product-tappable '+(qty>0?'is-selected':'')+'" data-card="'+esc(p.code)+'" tabindex="0" aria-label="'+esc(label)+'"><div class="product-art '+esc(colour)+'" role="img" aria-label="Ilustración de referencia, no fotografía exacta"><span class="picture-symbol" aria-hidden="true">'+pictureSymbol(p)+'</span><span class="art-type">'+esc(p.kind)+'</span><span class="art-notice">IMAGEN REFERENCIAL</span></div>'+
   '<div class="product-description"><span class="product-material">'+esc(p.mat)+'</span><b class="product-name">'+esc(p.name)+'</b><small class="product-code">Código: '+esc(p.code)+'</small><span class="product-price">Precio pendiente de sincronización</span></div>'+
   productControls(p)+'</article>';
  }).join(''):
@@ -68,7 +70,7 @@ function renderCart(){
   var p=byCode.get(code);
   return '<article class="cart-row"><div class="cart-row-heading"><strong>'+esc(p.name)+'</strong><button class="remove-item" data-remove="'+code+'" aria-label="Eliminar '+esc(p.name)+'">✕</button></div>'+
    '<small>'+esc(code)+' · '+esc(p.mat)+'</small><div class="cart-quantity-line"><span>Cantidad</span><div class="controls"><button data-minus="'+code+'" aria-label="Quitar unidad">−</button><span>'+getQty(code)+'</span><button data-plus="'+code+'" aria-label="Agregar unidad">+</button></div></div></article>';
- }).join('')||'<div class="empty"><span class="empty-illustration">🛒</span><b>Aún no tienes productos</b><p>Entra a Buscar o Plomería y toca Agregar para armar una lista de prueba.</p><button class="empty-action" data-nav="plomeria">Explorar plomería</button></div>';
+ }).join('')||'<div class="empty"><span class="empty-illustration">🛒</span><b>Aún no tienes productos</b><p>Entra a Buscar o Plomería y toca la foto o cualquier parte de un producto para agregarlo.</p><button class="empty-action" data-nav="plomeria">Explorar plomería</button></div>';
 }
 function add(code,delta){
  if(!byCode.has(code))return;
@@ -77,7 +79,31 @@ function add(code,delta){
  save();renderPlom();renderSearch();renderCart();
  if(delta>0&&next===1)toast('Agregado a tu lista de prueba');
 }
-document.addEventListener('click',function(e){var el=e.target.closest('button');if(!el)return;if(el.dataset.nav){tab(el.dataset.nav);return;}if(el.dataset.filter){if(el.dataset.filter==='material'){selected.mat=el.dataset.value;selected.measure='Todas';selected.kind='Todas';tab('plomeria');return;}if(el.dataset.filter==='measure'){selected.measure=el.dataset.value;selected.kind='Todas';}if(el.dataset.filter==='kind')selected.kind=el.dataset.value;renderPlom();return;}if(el.dataset.add){add(el.dataset.add,1);return;}if(el.dataset.plus){add(el.dataset.plus,1);return;}if(el.dataset.minus){add(el.dataset.minus,-1);return;}if(el.dataset.remove){delete cart[el.dataset.remove];save();renderPlom();renderSearch();renderCart();return;}});
+document.addEventListener('click',function(e){
+ var btn=e.target.closest('button');
+ if(btn){
+  if(btn.dataset.nav){tab(btn.dataset.nav);return;}
+  if(btn.dataset.filter){
+   if(btn.dataset.filter==='material'){selected.mat=btn.dataset.value;selected.measure='Todas';selected.kind='Todas';tab('plomeria');return;}
+   if(btn.dataset.filter==='measure'){selected.measure=btn.dataset.value;selected.kind='Todas';}
+   if(btn.dataset.filter==='kind')selected.kind=btn.dataset.value;
+   renderPlom();return;
+  }
+  // Los controles no propagan un segundo añadido a la tarjeta.
+  if(btn.dataset.plus){add(btn.dataset.plus,1);return;}
+  if(btn.dataset.minus){add(btn.dataset.minus,-1);return;}
+  if(btn.dataset.remove){delete cart[btn.dataset.remove];save();renderPlom();renderSearch();renderCart();return;}
+  return;
+ }
+ var card=e.target.closest('.product[data-card]');
+ if(card){add(card.dataset.card,1);}
+});
+document.addEventListener('keydown',function(e){
+ if(e.key!=='Enter' && e.key!==' ')return;
+ var card=e.target.closest('.product[data-card]');
+ if(!card||e.target!==card)return;
+ e.preventDefault();add(card.dataset.card,1);
+});
 $('#header-cart').addEventListener('click',function(){tab('pedido');});
 $('#clear-cart').addEventListener('click',function(){if(!Object.keys(cart).some(function(c){return getQty(c)>0;}))return;if(window.confirm('¿Vaciar toda la lista de prueba?')){cart={};save();renderPlom();renderSearch();renderCart();toast('Lista de prueba vaciada');}});
 $('#search').addEventListener('input',renderSearch);
