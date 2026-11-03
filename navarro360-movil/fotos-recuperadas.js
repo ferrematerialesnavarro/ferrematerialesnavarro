@@ -61,4 +61,13 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.src='./tornilleria-nav.js?v=1';s.dataset.navarroFijaciones='1';s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360: Jardinería y riego V1, módulo aislado con catálogo validado. */
+(function(){
+ if(document.querySelector('script[data-navarro-jardineria]'))return;
+ const s=document.createElement('script');
+ s.src='./jardineria-nav.js?v=1';
+ s.dataset.navarroJardineria='1';
+ s.async=true;
+ document.head.appendChild(s);
+})();
 })();
