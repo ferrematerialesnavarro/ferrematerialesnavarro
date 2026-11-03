@@ -38,7 +38,6 @@ window.NAVARRO_FOTOS_HERRAMIENTAS_ESTADO=Object.freeze({referencias:98,pendiente
 window.NAVARRO_FOTOS_PAGINA=photos;
 const st=document.createElement('style');st.textContent='.navarro-photo-recuperada{width:128px;height:128px;max-width:100%;object-fit:contain;display:block;margin:auto;background:#fff;border-radius:10px}';document.head.appendChild(st);
 function bind(){const grid=document.getElementById('products');if(!grid)return;const apply=()=>{for(const card of grid.querySelectorAll('[data-card]')){const code=card.getAttribute('data-card');if(card.dataset.navarroPhoto||!Object.prototype.hasOwnProperty.call(photos,code))continue;const visual=card.querySelector('.product-visual');if(!visual)continue;const old=visual.querySelector('.product-sprite,.product-symbol');if(!old)continue;const img=document.createElement('img');img.className='navarro-photo-recuperada';img.loading='lazy';img.decoding='async';img.alt='Fotografía del producto '+code;img.onerror=function(){img.remove();old.style.display='';};img.src=/^https:\/\//.test(photos[code])?photos[code]:'./assets/'+photos[code];old.style.display='none';visual.insertBefore(img,old);card.dataset.navarroPhoto=code;}};apply();new MutationObserver(apply).observe(grid,{childList:true,subtree:true});}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind,{once:true});else bind();
-}
 /* NAVARRO 360 PINTURA V1: cargar el módulo aislado después de las fotos existentes. */
 (function(){
  if(document.querySelector('script[data-navarro-pinturas]'))return;
