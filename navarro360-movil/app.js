@@ -13,13 +13,73 @@ function save(){localStorage.setItem('nav360-demo-cart',JSON.stringify(cart));lo
 function toast(msg){var t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(timer);timer=setTimeout(function(){t.classList.remove('on');},2400);}
 function tab(name){document.querySelectorAll('.screen').forEach(function(e){e.hidden=e.id!=='screen-'+name;});document.querySelectorAll('[data-nav]').forEach(function(e){e.classList.toggle('active',e.dataset.nav===name);});if(name==='plomeria')renderPlom();if(name==='buscar')renderSearch();if(name==='pedido')renderCart();window.scrollTo({top:0,behavior:'auto'});}
 function chips(host,options,active,key){$(host).innerHTML=options.map(function(x){return '<button class="chip '+(active===x?'selected':'')+'" data-filter="'+key+'" data-value="'+esc(x)+'">'+esc(x)+'</button>';}).join('');}
-function products(container,arr){$(container).innerHTML=arr.length?arr.slice(0,80).map(function(p){return '<article class="product"><div class="product-art '+norm(p.mat).toLowerCase()+'">'+(matSymbol[p.mat]||'📦')+'</div><b class="product-name">'+esc(p.name)+'</b><small class="product-code">Código: '+esc(p.code)+'</small><div class="product-price">Precio por confirmar</div><button data-add="'+esc(p.code)+'">＋ Agregar a mi lista</button></article>';}).join(''):'<div class="empty">Sin productos en esta muestra. La tienda completa sigue instalada en tu computadora; continuaremos integrando el catálogo aprobado.</div>';}
+function getQty(code){var n=Number(cart[code]);return Number.isFinite(n)?Math.max(0,Math.min(999,Math.trunc(n))):0;}
+function pictureSymbol(p){
+ var kind=norm(p.kind);
+ if(/TUBOS|ACERO/.test(kind))return '▱';
+ if(/CODOS/.test(kind))return '↳';
+ if(/TEES/.test(kind))return '┬';
+ if(/COPLE|UNION|NIPLES/.test(kind))return '═';
+ if(/REDUCCIONES/.test(kind))return '⇥';
+ if(/CRUCES/.test(kind))return '✚';
+ if(/TAPONES/.test(kind))return '◉';
+ if(/YEES/.test(kind))return 'Ｙ';
+ return matSymbol[p.mat]||'◈';
+}
+function productControls(p){
+ var qty=getQty(p.code);
+ return qty>0?
+ '<div class="product-quantity" aria-label="Cantidad de '+esc(p.name)+'"><button class="quantity-button" data-minus="'+esc(p.code)+'" aria-label="Quitar una unidad de '+esc(p.name)+'">−</button><span class="quantity-current" aria-live="polite">'+qty+'</span><button class="quantity-button" data-plus="'+esc(p.code)+'" aria-label="Agregar una unidad de '+esc(p.name)+'">+</button></div>':
+ '<button class="product-add" data-add="'+esc(p.code)+'" aria-label="Añadir '+esc(p.name)+' a la lista de prueba"><span>＋</span> Agregar</button>';
+}
+function products(container,arr){
+ $(container).innerHTML=arr.length?arr.slice(0,80).map(function(p){
+  var colour=norm(p.mat).toLowerCase();
+  return '<article class="product"><div class="product-art '+esc(colour)+'" role="img" aria-label="Ilustración de referencia, no fotografía exacta"><span class="picture-symbol" aria-hidden="true">'+pictureSymbol(p)+'</span><span class="art-type">'+esc(p.kind)+'</span><span class="art-notice">IMAGEN REFERENCIAL</span></div>'+
+  '<div class="product-description"><span class="product-material">'+esc(p.mat)+'</span><b class="product-name">'+esc(p.name)+'</b><small class="product-code">Código: '+esc(p.code)+'</small><span class="product-price">Precio pendiente de sincronización</span></div>'+
+  productControls(p)+'</article>';
+ }).join(''):
+ '<div class="empty">Sin artículos de muestra con esos filtros. La tienda completa sigue en la computadora; aquí aún estamos probando la aplicación móvil.</div>';
+}
 function renderPlom(){chips('#home-materials',materials,selected.mat,'material');chips('#plom-materials',materials,selected.mat,'material');var mat=items.filter(function(p){return p.mat===selected.mat;});var measure=['Todas'].concat([...new Set(mat.map(function(p){return p.measure||'Sin diámetro';}))]);if(measure.indexOf(selected.measure)<0)selected.measure='Todas';chips('#plom-measures',measure,selected.measure,'measure');var withMeasure=mat.filter(function(p){return selected.measure==='Todas'||(p.measure||'Sin diámetro')===selected.measure;});var kinds=['Todas'].concat([...new Set(withMeasure.map(function(p){return p.kind;}))]);if(kinds.indexOf(selected.kind)<0)selected.kind='Todas';chips('#plom-types',kinds,selected.kind,'kind');var final=withMeasure.filter(function(p){return selected.kind==='Todas'||p.kind===selected.kind;});$('#plom-count').textContent=final.length+' de muestra';products('#plom-results',final);save();}
-function renderSearch(){var q=norm($('#search').value);var found=items.filter(function(p){return !q||(/^[0-9]{5,}$/.test(q)?p.code===q:norm(p.name).includes(q));});$('#search-count').textContent=found.length+' de muestra';$('#search-title').textContent=q?'Coincidencias':'Selección inicial';products('#search-results',found);}
-function renderCart(){var valid=Object.keys(cart).filter(function(code){return byCode.has(code)&&Number(cart[code])>0;});var total=valid.reduce(function(t,code){return t+Number(cart[code]);},0);$('#cart-count').textContent=total;$('#cart-summary').textContent=total?total+' unidades en lista de prueba':'Tu lista está vacía.';$('#copy-order').disabled=!total;$('#cart-items').innerHTML=valid.map(function(code){var p=byCode.get(code);return '<div class="cart-row"><strong>'+esc(p.name)+'</strong><small>'+esc(code)+'</small><div class="controls"><button data-minus="'+code+'" aria-label="Quitar una unidad">−</button><span>'+cart[code]+'</span><button data-plus="'+code+'" aria-label="Agregar una unidad">+</button><button data-remove="'+code+'" aria-label="Eliminar producto">✕</button></div></div>';}).join('')||'<div class="empty">Agrega productos de prueba desde Buscar o Plomería.</div>';}
-function add(code,delta){if(!byCode.has(code))return;cart[code]=Math.max(0,Math.min(999,(Number(cart[code])||0)+delta));if(!cart[code])delete cart[code];save();renderCart();if(delta>0)toast('Añadido a tu lista de prueba');}
-document.addEventListener('click',function(e){var el=e.target.closest('button');if(!el)return;if(el.dataset.nav){tab(el.dataset.nav);return;}if(el.dataset.filter){if(el.dataset.filter==='material'){selected.mat=el.dataset.value;selected.measure='Todas';selected.kind='Todas';tab('plomeria');return;}if(el.dataset.filter==='measure'){selected.measure=el.dataset.value;selected.kind='Todas';}if(el.dataset.filter==='kind')selected.kind=el.dataset.value;renderPlom();return;}if(el.dataset.add){add(el.dataset.add,1);return;}if(el.dataset.plus){add(el.dataset.plus,1);return;}if(el.dataset.minus){add(el.dataset.minus,-1);return;}if(el.dataset.remove){delete cart[el.dataset.remove];save();renderCart();return;}});
+function renderSearch(){
+ var q=norm($('#search').value);
+ var found=items.filter(function(p){
+  if(!q)return true;
+  if(/^[0-9]{5,}$/.test(q))return p.code===q;
+  var words=q.split(/\s+/).filter(Boolean);
+  var title=norm(p.name);
+  return words.every(function(w){return title.includes(w);});
+ });
+ $('#search-count').textContent=found.length+' de muestra';
+ $('#search-title').textContent=q?'Coincidencias':'Selección inicial';
+ products('#search-results',found);
+}
+function renderCart(){
+ var valid=Object.keys(cart).filter(function(code){return byCode.has(code)&&getQty(code)>0;});
+ var total=valid.reduce(function(t,code){return t+getQty(code);},0);
+ $('#cart-count').textContent=total;
+ var bottom=document.getElementById('bottom-cart-count');
+ if(bottom){bottom.textContent=total;bottom.hidden=!total;}
+ $('#cart-summary').innerHTML=total?'<div class="cart-summary"><b>'+valid.length+' productos diferentes</b><span>'+total+' unidades en tu lista</span></div>':'';
+ $('#copy-order').disabled=!total;
+ var clear=document.getElementById('clear-cart');if(clear)clear.disabled=!total;
+ $('#cart-items').innerHTML=valid.map(function(code){
+  var p=byCode.get(code);
+  return '<article class="cart-row"><div class="cart-row-heading"><strong>'+esc(p.name)+'</strong><button class="remove-item" data-remove="'+code+'" aria-label="Eliminar '+esc(p.name)+'">✕</button></div>'+
+   '<small>'+esc(code)+' · '+esc(p.mat)+'</small><div class="cart-quantity-line"><span>Cantidad</span><div class="controls"><button data-minus="'+code+'" aria-label="Quitar unidad">−</button><span>'+getQty(code)+'</span><button data-plus="'+code+'" aria-label="Agregar unidad">+</button></div></div></article>';
+ }).join('')||'<div class="empty"><span class="empty-illustration">🛒</span><b>Aún no tienes productos</b><p>Entra a Buscar o Plomería y toca Agregar para armar una lista de prueba.</p><button class="empty-action" data-nav="plomeria">Explorar plomería</button></div>';
+}
+function add(code,delta){
+ if(!byCode.has(code))return;
+ var next=Math.max(0,Math.min(999,getQty(code)+delta));
+ if(next)cart[code]=next;else delete cart[code];
+ save();renderPlom();renderSearch();renderCart();
+ if(delta>0&&next===1)toast('Agregado a tu lista de prueba');
+}
+document.addEventListener('click',function(e){var el=e.target.closest('button');if(!el)return;if(el.dataset.nav){tab(el.dataset.nav);return;}if(el.dataset.filter){if(el.dataset.filter==='material'){selected.mat=el.dataset.value;selected.measure='Todas';selected.kind='Todas';tab('plomeria');return;}if(el.dataset.filter==='measure'){selected.measure=el.dataset.value;selected.kind='Todas';}if(el.dataset.filter==='kind')selected.kind=el.dataset.value;renderPlom();return;}if(el.dataset.add){add(el.dataset.add,1);return;}if(el.dataset.plus){add(el.dataset.plus,1);return;}if(el.dataset.minus){add(el.dataset.minus,-1);return;}if(el.dataset.remove){delete cart[el.dataset.remove];save();renderPlom();renderSearch();renderCart();return;}});
 $('#header-cart').addEventListener('click',function(){tab('pedido');});
+$('#clear-cart').addEventListener('click',function(){if(!Object.keys(cart).some(function(c){return getQty(c)>0;}))return;if(window.confirm('¿Vaciar toda la lista de prueba?')){cart={};save();renderPlom();renderSearch();renderCart();toast('Lista de prueba vaciada');}});
 $('#search').addEventListener('input',renderSearch);
 $('#clear-search').addEventListener('click',function(){$('#search').value='';renderSearch();});
 $('#copy-order').addEventListener('click',function(){var txt=Object.keys(cart).filter(function(c){return byCode.has(c)&&cart[c]>0;}).map(function(c){return cart[c]+' '+c;}).join('\n');if(!txt)return;var done=function(){toast('Lista de prueba copiada (no enviada)');};if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(done).catch(function(){prompt('Copia esta lista de prueba:',txt);});}else prompt('Copia esta lista de prueba:',txt);});

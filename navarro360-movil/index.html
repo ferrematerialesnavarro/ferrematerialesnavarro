@@ -5,11 +5,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="NAVARRO 360">
 <title>NAVARRO 360 Móvil · Desarrollo</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./icon.svg">
-<link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css">
-<script defer src="./app.js"></script>
+<link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css?v=2">
+<script defer src="./app.js?v=2"></script>
 </head><body>
 <header class="header"><div class="brand"><div class="brand-mark">N<span>360</span></div><div><span class="brand-over">FERREMATERIALES</span><strong>NAVARRO</strong></div></div><button id="header-cart" class="cart-trigger" aria-label="Abrir pedido">🛒 <span id="cart-count">0</span></button></header>
-<div class="env"><span class="env-dot"></span> APP MÓVIL DE PRUEBA · Independiente de la PC</div>
+<div class="env"><span class="env-dot"></span> APP MÓVIL DE PRUEBA V2 · Independiente de la PC</div>
 <main>
 <section class="screen" id="screen-inicio">
  <div class="hero"><span class="hero-tag">Tu ferretería, siempre a la mano</span><h1>Todo para tu obra<br><em>desde tu celular.</em></h1><p>Explora materiales, guarda tu selección y diseña tu pedido sin perder el avance.</p><button class="gold-button" data-nav="plomeria">Explorar Plomería <span>›</span></button></div>
@@ -48,9 +48,9 @@
 </section>
 <section class="screen" id="screen-pedido" hidden>
  <div class="page-title"><small>LISTA LOCAL</small><h1>Mi selección</h1><p>Solo prueba la experiencia del carrito. No manda mensajes ni registra ventas.</p></div>
- <div id="cart-items" class="cart-items"></div><div class="cart-foot"><div id="cart-summary"></div><button class="gold-button" id="copy-order" disabled>Copiar lista de prueba</button><p>Formato reservado: CANTIDAD CÓDIGO. Los precios se confirmarán desde el catálogo vigente de la PC.</p></div>
+ <div id="cart-items" class="cart-items"></div><div class="cart-foot"><div id="cart-summary"></div><button class="gold-button" id="copy-order" disabled><span>▣</span> Copiar lista de prueba</button><button id="clear-cart" class="clear-cart" disabled>Vaciar mi lista</button><p>Esta lista no se envía al bot. Formato de copia: CANTIDAD CÓDIGO. Los precios se confirmarán desde el catálogo vigente de la PC.</p></div>
 </section>
 </main>
-<nav class="bottom-nav" aria-label="Navegación de la aplicación"><button data-nav="inicio" class="active"><span>⌂</span>Inicio</button><button data-nav="buscar"><span>⌕</span>Buscar</button><button data-nav="plomeria"><span>🚰</span>Plomería</button><button data-nav="pedido"><span>🛒</span>Pedido</button></nav>
+<nav class="bottom-nav" aria-label="Navegación de la aplicación"><button data-nav="inicio" class="active"><span>⌂</span>Inicio</button><button data-nav="buscar"><span>⌕</span>Buscar</button><button data-nav="plomeria"><span>🚰</span>Plomería</button><button data-nav="pedido"><span>🛒</span>Pedido <small id="bottom-cart-count" class="bottom-cart-count" hidden>0</small></button></nav>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body></html>
