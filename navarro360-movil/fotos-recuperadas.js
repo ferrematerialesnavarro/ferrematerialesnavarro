@@ -54,4 +54,11 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.src='./escaner-barras.js?v=2';s.dataset.navarroEscaner='1';s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360: categoría complementaria Tornillería y fijaciones (módulo aislado). */
+(function(){
+ if(document.querySelector('script[data-navarro-fijaciones]'))return;
+ const s=document.createElement('script');
+ s.src='./tornilleria-nav.js?v=1';s.dataset.navarroFijaciones='1';s.async=true;
+ document.head.appendChild(s);
+})();
 })();
