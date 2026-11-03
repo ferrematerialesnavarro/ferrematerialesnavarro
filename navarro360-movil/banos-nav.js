@@ -20,7 +20,7 @@ function validFamily(f,n){
  if(/^Mangueras/.test(f))return /^MANGUERA /.test(n)&&/PWC|PARA WC|LAVABO|FREGADERO/.test(n)&&!/GAS|JARDIN|RIEGO|REGADERA/.test(n);
  if(/^Accesorios/.test(f))return /^(?:TOALLERO |PORTARROLLO |JABONERA |PORTAVASO CEPILLERO|JUEGO .*ACCESORIOS PARA BANO|CEPILLO SANITARIO|BARRA ANGULAR CON JABONERA)/.test(n)&&!/COCINA/.test(n);
  if(/^Refacciones/.test(f))return /^(?:CARTUCHO CERAMICO |MANERAL |JUEGO.*MANERALES|AIREADOR |RESISTENCIA PARA REGADERA)/.test(n)&&!/RODILLO|PINTAR|GAS/.test(n);
- if(/^Llaves de paso/.test(f))return /^LLAVE (?:ANGULAR |DE PASO |DE EMPOTRAR |PARA LAVABO|PARA FREGADERO)/.test(n);
+ if(/^Llaves de paso/.test(f))return /^LLAVE (?:ANGULAR |DE PASO |DE EMPOTRAR |PARA EMPOTRAR |PARA LAVABO|PARA FREGADERO)/.test(n);
  return false;
 }
 function brand(n){
