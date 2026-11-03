@@ -61,7 +61,13 @@ function start(){
  const tabs=document.getElementById('subfilters'),info=document.getElementById('results-info');
  if(!grid||!filters||!tabs||!Array.isArray(window.NAVARRO_DB))return;
  const dictionary=new Map(window.NAVARRO_DB.map(r=>[String(r[0]),r]));
- const highlights=new Map((window.NAVARRO_DESTACADOS||[]).filter(p=>p.cat==='Construcción').map(p=>[String(p.id),p.sub]));
+ const WITHOUT_SUB={
+  '7777001647':'Cementos y morteros',  // Cemento gris por kilo
+  '7777001636':'Cementos y morteros',  // Cemento blanco por kilo
+  '7777000596':'Pegapisos y acabados' // Yeso por kilo
+ };
+ const highlights=new Map((window.NAVARRO_DESTACADOS||[]).filter(p=>p.cat==='Construcción')
+  .map(p=>[String(p.id),p.sub||WITHOUT_SUB[String(p.id)]||'Otros materiales']));
  const extras=new Map();
  const rejected=[];
  for(const [code,group] of EXTRA){
