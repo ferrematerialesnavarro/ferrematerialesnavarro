@@ -1,5 +1,5 @@
-const VERSION='navarro360-fullstore-v5';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg'];
+const VERSION='navarro360-fullstore-v6-electricidad';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=6','./electricidad.css?v=6'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{

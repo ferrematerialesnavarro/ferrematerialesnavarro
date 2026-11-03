@@ -1,0 +1,28 @@
+
+/* ELECTRICIDAD V6: submenu persistente y tactil, independiente de Plomeria */
+.electric-panel[hidden]{display:none!important}
+.electric-panel{margin:16px 0 20px;padding:18px 14px;background:#fff;border:1px solid #dbe3ef;border-radius:19px;box-shadow:0 7px 28px rgba(7,26,57,.045);color:#152740}
+.el-header{display:flex;justify-content:space-between;align-items:flex-start;gap:9px}
+.el-header h3{font-size:20px;color:#071a39;line-height:1.18;letter-spacing:-.02em;margin:7px 0 9px}
+.el-header p{font-size:12px;line-height:1.55;color:#687990;margin:0}
+.el-eyebrow{display:block;font-size:10px;font-weight:850;color:#b27d24;letter-spacing:.1em}
+.el-reset{border:1px solid #e0dfd9;background:#fff;border-radius:10px;font-size:11px;padding:8px 9px;color:#535f72;font-weight:800;flex-shrink:0}
+.el-safety{background:#f4f7fc;border-radius:10px;padding:10px 11px;color:#52647b;font-size:11px;line-height:1.5;margin:15px 0}
+.el-step{padding:13px 0;border-top:1px solid #e5eaf1}
+.el-step-title{display:flex;align-items:center;gap:10px;color:#102b54;font-size:13px;margin-bottom:11px}
+.el-index{background:#fff0ce;color:#8b641a;min-width:28px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:950}
+.el-options{display:flex;flex-wrap:wrap;gap:8px}
+.el-chip{display:inline-flex;align-items:center;justify-content:center;gap:7px;text-align:center;min-height:39px;border:1px solid #d6dfeb;background:#fff;color:#314960;border-radius:11px;padding:9px 12px;font-size:12px;font-weight:800;touch-action:manipulation;cursor:pointer;max-width:100%}
+.el-chip span{overflow-wrap:anywhere}
+.el-chip small{font-size:10px;color:#8794a5;background:#eff2f5;border-radius:7px;padding:3px 5px;font-weight:900}
+.el-chip.el-active{background:#071a39;color:#fff;border-color:#071a39}
+.el-chip.el-active small{background:#e9b64e;color:#071a39}
+.el-symbol{font-size:19px;line-height:1}
+.el-step:first-of-type .el-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.el-step:first-of-type .el-chip{min-width:0;min-height:75px;flex-direction:column;padding:9px;gap:5px}
+.el-step:first-of-type .el-chip>span:not(.el-symbol){font-size:12px;line-height:1.25}
+.el-summary{margin-top:12px;padding:13px;border-radius:12px;background:#fff7e7;border:1px solid #ecd8b0;display:flex;flex-direction:column;gap:5px}
+.el-summary strong{font-size:14px;color:#071a39}
+.el-summary span{font-size:11px;color:#80642f;line-height:1.4}
+.el-invite{margin-top:12px;border:1px dashed #c9d4e3;border-radius:12px;padding:15px;text-align:center;color:#5c6b7f;font-size:12px;line-height:1.5}
+@media(min-width:660px){.electric-panel{padding:25px}.el-step:first-of-type .el-options{grid-template-columns:repeat(3,minmax(0,1fr))}.el-step:first-of-type .el-chip{min-height:68px}}
