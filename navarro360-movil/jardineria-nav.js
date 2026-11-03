@@ -26,7 +26,7 @@ function isValidFor(group,n){
  case 'Lonas azules':return /^LONA DE POLIETILENO\b/.test(n)&&/\bAZUL\b/.test(n)&&branded;
  case 'Lonas grises':return /^LONA DE POLIETILENO\b/.test(n)&&/\bGRIS\b/.test(n)&&/\bTRUPER\b/.test(n);
  case 'Aspersores y pistolas':return branded&&(/^ASPERSOR\b/.test(n)||/^PISTOLA\b/.test(n)&&/\bRIEGO\b/.test(n));
- case 'Conexiones de riego':return /^(?:CONECTOR|REPARADOR|LLAVE P|LLAVE PARA MANGUERA)\b/.test(n)&&/\bMANGUERA\b/.test(n)&&/\b(?:TRUPER|PRETUL|FOSET)\b/.test(n);
+ case 'Conexiones de riego':return /^(?:CONECTOR\b|REPARADOR\b|LLAVE P|LLAVE PARA MANGUERA)/.test(n)&&/MANGUERA/.test(n)&&/\b(?:TRUPER|PRETUL|FOSET)\b/.test(n);
  case 'Herramientas de jardín':return branded&&/^(?:CUCHARA PARA JARDIN|TRASPLANTADOR PARA JARDIN|CULTIVADOR PARA JARDIN|AZADON PARA JARDIN|RASTRILLO JARDINERO|RASTRILLO RECTO|ESCOBA (?:METALICA|PLASTICA).*JARDIN|TIJERA (?:PARA PODA|PODA|PARA RAMAS)|PALA (?:CUADRADA|REDONDA)|COA |BIELDO PARA JARDIN)/.test(n);
  case 'Fumigadores':return /^FUMIGADOR\b/.test(n)&&branded;
  case 'Insumos de jardín':return n==='ABONO';
