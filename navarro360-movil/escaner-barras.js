@@ -157,7 +157,7 @@ async function open(){
 function attach(){
  var inputs=[...new Set([...document.querySelectorAll('#search,#search-mobile,input[type="search"]')])];
  for(var input of inputs){
-  if(input.dataset.navarroScanAttached)return;
+  if(input.dataset.navarroScanAttached)continue;
   var host=input.parentElement;if(!host)continue;
   input.dataset.navarroScanAttached='1';
   host.style.position='relative';
