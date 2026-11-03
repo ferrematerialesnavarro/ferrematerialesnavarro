@@ -78,4 +78,13 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
  s.dataset.navarroHerrajes='1';s.async=true;
  document.head.appendChild(s);
 })();
+/* NAVARRO 360: Baños y accesorios V1, módulo aislado del carrito y del bot. */
+(function(){
+ if(document.querySelector('script[data-navarro-banos]'))return;
+ const s=document.createElement('script');
+ s.src='./banos-nav.js?v=1';
+ s.dataset.navarroBanos='1';
+ s.async=true;
+ document.head.appendChild(s);
+})();
 })();
