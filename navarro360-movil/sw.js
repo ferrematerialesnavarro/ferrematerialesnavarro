@@ -1,5 +1,5 @@
-const VERSION='navarro360-fullstore-v15-tornilleria-69';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=7','./electricidad.css?v=6','./fotos-recuperadas.js?v=15','./tornilleria-nav.js?v=1','./escaner-barras.js?v=2','./pinturas-nav.js?v=1'];
+const VERSION='navarro360-fullstore-v16-jardineria-217';
+const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=7','./electricidad.css?v=6','./fotos-recuperadas.js?v=16','./jardineria-nav.js?v=1','./tornilleria-nav.js?v=1','./escaner-barras.js?v=2','./pinturas-nav.js?v=1'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener('fetch',event=>{
