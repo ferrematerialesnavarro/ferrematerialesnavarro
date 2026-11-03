@@ -1,0 +1,19 @@
+{
+  "name": "NAVARRO 360 Móvil — Vista previa",
+  "short_name": "NAVARRO 360",
+  "description": "Versión móvil de desarrollo independiente del bot y SIFO",
+  "id": "/ferrematerialesnavarro/navarro360-movil/",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6fa",
+  "theme_color": "#071a39",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
