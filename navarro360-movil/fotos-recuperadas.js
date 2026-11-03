@@ -51,7 +51,7 @@ function bind(){const grid=document.getElementById('products');if(!grid)return;c
 (function(){
  if(document.querySelector('script[data-navarro-escaner]'))return;
  const s=document.createElement('script');
- s.src='./escaner-barras.js?v=1';s.dataset.navarroEscaner='1';s.async=true;
+ s.src='./escaner-barras.js?v=2';s.dataset.navarroEscaner='1';s.async=true;
  document.head.appendChild(s);
 })();
 })();
