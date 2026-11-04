@@ -1,0 +1,46 @@
+name: NAVARRO 360 V43 - limpiar buscador USB
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v43-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar lector
+        run: node --check navarro360-movil/lector-usb-v42.js
+      - name: Actualizar versión de caché
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          if sha(p.read_bytes())!='ada7aa897da7de6525798cdbb8767f6c70671d66':raise SystemExit('La página cambió. No se reemplaza.')
+          s=p.read_text()
+          assert s.count('lector-usb-v42.js?v=42')==1
+          assert s.count('sw.js?v=42')==1
+          s=s.replace('lector-usb-v42.js?v=42','lector-usb-v42.js?v=43')
+          s=s.replace('sw.js?v=42','sw.js?v=43')
+          p.write_text(s)
+          w=Path('navarro360-movil/sw.js')
+          t=w.read_text()
+          assert t.count('navarro360-fullstore-v42-lector-usb')==1
+          t=t.replace('navarro360-fullstore-v42-lector-usb','navarro360-fullstore-v43-buscador-limpio')
+          t=t.replace("'./lector-usb-v42.js?v=42'","'./lector-usb-v42.js?v=43'")
+          w.write_text(t)
+          print('Escaneo USB V43 y caché listos')
+          PY
+      - name: Publicar archivos
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V43: limpiar buscador y recuperar enfoque tras escanear"
+          git push origin HEAD:main
