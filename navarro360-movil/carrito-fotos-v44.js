@@ -1,28 +1,44 @@
-/* NAVARRO 360 V44: miniaturas en carrito, solo si hay foto real disponible. */
+/* NAVARRO 360 V45: miniaturas por código exacto y mismas fuentes que las tarjetas. */
 (function(){'use strict';
 if(window.NAVARRO_CARRITO_FOTOS_V44)return;window.NAVARRO_CARRITO_FOTOS_V44=true;
 const personal=new Map();
-function atlasFor(id){
+// V45: ordenar fuentes como la tarjeta real: foto local, foto exacta por código,
+// fotografía recuperada del mismo SKU y después atlas autorizado.
+function sourceFor(id){
+ const url=personal.get(id);
+ if(url)return {kind:'url',src:url};
+ const codePhotos=window.NAVARRO_FOTOS_PAGINA||{};
+ if(Object.prototype.hasOwnProperty.call(codePhotos,id)){
+  const filename=String(codePhotos[id]||'');
+  if(/^https:\/\//.test(filename))return {kind:'url',src:filename};
+  if(/^[a-z0-9][a-z0-9_.-]*\.(?:png|jpe?g|webp)$/i.test(filename))
+   return {kind:'url',src:'./assets/'+filename};
+ }
  const atlas=window.NAVARRO_ATLAS;
  if(!atlas||!atlas.files)return null;
- const featured=Array.isArray(window.NAVARRO_DESTACADOS)?window.NAVARRO_DESTACADOS.find(p=>String(p.id)===id):null;
- const name=featured?.img||atlas.byCode?.[id]||window.NAVARRO_FOTOS_PAGINA?.[id]||'';
- const n=atlas.files[name];
- if(!Number.isInteger(n))return null;
- return {atlas,n};
+ const featured=Array.isArray(window.NAVARRO_DESTACADOS)
+  ?window.NAVARRO_DESTACADOS.find(p=>String(p.id)===id):null;
+ const name=featured?.img||atlas.byCode?.[id]||'';
+ const index=atlas.files[name];
+ if(!Number.isInteger(index))return null;
+ return {kind:'atlas',atlas,index};
 }
 function thumbFor(id){
- const local=personal.get(id);
- if(local){
-  const wrap=document.createElement('span');wrap.className='nav-cart-thumb';
-  const img=document.createElement('img');img.src=local;img.alt='Fotografía del producto';img.loading='lazy';wrap.append(img);return wrap;
+ const entry=sourceFor(id);if(!entry)return null;
+ const wrap=document.createElement('span');
+ wrap.className='nav-cart-thumb';
+ wrap.dataset.navPhotoKey=entry.kind==='url'?entry.src:'atlas:'+entry.index;
+ if(entry.kind==='url'){
+  const img=document.createElement('img');
+  img.src=entry.src;img.alt='Foto del producto '+id;img.loading='lazy';
+  img.onerror=()=>{wrap.remove();};
+  wrap.append(img);return wrap;
  }
- const found=atlasFor(id);if(!found)return null;
- const {atlas,n}=found;
- const wrap=document.createElement('span');wrap.className='nav-cart-thumb';
- const sprite=document.createElement('span');sprite.className='product-sprite nav-cart-sprite';
+ const {atlas,index}=entry;
+ const sprite=document.createElement('span');
+ sprite.className='product-sprite nav-cart-sprite';
  sprite.setAttribute('role','img');sprite.setAttribute('aria-label','Fotografía del catálogo');
- const x=(n%atlas.columns)*atlas.size,y=Math.floor(n/atlas.columns)*atlas.size;
+ const x=index%atlas.columns*atlas.size,y=Math.floor(index/atlas.columns)*atlas.size;
  sprite.style.backgroundPosition='-'+x+'px -'+y+'px';
  sprite.style.backgroundSize=(atlas.columns*atlas.size)+'px '+(atlas.rows*atlas.size)+'px';
  wrap.append(sprite);return wrap;
@@ -36,9 +52,7 @@ function sync(){
   const current=row.querySelector('.nav-cart-thumb');
   if(!photo){if(current)current.remove();continue}
   if(current){
-   const oldImg=current.querySelector('img'),newImg=photo.querySelector('img');
-   const oldSprite=current.querySelector('.nav-cart-sprite'),newSprite=photo.querySelector('.nav-cart-sprite');
-   if((oldImg&&newImg&&oldImg.src===newImg.src)||(oldSprite&&newSprite&&oldSprite.style.backgroundPosition===newSprite.style.backgroundPosition))continue;
+   if(current.dataset.navPhotoKey===photo.dataset.navPhotoKey)continue;
    current.replaceWith(photo);
   }else row.prepend(photo);
  }
