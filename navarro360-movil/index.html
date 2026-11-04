@@ -579,9 +579,7 @@ function renderCart(){
   const p=dictionary.get(id);
   if(esImporte(id)){
    const imp=importeFinal(id);
-   const c=imp?cantidadDesdeImporte(id,imp):null;
-   const textoCantidad=c?formatearCantidad(c.cantidad):formatearCantidad(num);
-   return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)} · Cantidad para WhatsApp: ${textoCantidad}</small><div class="cart-controls"><button type="button" data-clavo-edit="${esc(id)}">✎ Editar importe</button><button type="button" data-clavo-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(imp||p.price*num)}</span></div></div>`;
+   return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}</small><div class="cart-controls"><button type="button" data-clavo-edit="${esc(id)}">✎ Editar importe</button><button type="button" data-clavo-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(imp||p.price*num)}</span></div></div>`;
   }
   return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${formatearCantidad(num)}</span><button type="button" data-qty-edit="${esc(id)}" aria-label="Editar cantidad" title="Escribir cantidad">✎</button><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
@@ -700,5 +698,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classL
 })();
 
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=12').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=6"></script></body>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=6"></script></body>
 </html>
