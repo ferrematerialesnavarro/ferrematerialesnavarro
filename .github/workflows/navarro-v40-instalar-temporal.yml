@@ -45,3 +45,5 @@ jobs:
           git add navarro360-movil/index.html navarro360-movil/sw.js
           git commit -m "NAVARRO 360 V40: activar buscador local y fotos personales"
           git push origin HEAD:main
+
+# Revalidado: módulo V40 sintaxis comprobada
