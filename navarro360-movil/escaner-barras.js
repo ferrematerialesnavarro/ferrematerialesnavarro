@@ -1,4 +1,4 @@
-/* NAVARRO 360: escáner V7 IPHONE. Decodificador 1D en Safari y carrito directo. */
+/* NAVARRO 360: escáner V8 CONTINUO. Cámara abierta, carrito directo, próximo código listo. */
 (function(){
 'use strict';
 if(window.NAVARRO_ESCANER_INSTALADO)return;
@@ -106,7 +106,7 @@ function ensureOverlay(){
  overlay=document.createElement('div');overlay.id='nav-scan-overlay';overlay.hidden=true;
  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
  overlay.setAttribute('aria-label','Lector de código de barras');
- overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner profesional · iPhone V7</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-pro-tools"><button id="nav-scan-torch" type="button" hidden>🔦 Linterna</button><label id="nav-scan-zoom-wrap" hidden>Zoom <input id="nav-scan-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom de cámara"/></label><button id="nav-scan-sound" type="button" aria-pressed="true">🔊 Sonido</button></div><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button><button id="nav-scan-diagnose" type="button">🔎 Diagnóstico</button></div><p id="nav-scan-diagnostic" hidden></p><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Código de barras" aria-label="Código de barras manual" maxlength="30"/><button type="submit">Agregar código</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Una lectura solo suma una unidad.</p></div>';
+ overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner continuo · iPhone V8</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos · listo para escanear</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-pro-tools"><button id="nav-scan-torch" type="button" hidden>🔦 Linterna</button><label id="nav-scan-zoom-wrap" hidden>Zoom <input id="nav-scan-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom de cámara"/></label><button id="nav-scan-sound" type="button" aria-pressed="true">🔊 Sonido</button></div><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button><button id="nav-scan-diagnose" type="button">🔎 Diagnóstico</button></div><p id="nav-scan-diagnostic" hidden></p><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Escanear o escribir código" aria-label="Escanear o escribir código de barras manual" maxlength="30"/><button type="submit">Agregar y seguir</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Cada código válido suma una unidad. La cámara permanece abierta para el siguiente producto.</p></div>';
  document.body.appendChild(overlay);
  overlay.querySelector('#nav-scan-close').addEventListener('click',()=>void close());
  overlay.querySelector('#nav-scan-repeat').addEventListener('click',()=>void repeatLast());
@@ -164,7 +164,7 @@ function updateProgress(){
 function confirmedAdd(p){
  sessionUnits++;sessionCodes.add(p.code);lastProduct=p;
  updateProgress();
- setStatus('✓ +1 '+p.name+' ('+p.code+'). Puedes escanear otro producto o pulsar +1 para otra unidad igual.');
+ setStatus('✓ +1 '+p.name+' ('+p.code+'). ✓ Carrito actualizado · 📷 LISTO PARA EL SIGUIENTE CÓDIGO.');
  if(navigator.vibrate)try{navigator.vibrate(60)}catch(_){}
  playSuccessSound();
 }
@@ -200,8 +200,15 @@ async function decoded(value,source='camera'){
  try{result=await addFound(p,token)}catch(e){result={ok:false,reason:'No se pudo confirmar el producto'};}
  if(closed||token!==session)return;
  busy=false;
- if(result.ok)confirmedAdd(p);
- else {lastCode='';setStatus(result.reason+'. Código: '+p.code+'. Comprueba el carrito.',true);}
+ if(result.ok){
+  confirmedAdd(p);
+  // El lector continúa activo: únicamente la captura manual devuelve el foco al campo.
+  // No abrir teclado en Safari mientras la cámara está reconociendo códigos.
+  if(source==='manual'){
+   const input=overlay?.querySelector('#nav-scan-manual-code');
+   if(input){input.value='';try{input.focus({preventScroll:true})}catch(_){input.focus()}}
+  }
+ }else{lastCode='';setStatus(result.reason+'. Código: '+p.code+'. Comprueba el carrito.',true);}
  updateProgress();
 }
 function unlockAudio(){
@@ -451,7 +458,7 @@ async function open(){
   }
   if(closed||token!==session){await stop();return}
   setupCameraControls();showDiagnostic();void startAlternative(token);
-  setStatus('Lector iPhone V7 activo. Enfoca todas las barras; si no detecta, usa Fotografiar código.');
+  setStatus('📷 Lector continuo V8 activo. Escanea un código; se agregará al carrito y la cámara seguirá lista para el siguiente.');
  }catch(err){
   if(closed||token!==session)return;
   var msg=String(err?.message||err||'');
