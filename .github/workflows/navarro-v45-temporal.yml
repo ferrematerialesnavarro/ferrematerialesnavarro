@@ -1,0 +1,47 @@
+name: NAVARRO 360 V45 - fotos correctas en carrito
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v45-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Revisar miniaturas
+        run: node --check navarro360-movil/carrito-fotos-v44.js
+      - name: Activar fotos por SKU y cambiar versión de caché
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          h=Path('navarro360-movil/index.html')
+          assert sha(h.read_bytes())=='831f203852642ec73f9613b8cc8f8fffbec55f37','El HTML cambió; no se modifica'
+          text=h.read_text()
+          assert text.count('carrito-fotos-v44.js?v=44')==1
+          assert text.count('sw.js?v=44')==1
+          text=text.replace('carrito-fotos-v44.js?v=44','carrito-fotos-v44.js?v=45')
+          text=text.replace('sw.js?v=44','sw.js?v=45')
+          h.write_text(text)
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count('navarro360-fullstore-v44-miniaturas-carrito')==1
+          assert t.count('carrito-fotos-v44.js?v=44')==1
+          t=t.replace('navarro360-fullstore-v44-miniaturas-carrito','navarro360-fullstore-v45-fotos-codigo')
+          t=t.replace('carrito-fotos-v44.js?v=44','carrito-fotos-v44.js?v=45')
+          sw.write_text(t)
+          print('V45: fotografía asociada por SKU, con caché nuevo')
+          PY
+      - name: Publicar
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V45: miniaturas asociadas al producto exacto"
+          git push origin HEAD:main
