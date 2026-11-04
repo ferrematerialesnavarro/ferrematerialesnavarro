@@ -1,4 +1,4 @@
-/* NAVARRO 360 V42 — lector USB/HID en la barra de búsqueda. */
+/* NAVARRO 360 V43 — lector USB/HID en la barra de búsqueda. */
 (function(){
 'use strict';
 if(window.NAVARRO_LECTOR_USB_V42)return;
@@ -29,9 +29,26 @@ function reset(el){
  clearTimeout(timer);timer=0;
  trace={el:null,last:0,count:0};
  if(!el)return;
- el.value='';
+ const prior=el.value.trim();
+ // Hay dos barras vinculadas por la tienda: vaciar ambas, no solo la que recibió el escaneo.
+ const fields=[...document.querySelectorAll(SELECTOR)];
+ for(const field of fields)field.value='';
+ // Avisar al buscador original para restablecer resultados y su estado interno.
  el.dispatchEvent(new Event('input',{bubbles:true}));
- try{el.focus({preventScroll:true})}catch(_){el.focus()}
+ for(const field of fields)field.value='';
+ function focusNext(){
+  if(!el.isConnected)return;
+  // Si ya comenzó el escaneo siguiente, jamás borrar su lectura.
+  const typed=el.value.trim();
+  if(typed&&typed!==prior)return;
+  if(typed===prior&&prior)el.value='';
+  try{el.focus({preventScroll:true})}catch(_){el.focus()}
+  // Cursor listo: las lectoras USB se comportan como teclado.
+  try{el.setSelectionRange(el.value.length,el.value.length)}catch(_){}
+ }
+ focusNext();
+ requestAnimationFrame(focusNext);
+ setTimeout(focusNext,80);
 }
 function finish(el,byEnter){
  clearTimeout(timer);timer=0;
