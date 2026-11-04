@@ -1,11 +1,11 @@
-/* NAVARRO 360 — Buscador completo V2, 04-nov-2026.
+/* NAVARRO 360 — Buscador completo V3, 04-nov-2026.
    Consulta solamente la copia de NAVARRO_DB; no altera precios, carrito, escáner ni SIFO.
-   No expone Grupo Truper en búsquedas genéricas: código exacto o descripción específica.
+   Por nombre: primero artículos ajenos al Grupo Truper, después artículos relacionados
+   del Grupo Truper. Por código: mantiene la búsqueda exacta del sistema existente.
 */
 (function () {
   'use strict';
   const STOP = new Set('DE DEL LA LAS EL LOS LO UN UNA UNO Y CON PARA POR EN AL A LAS LOS GRADO GRADOS PULGADA PULGADAS PULG CALIBRE GRANO NUMERO NO'.split(' '));
-  const BRAND = new Set('TRUPER PRETUL FOSET FOSSET HERMEX HEXMEX VOLTECK FIERO KLINTEK EXPERT ULTRACRAFT'.split(' '));
   const WORD_NUMBERS = {CERO:'0',UNO:'1',UNA:'1',UN:'1',DOS:'2',TRES:'3',CUATRO:'4',CINCO:'5',SEIS:'6',SIETE:'7',OCHO:'8',NUEVE:'9',DIEZ:'10',DOCE:'12',CATORCE:'14',DIECISEIS:'16',DIECIOCHO:'18',VEINTE:'20',VEINTIDOS:'22',VEINTICUATRO:'24',TREINTA:'30',CUARENTA:'40',NOVENTA:'90'};
   // Las fracciones se convierten antes de separar palabras y números.
   function normalize(s) {
@@ -63,21 +63,6 @@
     prefixCache.set(token,found);
     return found;
   }
-  const isNumber=t=>/\d/.test(t);
-  function specificEnough(query,row,totalProtected) {
-    const q=query.tk;
-    if (q.length < 3) return false;
-    // La frase completa, o con preposiciones omitidas, identifica un SKU concreto.
-    if (q.join(' ')===row.tk.join(' ')) return true;
-    const branded=q.some(x=>BRAND.has(x));
-    const informative=q.filter(x=>!BRAND.has(x));
-    const hasNumber=informative.some(isNumber);
-    if (branded && informative.length>=3 && (hasNumber || informative.length>=4)) return true;
-    if (informative.length>=5 && hasNumber) return true;
-    // Un producto de medida muy definida, sin recomendar toda la familia.
-    if (informative.length>=3 && hasNumber && totalProtected<=3) return true;
-    return false;
-  }
   function score(row,q) {
     let value=0;
     for (const token of q.tk) value+=row.wordSet.has(token)?18:4;
@@ -105,17 +90,23 @@
       if (!current || current.name!==row.name)continue; // Evita reutilizar códigos cambiados.
       selected.push(row);
     }
-    const protectedMatches=selected.filter(x=>!x.generic).length;
     const q={tk,normalized};
-    selected=selected.filter(x=>x.generic||specificEnough(q,x,protectedMatches));
-    selected.sort((a,b)=>score(b,q)-score(a,q)||a.name.localeCompare(b.name,'es',{numeric:true})||a.id.localeCompare(b.id));
+    // No ocultar productos del Grupo Truper: mostrar todos los nombres relacionados.
+    // La procedencia prevalece sobre la relevancia para que los genéricos siempre
+    // aparezcan primero; dentro de cada grupo se ordena por coincidencia.
+    selected.sort((a,b)=>
+      Number(b.generic)-Number(a.generic) ||
+      score(b,q)-score(a,q) ||
+      a.name.localeCompare(b.name,'es',{numeric:true}) ||
+      a.id.localeCompare(b.id)
+    );
     return selected.map(x=>{
       const p=dictionary.get(x.id);
       return {...p,display:p.name,cat:'Catálogo general',sub:'',img:imgFor(x.id)};
     });
   }
   window.NAVARRO_BUSCADOR_COMPLETO = Object.freeze({
-    version:'2026-11-04-v2',
+    version:'2026-11-04-v3-prioridad',
     total:rows.length,
     genericos:rows.filter(x=>x.generic).length,
     protegidos:rows.filter(x=>!x.generic).length,
