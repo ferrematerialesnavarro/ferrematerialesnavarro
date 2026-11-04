@@ -1,4 +1,4 @@
-/* NAVARRO 360: escáner de barras V3 IPHONE. Solo UI; el carrito lo gestiona la app original. */
+/* NAVARRO 360: escáner de barras V4 IPHONE PRO. Solo UI; el carrito lo gestiona la app original. */
 (function(){
 'use strict';
 if(window.NAVARRO_ESCANER_INSTALADO)return;
@@ -6,6 +6,7 @@ window.NAVARRO_ESCANER_INSTALADO=true;
 var CDN='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js';
 var overlay=null,reader=null,loading=null,opening=false,busy=false,closed=true,unknown='',unknownAt=0;
 var photoReader=null,photoStop=null,photoBusy=false;
+var activeTrack=null,zoomCaps=null,torchOn=false,audioContext=null;
 var session=0,lastCode='',lastProduct=null,sessionUnits=0,sessionCodes=new Set(),nextAllowedAt=0;
 const MIN_BETWEEN_PRODUCTS_MS=750;
 var pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -87,17 +88,21 @@ function ensureOverlay(){
  overlay=document.createElement('div');overlay.id='nav-scan-overlay';overlay.hidden=true;
  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
  overlay.setAttribute('aria-label','Lector de código de barras');
- overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner de barras · iPhone V3</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button></div><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Código de barras" aria-label="Código de barras manual" maxlength="30"/><button type="submit">Agregar código</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Una lectura solo suma una unidad.</p></div>';
+ overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner profesional · iPhone V4</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-pro-tools"><button id="nav-scan-torch" type="button" hidden>🔦 Linterna</button><label id="nav-scan-zoom-wrap" hidden>Zoom <input id="nav-scan-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom de cámara"/></label><button id="nav-scan-sound" type="button" aria-pressed="true">🔊 Sonido</button></div><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button></div><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Código de barras" aria-label="Código de barras manual" maxlength="30"/><button type="submit">Agregar código</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Una lectura solo suma una unidad.</p></div>';
  document.body.appendChild(overlay);
  overlay.querySelector('#nav-scan-close').addEventListener('click',()=>void close());
  overlay.querySelector('#nav-scan-repeat').addEventListener('click',()=>void repeatLast());
- overlay.querySelector('#nav-scan-take-photo').addEventListener('click',()=>{if(closed||photoBusy)return;photoStop=stop();setStatus('Cámara pausada. Toma una foto nítida del código.');overlay.querySelector('#nav-scan-photo').click();});
+ overlay.querySelector('#nav-scan-torch').addEventListener('click',()=>void toggleTorch());
+ overlay.querySelector('#nav-scan-zoom').addEventListener('input',e=>void changeZoom(Number(e.target.value)));
+ overlay.querySelector('#nav-scan-sound').addEventListener('click',e=>{const enabled=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',String(enabled));e.currentTarget.textContent=enabled?'🔊 Sonido':'🔇 Silencio';if(enabled)unlockAudio();});
+ overlay.querySelector('#nav-scan-take-photo').addEventListener('click',()=>{if(closed||photoBusy)return;unlockAudio();photoStop=stop();setStatus('Cámara pausada. Toma una foto nítida del código.');overlay.querySelector('#nav-scan-photo').click();});
  overlay.querySelector('#nav-scan-photo').addEventListener('change',e=>{void scanPhoto(e.target.files&&e.target.files[0]);});
  overlay.querySelector('#nav-scan-reopen').addEventListener('click',async()=>{await close();await open();});
- overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code);});
+ overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();unlockAudio();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code);});
  overlay.addEventListener('click',e=>{if(e.target===overlay)void close()});
 }
 async function stop(){
+ activeTrack=null;zoomCaps=null;torchOn=false;updateCameraControls();
  var prev=reader;reader=null;if(!prev)return;
  try{await prev.stop()}catch(_){}
  try{await prev.clear()}catch(_){}
@@ -141,6 +146,7 @@ function confirmedAdd(p){
  updateProgress();
  setStatus('✓ +1 '+p.name+' ('+p.code+'). Puedes escanear otro producto o pulsar +1 para otra unidad igual.');
  if(navigator.vibrate)try{navigator.vibrate(60)}catch(_){}
+ playSuccessSound();
 }
 async function repeatLast(){
  if(closed||busy||!lastProduct)return;
@@ -177,6 +183,66 @@ async function decoded(value){
  if(result.ok)confirmedAdd(p);
  else {lastCode='';setStatus(result.reason+'. Código: '+p.code+'. Comprueba el carrito.',true);}
  updateProgress();
+}
+function unlockAudio(){
+ try{
+  const C=window.AudioContext||window.webkitAudioContext;
+  if(!C)return;
+  if(!audioContext)audioContext=new C();
+  if(audioContext.state==='suspended')void audioContext.resume().catch(()=>{});
+ }catch(_){}
+}
+function playSuccessSound(){
+ if(overlay?.querySelector('#nav-scan-sound')?.getAttribute('aria-pressed')!=='true')return;
+ try{
+  if(!audioContext||audioContext.state!=='running')return;
+  const osc=audioContext.createOscillator(),gain=audioContext.createGain(),now=audioContext.currentTime;
+  osc.type='sine';osc.frequency.setValueAtTime(880,now);
+  gain.gain.setValueAtTime(0.0001,now);gain.gain.exponentialRampToValueAtTime(0.12,now+0.015);gain.gain.exponentialRampToValueAtTime(0.0001,now+0.12);
+  osc.connect(gain);gain.connect(audioContext.destination);osc.start(now);osc.stop(now+0.13);
+ }catch(_){}
+}
+function updateCameraControls(){
+ const torch=overlay?.querySelector('#nav-scan-torch');
+ const zoom=overlay?.querySelector('#nav-scan-zoom-wrap');
+ if(torch){torch.hidden=!activeTrack||!zoomCaps?.torch;torch.textContent=torchOn?'🔦 Apagar':'🔦 Linterna';torch.setAttribute('aria-pressed',String(torchOn));}
+ if(zoom)zoom.hidden=!activeTrack||!zoomCaps?.zoom;
+}
+function setupCameraControls(){
+ activeTrack=null;zoomCaps=null;torchOn=false;
+ try{
+  const video=overlay?.querySelector('#nav-scan-camera video');
+  const track=video?.srcObject?.getVideoTracks?.()[0];
+  if(track&&track.readyState==='live'){
+   activeTrack=track;
+   const caps=typeof track.getCapabilities==='function'?track.getCapabilities():{};
+   zoomCaps={torch:!!caps.torch,zoom:caps.zoom||null};
+   const range=overlay?.querySelector('#nav-scan-zoom');
+   if(range&&caps.zoom){
+    range.min=String(caps.zoom.min);range.max=String(caps.zoom.max);
+    range.step=String(caps.zoom.step||0.1);
+    const settings=track.getSettings?.()||{};
+    range.value=String(Math.min(caps.zoom.max,Math.max(caps.zoom.min,settings.zoom||caps.zoom.min)));
+   }
+  }
+ }catch(_){}
+ updateCameraControls();
+}
+async function toggleTorch(){
+ if(!activeTrack||!zoomCaps?.torch||closed)return;
+ const track=activeTrack,next=!torchOn;
+ try{
+  await track.applyConstraints({advanced:[{torch:next}]});
+  if(track!==activeTrack||closed)return;
+  torchOn=next;updateCameraControls();
+ }catch(_){setStatus('Este iPhone o Safari no permite controlar la linterna desde la página.',true);}
+}
+async function changeZoom(value){
+ const track=activeTrack,caps=zoomCaps?.zoom;
+ if(!track||!caps||closed||!Number.isFinite(value))return;
+ const next=Math.min(caps.max,Math.max(caps.min,value));
+ try{await track.applyConstraints({advanced:[{zoom:next}]});}
+ catch(_){setStatus('Safari no permitió ajustar el zoom de esta cámara.',true);}
 }
 async function scanPhoto(file){
  if(!file||closed||photoBusy)return;
@@ -230,7 +296,8 @@ async function open(){
    await reader.start({facingMode:'environment'},{fps:10,disableFlip:true},onFound,()=>{});
   }
   if(closed||token!==session){await stop();return}
-  setStatus('Cámara lista: coloca todas las barras dentro de la imagen. Si no reconoce, toca Fotografiar código.');
+  setupCameraControls();
+  setStatus('Cámara lista: centra el código. Puedes usar zoom, linterna o fotografiarlo si están disponibles.');
  }catch(err){
   if(closed||token!==session)return;
   var msg=String(err?.message||err||'');
@@ -251,13 +318,13 @@ function attach(){
   btn.type='button';btn.className='nav-scan-launch';btn.dataset.navarroScanLaunch='1';
   btn.textContent='📷';btn.title='Escanear código de barras';
   btn.setAttribute('aria-label','Abrir escáner de código de barras');
-  btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();void open()});
+  btn.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();unlockAudio();void open()});
   host.appendChild(btn);
  }
 }
 function install(){
  var style=document.createElement('style');
- style.textContent='.nav-scan-launch{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:44px;height:44px;z-index:8;border:0;border-radius:12px;background:#102b54;color:white;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 9px #071a3933}#nav-scan-overlay[hidden]{display:none!important}#nav-scan-overlay{position:fixed;inset:0;background:#071a39df;z-index:2147483000;display:flex;align-items:end;justify-content:center;box-sizing:border-box;padding:10px 8px max(14px,env(safe-area-inset-bottom))}.nav-scan-panel{max-width:570px;width:100%;background:white;border-radius:22px;padding:16px;box-sizing:border-box;box-shadow:0 12px 50px #0005}.nav-scan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;color:#102b54;margin-bottom:10px}.nav-scan-head strong{font-size:18px}.nav-scan-head p{color:#66748a;font-size:12px;line-height:1.4;margin:5px 0}#nav-scan-close{width:44px;height:44px;border:0;border-radius:11px;background:#edf1f8;color:#102b54;font-size:20px;flex-shrink:0}#nav-scan-camera{background:#071a39;border-radius:12px;overflow:hidden;min-height:180px}#nav-scan-camera video{max-width:100%}#nav-scan-status{margin:14px 0 7px;text-align:center;font-size:14px;font-weight:700;color:#163859;overflow-wrap:anywhere}#nav-scan-status.error{color:#a52e2e}.nav-scan-help{color:#68788a;font-size:12px;text-align:center;line-height:1.4;margin:0}body.nav-scan-open{overflow:hidden}.nav-scan-tools{display:flex;gap:8px;margin:9px 0}.nav-scan-tools button{flex:1;background:#102b54;color:#fff;border:0;border-radius:10px;min-height:44px;font-weight:750;font-size:12px}.nav-scan-file-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}#nav-scan-photo-reader{position:absolute;left:-10000px;top:0;width:320px;height:240px;opacity:0;pointer-events:none}#nav-scan-manual{display:flex;gap:7px;margin:7px 0 10px}#nav-scan-manual input{min-width:0;flex:1;min-height:43px;border:1px solid #ccd6e6;border-radius:10px;font-size:16px;padding:0 10px}#nav-scan-manual button{border:0;border-radius:10px;background:#e7b549;color:#142842;min-height:43px;padding:0 10px;font-size:12px;font-weight:800}#nav-scan-camera video{min-height:210px;object-fit:contain}.nav-scan-summary{background:#edf4fd;border:1px solid #d3e4f7;color:#122f52;border-radius:11px;padding:11px;font-weight:800;font-size:13px;text-align:center;margin:8px 0}#nav-scan-repeat{border:0;border-radius:12px;background:#e7b549;color:#142842;font-size:13px;font-weight:850;min-height:44px;padding:10px 12px;width:100%;margin-bottom:9px;white-space:normal;overflow-wrap:anywhere}#nav-scan-repeat[hidden]{display:none!important}#nav-scan-repeat:disabled{opacity:.6}';
+ style.textContent='.nav-scan-launch{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:44px;height:44px;z-index:8;border:0;border-radius:12px;background:#102b54;color:white;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 9px #071a3933}#nav-scan-overlay[hidden]{display:none!important}#nav-scan-overlay{position:fixed;inset:0;background:#071a39df;z-index:2147483000;display:flex;align-items:end;justify-content:center;box-sizing:border-box;padding:10px 8px max(14px,env(safe-area-inset-bottom))}.nav-scan-panel{max-width:570px;width:100%;background:white;border-radius:22px;padding:16px;box-sizing:border-box;box-shadow:0 12px 50px #0005}.nav-scan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;color:#102b54;margin-bottom:10px}.nav-scan-head strong{font-size:18px}.nav-scan-head p{color:#66748a;font-size:12px;line-height:1.4;margin:5px 0}#nav-scan-close{width:44px;height:44px;border:0;border-radius:11px;background:#edf1f8;color:#102b54;font-size:20px;flex-shrink:0}#nav-scan-camera{background:#071a39;border-radius:12px;overflow:hidden;min-height:180px}#nav-scan-camera video{max-width:100%}#nav-scan-status{margin:14px 0 7px;text-align:center;font-size:14px;font-weight:700;color:#163859;overflow-wrap:anywhere}#nav-scan-status.error{color:#a52e2e}.nav-scan-help{color:#68788a;font-size:12px;text-align:center;line-height:1.4;margin:0}body.nav-scan-open{overflow:hidden}.nav-scan-pro-tools{display:flex;align-items:center;gap:8px;margin:7px 0;flex-wrap:wrap}.nav-scan-pro-tools button{border:0;border-radius:9px;background:#eaf0fa;color:#173453;padding:9px 10px;min-height:40px;font-weight:750}.nav-scan-pro-tools button[hidden],.nav-scan-pro-tools label[hidden]{display:none!important}.nav-scan-pro-tools label{display:flex;align-items:center;gap:5px;font-size:12px;color:#173453;font-weight:700;flex:1;min-width:140px}.nav-scan-pro-tools input{min-width:70px;width:100%;accent-color:#102b54}.nav-scan-tools{display:flex;gap:8px;margin:9px 0}.nav-scan-tools button{flex:1;background:#102b54;color:#fff;border:0;border-radius:10px;min-height:44px;font-weight:750;font-size:12px}.nav-scan-file-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}#nav-scan-photo-reader{position:absolute;left:-10000px;top:0;width:320px;height:240px;opacity:0;pointer-events:none}#nav-scan-manual{display:flex;gap:7px;margin:7px 0 10px}#nav-scan-manual input{min-width:0;flex:1;min-height:43px;border:1px solid #ccd6e6;border-radius:10px;font-size:16px;padding:0 10px}#nav-scan-manual button{border:0;border-radius:10px;background:#e7b549;color:#142842;min-height:43px;padding:0 10px;font-size:12px;font-weight:800}#nav-scan-camera video{min-height:210px;object-fit:contain}.nav-scan-summary{background:#edf4fd;border:1px solid #d3e4f7;color:#122f52;border-radius:11px;padding:11px;font-weight:800;font-size:13px;text-align:center;margin:8px 0}#nav-scan-repeat{border:0;border-radius:12px;background:#e7b549;color:#142842;font-size:13px;font-weight:850;min-height:44px;padding:10px 12px;width:100%;margin-bottom:9px;white-space:normal;overflow-wrap:anywhere}#nav-scan-repeat[hidden]{display:none!important}#nav-scan-repeat:disabled{opacity:.6}';
  document.head.appendChild(style);attach();
  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 }
