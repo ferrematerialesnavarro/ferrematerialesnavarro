@@ -1,4 +1,4 @@
-const VERSION='navarro360-fullstore-v35-importe-tarjetas';
+const VERSION='navarro360-fullstore-v38-galvanizados';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=7','./buscador-completo.js?v=3','./buscador-completo.js?v=4','./electricidad.css?v=6','./fotos-recuperadas.js?v=22','./fotos-recuperadas.js?v=9','./carrito-seguro.js?v=2','./materiales-fotos-1.js?v=1','./materiales-fotos-2.js?v=1','./materiales-fotos-3.js?v=1','./materiales-destacados-v2.js?v=3','./banos-nav.js?v=1','./herrajes-nav.js?v=1','./jardineria-nav.js?v=1','./tornilleria-nav.js?v=1','./escaner-barras.js?v=2','./escaner-barras.js?v=3','./escaner-barras.js?v=4','./escaner-barras.js?v=5','./escaner-barras.js?v=6','./escaner-barras.js?v=7','./pinturas-nav.js?v=1'];
 self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
