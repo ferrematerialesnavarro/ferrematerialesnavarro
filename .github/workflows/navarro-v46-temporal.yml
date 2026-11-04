@@ -1,0 +1,43 @@
+name: NAVARRO 360 V46 - fotos del carrito
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v46-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Revisar script de fotos
+        run: node --check navarro360-movil/carrito-fotos-v44.js
+      - name: Publicar módulo y renovar caché
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          html=Path('navarro360-movil/index.html')
+          assert sha(html.read_bytes())=='27203c1407c7abd9f2d8cc5aeb45fcd3023ff73b','Página cambió. Se protege la versión existente'
+          s=html.read_text()
+          assert s.count('carrito-fotos-v44.js?v=45')==1
+          assert s.count('sw.js?v=45')==1
+          html.write_text(s.replace('carrito-fotos-v44.js?v=45','carrito-fotos-v44.js?v=46').replace('sw.js?v=45','sw.js?v=46'))
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count('navarro360-fullstore-v45-fotos-codigo')==1
+          assert t.count('carrito-fotos-v44.js?v=45')==1
+          sw.write_text(t.replace('navarro360-fullstore-v45-fotos-codigo','navarro360-fullstore-v46-fotos-atlas-y-modulos').replace('carrito-fotos-v44.js?v=45','carrito-fotos-v44.js?v=46'))
+          print('V46 publicada con atlas y fuentes modulares. SIFO no se altera.')
+          PY
+      - name: Guardar actualización
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V46: mostrar en carrito foto real del SKU y atlas correcto"
+          git push origin HEAD:main
