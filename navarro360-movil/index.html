@@ -599,15 +599,12 @@ function editarImporte(id){
  if(!Number.isSafeInteger(cents)||cents<1||cents>99999999){window.alert('Importe fuera del límite.');return false;}
  const calc=cantidadDesdeImporte(id,cents/100);
  if(!calc){window.alert('No es posible convertir este importe a una cantidad válida de hasta 3 decimales.');return false;}
- // Solo enviamos automáticamente conversiones que reproduzcan los centavos del importe.
- if(calc.diferencia>=0.005-1e-8){
-  window.alert('Este importe no se puede representar exactamente usando 3 decimales. '+money(cents/100)+' serían '+formatearCantidad(calc.cantidad)+' unidades y SIFO podría calcular '+money(calc.real)+'. Ajusta el importe antes de enviarlo; no se generará un cobro incorrecto.');
-  return false;
- }
+ // La diferencia por redondeo de centavos es aceptada por el administrador.
+ // WhatsApp conserva la cantidad en hasta 3 decimales; SIFO se ajusta manualmente si hace falta.
  cart[id]=calc.cantidad;
  if(esClavo(id))clavoCents[id]=cents;
  else importesCents[id]=cents;
- save();renderCart();renderProducts();toast('✓ Importe: '+money(cents/100));
+ save();renderCart();renderProducts();toast(calc.diferencia>=0.005-1e-8?'✓ '+money(cents/100)+' · Según precio base: '+money(calc.real):'✓ Importe: '+money(cents/100));
  return true;
 }
 function editarCantidad(id){
@@ -657,7 +654,7 @@ function composeOrder(){
    if(esClavo(id)&&!importe)return '';
    if(importe){
     const calc=cantidadDesdeImporte(id,importe);
-    if(!calc||calc.diferencia>=0.005-1e-8)return '';
+    if(!calc)return '';
     cantidad=calc.cantidad;
    }
   }
@@ -672,7 +669,7 @@ function renderOrderPreview(){
 }
 function send(){
  const msg=composeOrder();
- if(!msg){window.alert('Hay un importe sin conversión segura a cantidad decimal. Edita el importe con ✎ para continuar.');return;}
+ if(!msg){window.alert('Hay un importe que se redondea a cantidad cero o no puede expresarse con hasta 3 decimales. Revísalo con ✎.');return;}
  window.open('https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg),'_blank','noopener,noreferrer');
 }
 async function copyOrder(){
