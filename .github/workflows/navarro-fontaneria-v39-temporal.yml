@@ -1,0 +1,25 @@
+name: NAVARRO 360 - Fontaneria V39 temporal
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-fontaneria-v39-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Aplicar Fontaneria al HTML y renovar cache
+        run: |
+          python3 tools/navarro-fontaneria-v39-temporal.py
+          node --check /tmp/navarro-font39.js
+      - name: Guardar version
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V39 Fontaneria: subcategorias y cache"
+          git push origin HEAD:main
