@@ -459,6 +459,14 @@ const WHATSAPP='525639129040';
 const LIST=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
 const HIGHLIGHTS=Array.isArray(window.NAVARRO_DESTACADOS)?window.NAVARRO_DESTACADOS:[];
 const dictionary=new Map(LIST.map(p=>[String(p[0]),{id:String(p[0]),name:String(p[1]),price:Number(p[2])}]));
+// Sólo clavos sueltos: no modifica empaques y blísteres.
+const CLAVO_IDS=new Set(["7777000024","7777000611","7777000835","7777001109","7777001848","7777001849","7777001857","7777001858","7777001859"]);
+const CLAVO_KEY='navarro_clavos_importe_v1';
+const esClavo=id=>CLAVO_IDS.has(String(id));
+let clavoCents={};
+try{const old=JSON.parse(localStorage.getItem(CLAVO_KEY)||'{}');if(old&&typeof old==='object'&&!Array.isArray(old))for(const [id,n] of Object.entries(old))if(esClavo(id)&&Number.isInteger(n)&&n>0&&n<=99999999)clavoCents[id]=n}catch{}
+const clavoImporte=id=>(clavoCents[id]||0)/100;
+const tieneClavos=()=>Object.keys(cart).some(esClavo);
 const displayNames={
  '7777001648':'CEMEX Tolteca Cemento Gris 25 kg',
  '7777001635':'CEMEX Cemento Blanco 25 kg',
@@ -486,8 +494,8 @@ const LIMIT=140;
 const plomeria=(typeof window.NAVARRO_CREATE_PLOMERIA==='function')?window.NAVARRO_CREATE_PLOMERIA({dictionary,panel:q('#plumbing-panel'),onChange:()=>renderProducts()}):null;
 const electricidad=(typeof window.NAVARRO_CREATE_ELECTRICIDAD==='function')?window.NAVARRO_CREATE_ELECTRICIDAD({dictionary,panel:q('#electric-panel'),isApproved:window.NAVARRO_BUSCADOR_GENERICO?.isApproved,onChange:()=>renderProducts()}):null;
 let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(dictionary.has(k)&&Number.isInteger(n)&&n>0&&n<=9999)cart[k]=n}}}catch{}
-const count=()=>Object.values(cart).reduce((s,n)=>s+n,0), subtotal=()=>Object.entries(cart).reduce((s,[id,n])=>s+(dictionary.get(id)?.price||0)*n,0);
-function save(){try{localStorage.setItem('navarro_cart_v1',JSON.stringify(cart))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':count()+' artículos';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
+const count=()=>Object.values(cart).reduce((s,n)=>s+n,0), subtotal=()=>Object.entries(cart).reduce((s,[id,n])=>s+(esClavo(id)?clavoImporte(id):(dictionary.get(id)?.price||0)*n),0);
+function save(){try{localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':count()+' artículos';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
  const thumbs=q('#mobile-thumbnails'); if(thumbs){thumbs.textContent=count()?count()+' unidades':'';}
 } 
 function toast(msg){let t=document.querySelector('.toast');if(t)t.remove();t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.append(t);setTimeout(()=>t.remove(),2400)}
@@ -533,45 +541,74 @@ function renderProducts(){
  if(electricidad)electricidad.render(elActive);
  const results=productResults();q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;
  q('#results-info').textContent=search.trim()&&nameMatches>results.length?('Mostrando '+results.length+' de '+nameMatches+' productos · Refina la búsqueda o muestra más'):results.length+' producto'+(results.length===1?'':'s')+' · Consulta el catálogo';q('#no-results').hidden=results.length>0||plActive||elActive; if(plActive&&plomeria)q('#results-info').textContent=plomeria.intro();if(elActive&&electricidad)q('#results-info').textContent=electricidad.intro();q('#search-more-wrap').hidden=!(search.trim()&&nameMatches>results.length);
- q('#products').innerHTML=results.map(p=>{const n=cart[p.id]||0;const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';const atlas=window.NAVARRO_ATLAS;const ix=atlas?.files?.[photoName];const hasPic=Number.isInteger(ix);const posX=hasPic?(ix%atlas.columns)*atlas.size:0,posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;const qty=n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${n}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; ${money(p.price)}. Tocar para agregar"><div class="product-visual">${pic}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">Precio de copia · confirmar</div></div>${qty}</div></div></article>`}).join('')}
+ q('#products').innerHTML=results.map(p=>{const n=cart[p.id]||0;const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';const atlas=window.NAVARRO_ATLAS;const ix=atlas?.files?.[photoName];const hasPic=Number.isInteger(ix);const posX=hasPic?(ix%atlas.columns)*atlas.size:0,posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;const qty=esClavo(p.id)?`<span class="card-prompt">✎ ${n?'Editar importe':'Indicar importe'}</span>`:n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${n}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; ${esClavo(p.id)?'importe editable':money(p.price)}. Tocar para agregar"><div class="product-visual">${pic}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${esClavo(p.id)?(n&&clavoImporte(p.id)>0?money(clavoImporte(p.id)):'Importe editable'):money(p.price)}</div><div class="price-note">${esClavo(p.id)?'Escribe el importe total':'Precio de copia · confirmar'}</div></div>${qty}</div></div></article>`}).join('')}
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
 function closeCart(){q('#drawer').classList.remove('open');q('#drawer').setAttribute('aria-hidden','true');q('#overlay').hidden=true;document.body.style.overflow='';lastFocus?.focus?.()}
 function renderCart(){
  const entries=Object.entries(cart);
- q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{const p=dictionary.get(id);return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${num}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`}).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
+ q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
+  const p=dictionary.get(id);
+  if(esClavo(id))return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Importe libre en pesos</small><div class="cart-controls"><button type="button" data-clavo-edit="${esc(id)}">✎ Editar importe</button><button type="button" data-clavo-remove="${esc(id)}">Eliminar</button><span class="line-total">${clavoImporte(id)?money(clavoImporte(id)):'Importe pendiente'}</span></div></div>`;
+  return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${num}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`;
+ }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
-function change(id,amount){const n=Math.max(0,Math.min(9999,(cart[id]||0)+amount));if(n)cart[id]=n;else delete cart[id];save();renderCart();renderProducts()}
+function editarClavo(id){
+ if(!esClavo(id)||!dictionary.has(id))return false;
+ const previo=clavoImporte(id);
+ const raw=window.prompt('Importe total de '+dictionary.get(id).name+' (pesos). Ejemplo: 25.50',previo?previo.toFixed(2):'');
+ if(raw===null)return false;
+ const val=String(raw).trim().replace(/\s/g,'').replace(',','.');
+ if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(val)||Number(val)<=0){window.alert('Importe inválido. Escribe de $0.01 a $999,999.99.');return false}
+ const cents=Math.round(Number(val)*100);
+ if(!Number.isSafeInteger(cents)||cents<1||cents>99999999)return false;
+ cart[id]=1;clavoCents[id]=cents;save();renderCart();renderProducts();toast('✓ Importe actualizado');
+ return true;
+}
+function change(id,amount){
+ if(esClavo(id)){
+  if(amount>0)editarClavo(id);
+  else if(amount<0){delete cart[id];delete clavoCents[id];save();renderCart();renderProducts()}
+  return;
+ }
+ const n=Math.max(0,Math.min(9999,(cart[id]||0)+amount));
+ if(n)cart[id]=n;else delete cart[id];
+ save();renderCart();renderProducts();
+}
 
-/* Escáner: una unidad por lectura, a través de la lógica ORIGINAL del carrito. */
+/* Escáner: no multiplica clavos, solicita importe. */
 window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
  const code=String(rawCode||'').trim();
  if(!/^\d{5,}$/.test(code)||!dictionary.has(code))return {ok:false,reason:'Código no disponible en el catálogo'};
+ if(esClavo(code))return editarClavo(code)?{ok:true,quantity:1,importe:clavoImporte(code)}:{ok:false,reason:'Falta confirmar el importe de clavos'};
  const before=cart[code]||0;
  if(before>=9999)return {ok:false,reason:'Este producto alcanzó el máximo de 9,999 unidades'};
  change(code,1);
- try{
-  const saved=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');
-  if(cart[code]===before+1&&saved?.[code]===before+1)return {ok:true,quantity:cart[code]};
- }catch(_){}
+ try{const saved=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(cart[code]===before+1&&saved?.[code]===before+1)return {ok:true,quantity:cart[code]}}catch(_){}
  return {ok:false,reason:'No se confirmó el guardado del carrito. Comprueba las cantidades antes de reintentar'};
 };
 
 function composeOrder(){
- const entries=Object.entries(cart);
- if(!entries.length)return '';
- return entries.map(([id,n])=>`${n} ${id}`).join('\n');
+ if(tieneClavos())return ''; // No inventar equivalencia entre pesos y unidades de SIFO.
+ return Object.entries(cart).map(([id,n])=>`${n} ${id}`).join('\n');
 }
 function renderOrderPreview(){
- const target=q('#order-message-preview');if(target)target.textContent=composeOrder()||'Agrega productos al carrito para preparar el mensaje.';
+ const target=q('#order-message-preview');if(!target)return;
+ if(tieneClavos()){
+  const lines=Object.keys(cart).filter(esClavo).map(id=>dictionary.get(id).name+' · '+(clavoImporte(id)?money(clavoImporte(id)):'IMPORTE PENDIENTE'));
+  target.textContent='CLAVOS POR IMPORTE\n'+lines.join('\n')+'\n\nEnvío a SIFO pendiente hasta configurar el registro por importe.';
+ }else target.textContent=composeOrder()||'Agrega productos al carrito para preparar el mensaje.';
 }
 function send(){
+ if(tieneClavos()){
+  window.alert('Los clavos tienen un importe personalizado. Este pedido no se enviará al bot hasta adaptar SIFO, para evitar registrar un cobro incorrecto. Los importes quedan guardados; puedes quitar los clavos y enviar los demás productos.');
+  return;
+ }
  const msg=composeOrder();if(!msg)return;
- const url='https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg);
- // Sólo abre la conversación; el usuario decide si envía el mensaje.
- window.open(url,'_blank','noopener,noreferrer');
+ window.open('https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg),'_blank','noopener,noreferrer');
 }
 async function copyOrder(){
+ if(tieneClavos()){window.alert('Este pedido tiene clavos con importe manual. No se puede copiar a SIFO hasta configurar el registro por importe.');return;}
  const msg=composeOrder();if(!msg)return;
  try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(msg);toast('✓ Pedido copiado');}
  catch{const t=q('#order-message-preview');q('#order-verify').open=true;renderOrderPreview();if(t){const selection=window.getSelection();const range=document.createRange();range.selectNodeContents(t);selection.removeAllRanges();selection.addRange(range);toast('Selecciona el texto para copiarlo')}}
@@ -585,10 +622,10 @@ q('#clear-search').addEventListener('click',()=>{nameLimit=LIMIT;q('#search').va
 q('#search-more').addEventListener('click',()=>{nameLimit+=LIMIT;renderProducts()});
 q('#products').addEventListener('click',e=>{const btn=e.target.closest('button');if(btn){if(btn.dataset.inc)change(btn.dataset.inc,1);if(btn.dataset.dec)change(btn.dataset.dec,-1);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;change(card.dataset.card,1);toast('✓ Agregado al carrito')});
 q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();change(card.dataset.card,1)}});
-q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1)});
+q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clavoEdit){editarClavo(b.dataset.clavoEdit);return;}if(b.dataset.clavoRemove){const id=b.dataset.clavoRemove;delete cart[id];delete clavoCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1)});
 q('#mobile-cart-open').onclick=openCart;q('#mobile-whatsapp').onclick=()=>{if(count()>0)send();else window.open('https://wa.me/'+WHATSAPP,'_blank','noopener,noreferrer')};q('#search-mobile').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search').value=search;renderProducts()});q('#cart-top').onclick=openCart;q('#floating-cart').onclick=openCart;q('#cart-close').onclick=closeCart;q('#overlay').onclick=closeCart;
 const menuToggle=q('#mobile-nav-toggle'),menuPanel=q('#mobile-menu-panel');if(menuToggle&&menuPanel){menuToggle.addEventListener('click',()=>{const expanded=menuToggle.getAttribute('aria-expanded')==='true';menuPanel.hidden=expanded;menuToggle.setAttribute('aria-expanded',String(!expanded))});menuPanel.addEventListener('click',e=>{if(e.target.closest('a')){menuPanel.hidden=true;menuToggle.setAttribute('aria-expanded','false')}})}
-q('#send-whatsapp').onclick=send;q('#copy-order').onclick=copyOrder;q('#clear-cart').onclick=()=>{cart={};save();renderCart();renderProducts()};
+q('#send-whatsapp').onclick=send;q('#copy-order').onclick=copyOrder;q('#clear-cart').onclick=()=>{cart={};clavoCents={};save();renderCart();renderProducts()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classList.contains('open'))closeCart()});
 })();
 
