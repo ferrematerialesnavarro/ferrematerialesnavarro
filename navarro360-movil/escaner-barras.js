@@ -94,7 +94,7 @@ function ensureOverlay(){
  overlay.querySelector('#nav-scan-take-photo').addEventListener('click',()=>{if(closed||photoBusy)return;photoStop=stop();setStatus('Cámara pausada. Toma una foto nítida del código.');overlay.querySelector('#nav-scan-photo').click();});
  overlay.querySelector('#nav-scan-photo').addEventListener('change',e=>{void scanPhoto(e.target.files&&e.target.files[0]);});
  overlay.querySelector('#nav-scan-reopen').addEventListener('click',async()=>{await close();await open();});
- overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replace(/[\\s-]/g,'');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code);});
+ overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code);});
  overlay.addEventListener('click',e=>{if(e.target===overlay)void close()});
 }
 async function stop(){
@@ -185,7 +185,7 @@ async function scanPhoto(file){
   if(photoStop)await photoStop;
   await stop();
   if(closed||token!==session)return;
-  if(!/^image\\//.test(file.type||''))throw new Error('Selecciona una fotografía');
+  if(!String(file.type||'').startsWith('image/'))throw new Error('Selecciona una fotografía');
   await loadLibrary();
   setStatus('Analizando la fotografía…');
   const F=window.Html5QrcodeSupportedFormats||{};
