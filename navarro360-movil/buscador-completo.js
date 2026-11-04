@@ -11,9 +11,9 @@
   function normalize(s) {
     return String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase()
       .replace(/½/g,' 1/2 ').replace(/¼/g,' 1/4 ').replace(/¾/g,' 3/4 ')
-      .replace(/\bTRES\s+OCTAVOS\b/g,' 3/8 ')
-      .replace(/\bTRES\s+CUARTOS\b/g,' 3/4 ')
-      .replace(/\b(?:UNO|UN|UNA)\s+CUARTO\b/g,' 1/4 ')
+      .replace(/\b(?:TRES|3)\s+OCTAVOS\b/g,' 3/8 ')
+      .replace(/\b(?:TRES|3)\s+CUARTOS\b/g,' 3/4 ')
+      .replace(/\b(?:UNO|UN|UNA|1)\s+CUARTO\b/g,' 1/4 ')
       .replace(/\b(?:UNO|UN|UNA)\s+Y\s+MEDIA\b/g,' 1 1/2 ')
       .replace(/\bMEDIA\b/g,' 1/2 ')
       .replace(/\b(\d+)\s*\/\s*(\d+)\b/g,'$1/$2')
