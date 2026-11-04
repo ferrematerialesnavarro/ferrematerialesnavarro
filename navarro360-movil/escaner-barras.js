@@ -1,4 +1,4 @@
-/* NAVARRO 360: escáner V5 IPHONE PRO. Integración nativa con carrito si está disponible; conservamos compatibilidad. */
+/* NAVARRO 360: escáner V6 IPHONE. Decodificador 1D en Safari y carrito directo. */
 (function(){
 'use strict';
 if(window.NAVARRO_ESCANER_INSTALADO)return;
@@ -10,6 +10,14 @@ var activeTrack=null,zoomCaps=null,torchOn=false,audioContext=null;
 var session=0,lastCode='',lastProduct=null,sessionUnits=0,sessionCodes=new Set(),nextAllowedAt=0;
 const MIN_BETWEEN_PRODUCTS_MS=750;
 var pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+function createBarcodeReader(host,formats){
+ // Safari iOS puede detectar mal las barras con BarcodeDetector nativo.
+ const isiOS=/(iPhone|iPad|iPod)/i.test(navigator.userAgent) ||
+  (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ return new window.Html5Qrcode(host,{
+  formatsToSupport:formats,verbose:false,useBarCodeDetectorIfSupported:!isiOS
+ });
+}
 function setStatus(msg,error){
  var node=document.getElementById('nav-scan-status');
  if(node){node.textContent=msg;node.classList.toggle('error',!!error);}
@@ -96,7 +104,7 @@ function ensureOverlay(){
  overlay=document.createElement('div');overlay.id='nav-scan-overlay';overlay.hidden=true;
  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');
  overlay.setAttribute('aria-label','Lector de código de barras');
- overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner profesional · iPhone V4</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-pro-tools"><button id="nav-scan-torch" type="button" hidden>🔦 Linterna</button><label id="nav-scan-zoom-wrap" hidden>Zoom <input id="nav-scan-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom de cámara"/></label><button id="nav-scan-sound" type="button" aria-pressed="true">🔊 Sonido</button></div><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button></div><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Código de barras" aria-label="Código de barras manual" maxlength="30"/><button type="submit">Agregar código</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Una lectura solo suma una unidad.</p></div>';
+ overlay.innerHTML='<div class="nav-scan-panel"><div class="nav-scan-head"><div><strong>📷 Escáner profesional · iPhone V6</strong><p>Centra las barras en la imagen, sin acercarte demasiado.</p></div><button id="nav-scan-close" type="button" aria-label="Finalizar y cerrar cámara">✕</button></div><div id="nav-scan-camera"></div><p id="nav-scan-status" role="status" aria-live="polite">Preparando cámara…</p><div id="nav-scan-summary" class="nav-scan-summary" aria-live="polite">0 unidades añadidas · 0 productos distintos</div><button id="nav-scan-repeat" type="button" hidden disabled>+1 unidad del último producto</button><div class="nav-scan-pro-tools"><button id="nav-scan-torch" type="button" hidden>🔦 Linterna</button><label id="nav-scan-zoom-wrap" hidden>Zoom <input id="nav-scan-zoom" type="range" min="1" max="3" step="0.1" value="1" aria-label="Zoom de cámara"/></label><button id="nav-scan-sound" type="button" aria-pressed="true">🔊 Sonido</button></div><div class="nav-scan-tools"><button id="nav-scan-take-photo" type="button">📸 Fotografiar código</button><button id="nav-scan-reopen" type="button">↻ Reabrir cámara</button></div><input id="nav-scan-photo" type="file" accept="image/*" capture="environment" class="nav-scan-file-input" aria-label="Elegir o tomar foto del código"/><div id="nav-scan-photo-reader" aria-hidden="true"></div><form id="nav-scan-manual"><input id="nav-scan-manual-code" inputmode="numeric" autocomplete="off" placeholder="Código de barras" aria-label="Código de barras manual" maxlength="30"/><button type="submit">Agregar código</button></form><p class="nav-scan-help">Si la cámara no reconoce las barras, usa una foto o escribe el código. Una lectura solo suma una unidad.</p></div>';
  document.body.appendChild(overlay);
  overlay.querySelector('#nav-scan-close').addEventListener('click',()=>void close());
  overlay.querySelector('#nav-scan-repeat').addEventListener('click',()=>void repeatLast());
@@ -263,8 +271,8 @@ async function scanPhoto(file){
   await loadLibrary();
   setStatus('Analizando la fotografía…');
   const F=window.Html5QrcodeSupportedFormats||{};
-  const formats=[F.CODE_128,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_39].filter(Number.isInteger);
-  photoReader=new window.Html5Qrcode('nav-scan-photo-reader',{formatsToSupport:formats,verbose:false});
+  const formats=[F.CODE_128,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_39,F.ITF].filter(Number.isInteger);
+  photoReader=createBarcodeReader('nav-scan-photo-reader',formats);
   const code=await photoReader.scanFile(file,false);
   if(closed||token!==session)return;
   await decoded(code,'photo');
@@ -290,8 +298,8 @@ async function open(){
  try{
   await loadLibrary();if(closed||token!==session)return;
   var F=window.Html5QrcodeSupportedFormats||{};
-  var supported=[F.CODE_128,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_39].filter(Number.isInteger);
-  reader=new window.Html5Qrcode('nav-scan-camera',{formatsToSupport:supported,verbose:false});
+  var supported=[F.CODE_128,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_39,F.ITF].filter(Number.isInteger);
+  reader=createBarcodeReader('nav-scan-camera',supported);
   // En iPhone, escanear toda la imagen evita recortar barras largas fuera del cuadro.
   // Safari puede ignorar la resolución ideal. Si la rechaza, volver al arranque básico.
   const onFound=code=>{void decoded(code)};
@@ -300,12 +308,23 @@ async function open(){
   }catch(_hdError){
    try{await reader.stop()}catch(_){}
    try{await reader.clear()}catch(_){}
-   reader=new window.Html5Qrcode('nav-scan-camera',{formatsToSupport:supported,verbose:false});
+   reader=createBarcodeReader('nav-scan-camera',supported);
    await reader.start({facingMode:'environment'},{fps:10,disableFlip:true},onFound,()=>{});
   }
   if(closed||token!==session){await stop();return}
+  // Algunos iPhone (iOS 26) necesitan reconfigurar el track de video
+  // despues de iniciar la camara para que ZXing procese los fotogramas.
+  if(/(iPhone|iPad|iPod)/i.test(navigator.userAgent)){
+   try{
+    await pause(180);
+    if(!closed&&token===session){
+     await reader.applyVideoConstraints({width:{ideal:1280},height:{ideal:720}});
+    }
+   }catch(_){}
+  }
+  if(closed||token!==session){await stop();return}
   setupCameraControls();
-  setStatus('Cámara lista: centra el código. Puedes usar zoom, linterna o fotografiarlo si están disponibles.');
+  setStatus('Lector iPhone V6 activo. Enfoca todas las barras; si no detecta, usa Fotografiar código.');
  }catch(err){
   if(closed||token!==session)return;
   var msg=String(err?.message||err||'');
