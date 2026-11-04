@@ -272,6 +272,12 @@
  .product .card-prompt{min-height:32px;width:100%;padding:4px 2px;font-size:10px;line-height:1.15;white-space:normal;text-align:center}
 }
 
+
+/* NAVARRO 360 V35: lápiz visible en tarjeta para kg, metro y litro. */
+.product .card-importe-inline{display:flex;align-items:center;justify-content:center;width:100%;min-height:42px;margin-top:10px;border:1px solid #d49b32;border-radius:11px;background:#fff4d7;color:#20304b;font-size:13px;font-weight:850;line-height:1.2;padding:8px 9px;touch-action:manipulation}
+.product .card-importe-inline:focus-visible,.product .card-importe-inline:hover{outline:2px solid #235ba0;outline-offset:2px;background:#ffe8ad}
+@media(max-width:700px){.product .card-importe-inline{min-height:44px;font-size:12px;padding:7px 5px}}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NAVARRO 360"><link rel="stylesheet" href="./electricidad.css?v=6">
 </head>
@@ -511,7 +517,11 @@ function unidadVenta(id){
  const p=dictionary.get(String(id));
  if(!p||!Number.isFinite(p.price)||p.price<=0)return '';
  if(esClavo(id))return 'kg';
- const m=norm(p.name).match(/\b(?:POR|AL)\s+(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\b/);
+ const name=norm(p.name);
+ // Unidad real: "POR KILO", "KILO DE", "METRO DE", "LITRO DE".
+ // No deducir venta fraccionada solo por tamaños de envase ("BOLSA CON 1 KG", "1 LITRO").
+ const m=name.match(/\b(?:POR|AL)\s+(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\b/)
+       ||name.match(/^(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\s+DE\b/);
  if(!m)return '';
  return /^(?:KILO|KILOGRAMO|KG)/.test(m[1])?'kg':/^(?:METRO|MT)/.test(m[1])?'m':'L';
 }
@@ -598,8 +608,8 @@ function renderProducts(){
  const posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;
  const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;
  const qty=n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';
- const pencil=esImporte(p.id)?`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✎</button>`:'';
- return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">Precio base${esImporte(p.id)?' por '+unidadVenta(p.id):''}</div>${importeFinal(p.id)>0?'<div class="price-note">Importe del carrito: '+money(importeFinal(p.id))+'</div>':''}</div>${qty}</div></div></article>`;
+ const pencil=esImporte(p.id)?`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✏️</button>`:'';
+ return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">Precio base${esImporte(p.id)?' por '+unidadVenta(p.id):''}</div>${importeFinal(p.id)>0?'<div class="price-note">Importe del carrito: '+money(importeFinal(p.id))+'</div>':''}</div>${qty}</div>${esImporte(p.id)?`<button type="button" class="card-importe-inline" data-importe-edit="${esc(p.id)}" aria-label="Comprar por importe en pesos: ${esc(p.display||p.name)}">✏️ Comprar por importe</button>`:''}</div></article>`;
  }).join('');
 }
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
