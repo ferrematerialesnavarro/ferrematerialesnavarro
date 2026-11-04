@@ -1,0 +1,46 @@
+name: NAVARRO 360 V44 - miniaturas carrito
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v44-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Revisar sintaxis de las miniaturas
+        run: node --check navarro360-movil/carrito-fotos-v44.js
+      - name: Incorporar miniaturas sin modificar carrito
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          b=p.read_bytes()
+          assert sha(b)=='7763012c4f96bb014c4ce70b3fd620ad9e82fc43','Base V43 cambió; se cancela'
+          text=b.decode('utf-8')
+          assert text.count('</head>')==1 and text.count('sw.js?v=43')==1
+          text=text.replace('</head>','<script defer src="./carrito-fotos-v44.js?v=44"></script>\n</head>')
+          text=text.replace('sw.js?v=43','sw.js?v=44')
+          p.write_text(text)
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count('navarro360-fullstore-v43-buscador-limpio')==1
+          t=t.replace('navarro360-fullstore-v43-buscador-limpio','navarro360-fullstore-v44-miniaturas-carrito')
+          t=t.replace("'./carrito-seguro.js?v=2'","'./carrito-seguro.js?v=2','./carrito-fotos-v44.js?v=44'")
+          sw.write_text(t)
+          print('V44 incluida: solo presentación del carrito; cantidades y SIFO intactos')
+          PY
+      - name: Publicar página móvil
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V44: miniaturas de productos en carrito"
+          git push origin HEAD:main
