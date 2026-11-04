@@ -260,6 +260,18 @@
 .card-qty strong{font-size:15px;color:#071a39;font-variant-numeric:tabular-nums}
 @media(max-width:560px){.products-grid .product{min-height:290px}.product .product-bottom{flex-wrap:wrap;gap:8px}.card-qty,.card-prompt{width:100%}.product-sprite{max-height:112px;max-width:112px;background-size:contain}}
 
+
+/* NAVARRO 360 — precio base, toque suma una unidad y lápiz independiente */
+.product-visual .card-importe{position:absolute;right:7px;bottom:7px;z-index:4;display:grid;place-items:center;width:38px;height:38px;border:2px solid #fff2d0;border-radius:12px;background:linear-gradient(155deg,#f9e3a9,#e8b24d);color:#11233b;box-shadow:0 3px 9px #00162a66;font-size:23px;font-weight:900;line-height:1;touch-action:manipulation}
+.product-visual .card-importe:focus-visible{outline:3px solid #235ba0;outline-offset:2px}
+@media(max-width:700px){
+ .product-visual .card-importe{right:4px;bottom:5px;width:34px;height:34px;border-radius:10px;font-size:22px}
+ .product .card-qty{min-width:0;min-height:32px;gap:2px;padding:2px;width:100%}
+ .product .card-qty button{flex:0 0 26px;width:26px;height:27px;border-radius:7px;font-size:19px}
+ .product .card-qty strong{font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .product .card-prompt{min-height:32px;width:100%;padding:4px 2px;font-size:10px;line-height:1.15;white-space:normal;text-align:center}
+}
+
 </style>
 <link rel="manifest" href="./manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="NAVARRO 360"><link rel="stylesheet" href="./electricidad.css?v=6">
 </head>
@@ -496,7 +508,7 @@ function leerCantidad(raw){
 // NAVARRO 360 IMPORTE A CANTIDAD V1. Precios y catálogo permanecen intactos.
 function esImporte(id){
  const p=dictionary.get(String(id));
- return !!(p && (esClavo(id)||/\bPOR\s+(?:KILO|KG|METRO|LITRO|GRAMO|M2|M3)\b/.test(norm(p.name))));
+ return !!(p && Number.isFinite(p.price) && p.price>0);
 }
 const IMPORTE_KEY='navarro_importes_cents_v1';
 const icons={'Herramientas':'🛠️','Construcción':'🧱','Plomería':'🚰','Electricidad':'⚡','Pintura':'🎨','Por código':'📦'};
@@ -570,24 +582,33 @@ function renderProducts(){
  if(electricidad)electricidad.render(elActive);
  const results=productResults();q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;
  q('#results-info').textContent=search.trim()&&nameMatches>results.length?('Mostrando '+results.length+' de '+nameMatches+' productos · Refina la búsqueda o muestra más'):results.length+' producto'+(results.length===1?'':'s')+' · Consulta el catálogo';q('#no-results').hidden=results.length>0||plActive||elActive; if(plActive&&plomeria)q('#results-info').textContent=plomeria.intro();if(elActive&&electricidad)q('#results-info').textContent=electricidad.intro();q('#search-more-wrap').hidden=!(search.trim()&&nameMatches>results.length);
- q('#products').innerHTML=results.map(p=>{const n=cart[p.id]||0;const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';const atlas=window.NAVARRO_ATLAS;const ix=atlas?.files?.[photoName];const hasPic=Number.isInteger(ix);const posX=hasPic?(ix%atlas.columns)*atlas.size:0,posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;const qty=esImporte(p.id)?`<span class="card-prompt">✎ ${n?'Editar importe':'Indicar importe'}</span>`:n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-qty-edit="${esc(p.id)}" aria-label="Editar cantidad decimal" title="Escribir cantidad">✎</button><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; ${esImporte(p.id)?'importe editable':money(p.price)}. Tocar para agregar"><div class="product-visual">${pic}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${esImporte(p.id)?(n&&importeFinal(p.id)>0?money(importeFinal(p.id)):'Importe editable'):money(p.price)}</div><div class="price-note">${esImporte(p.id)?'Precio base '+money(p.price)+' · ingresa importe total':'Precio de copia · confirmar'}</div></div>${qty}</div></div></article>`}).join('')}
+ q('#products').innerHTML=results.map(p=>{
+ const n=cart[p.id]||0;
+ const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';
+ const atlas=window.NAVARRO_ATLAS;
+ const ix=atlas?.files?.[photoName];
+ const hasPic=Number.isInteger(ix);
+ const posX=hasPic?(ix%atlas.columns)*atlas.size:0;
+ const posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;
+ const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;
+ const qty=n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';
+ const pencil=`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✎</button>`;
+ return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">${importeFinal(p.id)>0?'Importe ingresado: '+money(importeFinal(p.id)):'Precio base'}</div></div>${qty}</div></div></article>`;
+ }).join('');
+}
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
 function closeCart(){q('#drawer').classList.remove('open');q('#drawer').setAttribute('aria-hidden','true');q('#overlay').hidden=true;document.body.style.overflow='';lastFocus?.focus?.()}
 function renderCart(){
  const entries=Object.entries(cart);
  q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
-  const p=dictionary.get(id);
-  if(esImporte(id)){
-   const imp=importeFinal(id);
-   return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}</small><div class="cart-controls"><button type="button" data-clavo-edit="${esc(id)}">✎ Editar importe</button><button type="button" data-clavo-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(imp||p.price*num)}</span></div></div>`;
-  }
-  return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${formatearCantidad(num)}</span><button type="button" data-qty-edit="${esc(id)}" aria-label="Editar cantidad" title="Escribir cantidad">✎</button><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`;
+ const p=dictionary.get(id),imp=importeFinal(id),total=imp>0?imp:p.price*num;
+ return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div><button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button><button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button><button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
 function editarClavo(id){return editarImporte(id);}
 function editarImporte(id){
- if(!dictionary.has(id)||!esImporte(id))return false;
+ if(!dictionary.has(id))return false;
  const p=dictionary.get(id);
  if(!Number.isFinite(p.price)||p.price<=0){window.alert('No es posible convertir importes porque este artículo no tiene precio base positivo.');return false;}
  const previo=importeFinal(id)||(p.price*(cart[id]||0));
@@ -609,23 +630,19 @@ function editarImporte(id){
 }
 function editarCantidad(id){
  if(!dictionary.has(id))return false;
- if(esImporte(id))return editarImporte(id);
+ 
  const p=dictionary.get(id);
  const actual=formatearCantidad(cart[id]||1);
  const entrada=window.prompt('Cantidad de '+p.name+' (ejemplos: 0.66, 0.12, 1.25):',actual);
  if(entrada===null)return false;
  const n=leerCantidad(entrada);
  if(n===null){window.alert('Cantidad inválida. Escribe entre 0.001 y 9999, con hasta 3 decimales.');return false;}
- cart[id]=n;save();renderCart();renderProducts();toast('✓ Cantidad actualizada: '+formatearCantidad(n));
+ cart[id]=n;delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();toast('✓ Cantidad actualizada: '+formatearCantidad(n));
  return true;
 }
 function change(id,amount){
- if(esClavo(id)){
-  if(amount>0)editarClavo(id);
-  else if(amount<0){delete cart[id];delete clavoCents[id];save();renderCart();renderProducts()}
-  return;
- }
- if(esImporte(id))delete importesCents[id];
+ if(!dictionary.has(id))return;
+ delete clavoCents[id];delete importesCents[id];
  const n=Math.max(0,Math.min(9999,Math.round(((cart[id]||0)+amount)*1000)/1000));
  if(n)cart[id]=n;else delete cart[id];
  save();renderCart();renderProducts();
@@ -651,7 +668,7 @@ function composeOrder(){
   let cantidad=n;
   if(esImporte(id)){
    const importe=importeFinal(id);
-   if(esClavo(id)&&!importe)return '';
+   
    if(importe){
     const calc=cantidadDesdeImporte(id,importe);
     if(!calc)return '';
@@ -685,9 +702,9 @@ q('#subfilters').addEventListener('click',e=>{const btn=e.target.closest('[data-
 q('#search').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search-mobile').value=search;q('#clear-search').style.display=search?'block':'none';renderProducts()});
 q('#clear-search').addEventListener('click',()=>{nameLimit=LIMIT;q('#search').value='';q('#search-mobile').value='';search='';renderProducts();q('#search').focus();q('#clear-search').style.display='none'});
 q('#search-more').addEventListener('click',()=>{nameLimit+=LIMIT;renderProducts()});
-q('#products').addEventListener('click',e=>{const btn=e.target.closest('button');if(btn){if(btn.dataset.inc)change(btn.dataset.inc,1);if(btn.dataset.dec)change(btn.dataset.dec,-1);if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;if(esImporte(card.dataset.card))editarImporte(card.dataset.card);else{change(card.dataset.card,1);toast('✓ Agregado al carrito')}});
-q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();if(esImporte(card.dataset.card))editarImporte(card.dataset.card);else change(card.dataset.card,1)}});
-q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clavoEdit){editarClavo(b.dataset.clavoEdit);return;}if(b.dataset.clavoRemove){const id=b.dataset.clavoRemove;delete cart[id];delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
+q('#products').addEventListener('click',e=>{const btn=e.target.closest('button');if(btn){if(btn.dataset.importeEdit)editarImporte(btn.dataset.importeEdit);else if(btn.dataset.inc)change(btn.dataset.inc,1);else if(btn.dataset.dec)change(btn.dataset.dec,-1);else if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;change(card.dataset.card,1);toast('✓ Una unidad agregada al carrito')});
+q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();change(card.dataset.card,1)}});
+q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.importeEdit){editarImporte(b.dataset.importeEdit);return;}if(b.dataset.remove){const id=b.dataset.remove;delete cart[id];delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
 q('#mobile-cart-open').onclick=openCart;q('#mobile-whatsapp').onclick=()=>{if(count()>0)send();else window.open('https://wa.me/'+WHATSAPP,'_blank','noopener,noreferrer')};q('#search-mobile').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search').value=search;renderProducts()});q('#cart-top').onclick=openCart;q('#floating-cart').onclick=openCart;q('#cart-close').onclick=closeCart;q('#overlay').onclick=closeCart;
 const menuToggle=q('#mobile-nav-toggle'),menuPanel=q('#mobile-menu-panel');if(menuToggle&&menuPanel){menuToggle.addEventListener('click',()=>{const expanded=menuToggle.getAttribute('aria-expanded')==='true';menuPanel.hidden=expanded;menuToggle.setAttribute('aria-expanded',String(!expanded))});menuPanel.addEventListener('click',e=>{if(e.target.closest('a')){menuPanel.hidden=true;menuToggle.setAttribute('aria-expanded','false')}})}
 q('#send-whatsapp').onclick=send;q('#copy-order').onclick=copyOrder;q('#clear-cart').onclick=()=>{cart={};clavoCents={};importesCents={};save();renderCart();renderProducts()};
