@@ -1,0 +1,47 @@
+name: NAVARRO 360 V40 - instalar mejoras
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v40-instalar-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar módulo de fotografías y buscador
+        run: node --check navarro360-movil/navarro-v40-mejoras.js
+      - name: Instalar módulo con respaldo de versión
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('navarro360-movil/index.html')
+          sw=Path('navarro360-movil/sw.js')
+          raw=p.read_bytes()
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          expected='aa152377c8fef4ee733b9e9f81ca1dc2cf555168'
+          if sha(raw)!=expected:raise SystemExit('HTML V39 cambió; sin modificar')
+          s=raw.decode('utf-8')
+          assert s.count('</head>')==1
+          assert s.count('sw.js?v=39')==1
+          s=s.replace('</head>','<script defer src="./navarro-v40-mejoras.js?v=40"></script>\n</head>')
+          s=s.replace('sw.js?v=39','sw.js?v=40')
+          p.write_text(s)
+          t=sw.read_text()
+          assert 'navarro360-fullstore-v39-fontaneria' in t
+          t=t.replace('navarro360-fullstore-v39-fontaneria','navarro360-fullstore-v40-buscador-fotos')
+          sw.write_text(t)
+          print('V40 aplicada; sha',sha(p.read_bytes()))
+          PY
+      - name: Publicar V40
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V40: activar buscador local y fotos personales"
+          git push origin HEAD:main
