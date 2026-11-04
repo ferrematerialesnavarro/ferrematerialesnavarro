@@ -273,7 +273,8 @@
 }
 
 
-/* NAVARRO 360 V35: lápiz visible en tarjeta para kg, metro y litro. */
+/* NAVARRO 360 V36: clasificación auditada de venta por importe. */
+  /* NAVARRO 360 V35: lápiz visible en tarjeta para kg, metro y litro. */
 .product .card-importe-inline{display:flex;align-items:center;justify-content:center;width:100%;min-height:42px;margin-top:10px;border:1px solid #d49b32;border-radius:11px;background:#fff4d7;color:#20304b;font-size:13px;font-weight:850;line-height:1.2;padding:8px 9px;touch-action:manipulation}
 .product .card-importe-inline:focus-visible,.product .card-importe-inline:hover{outline:2px solid #235ba0;outline-offset:2px;background:#ffe8ad}
 @media(max-width:700px){.product .card-importe-inline{min-height:44px;font-size:12px;padding:7px 5px}}
@@ -522,7 +523,12 @@ function unidadVenta(id){
  // No deducir venta fraccionada solo por tamaños de envase ("BOLSA CON 1 KG", "1 LITRO").
  const m=name.match(/\b(?:POR|AL)\s+(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\b/)
        ||name.match(/^(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\s+DE\b/);
- if(!m)return '';
+ // El catálogo también tiene presentaciones explícitas "METRO CABLE..." y "METRO CUERDA..."
+ // sin "DE": son venta por metro, NO rollos/cajas por longitud nominal.
+ if(!m){
+  if(/^METRO\s+(?:CABLE|CUERDA)\b/.test(name))return 'm';
+  return '';
+ }
  return /^(?:KILO|KILOGRAMO|KG)/.test(m[1])?'kg':/^(?:METRO|MT)/.test(m[1])?'m':'L';
 }
 function esImporte(id){return unidadVenta(id)!=='';}
