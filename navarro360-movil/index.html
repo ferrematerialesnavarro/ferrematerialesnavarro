@@ -485,6 +485,14 @@ const toolSubs=['Todos',...new Set(publicList.filter(p=>p.cat==='Herramientas').
 const q=s=>document.querySelector(s),money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
 const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// NAVARRO 360 DECIMALES WHATS V2: cantidad decimal visible y con cero inicial.
+function formatearCantidad(n){return String(Number(Number(n).toFixed(3)));}
+function leerCantidad(raw){
+ const s=String(raw??'').trim().replace(',', '.');
+ if(!/^(?:\d{1,4}(?:\.\d{1,3})?|\.\d{1,3})$/.test(s))return null;
+ const n=Number(s);
+ return Number.isFinite(n)&&n>0&&n<=9999?Number(n.toFixed(3)):null;
+}
 const icons={'Herramientas':'🛠️','Construcción':'🧱','Plomería':'🚰','Electricidad':'⚡','Pintura':'🎨','Por código':'📦'};
 const toolIcons={'Desarmadores':'🪛','Martillos y marros':'🔨','Taladros y rotomartillos':'🔩','Esmeriladoras':'⚙️','Cortadoras de piso y azulejo':'🪚','Serruchos y sierras':'🪚','Palas, picos y coas':'⛏️','Bombas de agua':'💧','Escaleras de tijera':'🪜','Pinzas y alicates':'🗜️','Llaves y dados':'🔧','Medición y niveles':'📏','Albañilería':'🧱','Brocas y discos':'⚙️','Otras herramientas':'🛠️'};
 let category='Construcción',subcat='Todos',search='',lastFocus=null;
@@ -493,9 +501,9 @@ const LIMIT=140;
 // NAVARRO_PLOMERIA_V1: módulo de navegación independiente.
 const plomeria=(typeof window.NAVARRO_CREATE_PLOMERIA==='function')?window.NAVARRO_CREATE_PLOMERIA({dictionary,panel:q('#plumbing-panel'),onChange:()=>renderProducts()}):null;
 const electricidad=(typeof window.NAVARRO_CREATE_ELECTRICIDAD==='function')?window.NAVARRO_CREATE_ELECTRICIDAD({dictionary,panel:q('#electric-panel'),isApproved:window.NAVARRO_BUSCADOR_GENERICO?.isApproved,onChange:()=>renderProducts()}):null;
-let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(dictionary.has(k)&&Number.isInteger(n)&&n>0&&n<=9999)cart[k]=n}}}catch{}
-const count=()=>Object.values(cart).reduce((s,n)=>s+n,0), subtotal=()=>Object.entries(cart).reduce((s,[id,n])=>s+(esClavo(id)?clavoImporte(id):(dictionary.get(id)?.price||0)*n),0);
-function save(){try{localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':count()+' artículos';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
+let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(dictionary.has(k)&&Number.isFinite(n)&&n>0&&n<=9999&&Math.abs(n*1000-Math.round(n*1000))<1e-7)cart[k]=n}}}catch{}
+const count=()=>Math.round(Object.values(cart).reduce((s,n)=>s+n,0)*1000)/1000, subtotal=()=>Object.entries(cart).reduce((s,[id,n])=>s+(esClavo(id)?clavoImporte(id):(dictionary.get(id)?.price||0)*n),0);
+function save(){try{localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':formatearCantidad(count())+' unidades';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
  const thumbs=q('#mobile-thumbnails'); if(thumbs){thumbs.textContent=count()?count()+' unidades':'';}
 } 
 function toast(msg){let t=document.querySelector('.toast');if(t)t.remove();t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.append(t);setTimeout(()=>t.remove(),2400)}
@@ -541,7 +549,7 @@ function renderProducts(){
  if(electricidad)electricidad.render(elActive);
  const results=productResults();q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;
  q('#results-info').textContent=search.trim()&&nameMatches>results.length?('Mostrando '+results.length+' de '+nameMatches+' productos · Refina la búsqueda o muestra más'):results.length+' producto'+(results.length===1?'':'s')+' · Consulta el catálogo';q('#no-results').hidden=results.length>0||plActive||elActive; if(plActive&&plomeria)q('#results-info').textContent=plomeria.intro();if(elActive&&electricidad)q('#results-info').textContent=electricidad.intro();q('#search-more-wrap').hidden=!(search.trim()&&nameMatches>results.length);
- q('#products').innerHTML=results.map(p=>{const n=cart[p.id]||0;const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';const atlas=window.NAVARRO_ATLAS;const ix=atlas?.files?.[photoName];const hasPic=Number.isInteger(ix);const posX=hasPic?(ix%atlas.columns)*atlas.size:0,posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;const qty=esClavo(p.id)?`<span class="card-prompt">✎ ${n?'Editar importe':'Indicar importe'}</span>`:n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${n}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; ${esClavo(p.id)?'importe editable':money(p.price)}. Tocar para agregar"><div class="product-visual">${pic}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${esClavo(p.id)?(n&&clavoImporte(p.id)>0?money(clavoImporte(p.id)):'Importe editable'):money(p.price)}</div><div class="price-note">${esClavo(p.id)?'Escribe el importe total':'Precio de copia · confirmar'}</div></div>${qty}</div></div></article>`}).join('')}
+ q('#products').innerHTML=results.map(p=>{const n=cart[p.id]||0;const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';const atlas=window.NAVARRO_ATLAS;const ix=atlas?.files?.[photoName];const hasPic=Number.isInteger(ix);const posX=hasPic?(ix%atlas.columns)*atlas.size:0,posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;const qty=esClavo(p.id)?`<span class="card-prompt">✎ ${n?'Editar importe':'Indicar importe'}</span>`:n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-qty-edit="${esc(p.id)}" aria-label="Editar cantidad decimal" title="Escribir cantidad">✎</button><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; ${esClavo(p.id)?'importe editable':money(p.price)}. Tocar para agregar"><div class="product-visual">${pic}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${esClavo(p.id)?(n&&clavoImporte(p.id)>0?money(clavoImporte(p.id)):'Importe editable'):money(p.price)}</div><div class="price-note">${esClavo(p.id)?'Escribe el importe total':'Precio de copia · confirmar'}</div></div>${qty}</div></div></article>`}).join('')}
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
 function closeCart(){q('#drawer').classList.remove('open');q('#drawer').setAttribute('aria-hidden','true');q('#overlay').hidden=true;document.body.style.overflow='';lastFocus?.focus?.()}
 function renderCart(){
@@ -549,7 +557,7 @@ function renderCart(){
  q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
   const p=dictionary.get(id);
   if(esClavo(id))return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Importe libre en pesos</small><div class="cart-controls"><button type="button" data-clavo-edit="${esc(id)}">✎ Editar importe</button><button type="button" data-clavo-remove="${esc(id)}">Eliminar</button><span class="line-total">${clavoImporte(id)?money(clavoImporte(id)):'Importe pendiente'}</span></div></div>`;
-  return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${num}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`;
+  return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · ${money(p.price)} c/u</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar uno">−</button><span>${formatearCantidad(num)}</span><button type="button" data-qty-edit="${esc(id)}" aria-label="Editar cantidad" title="Escribir cantidad">✎</button><button type="button" data-inc="${esc(id)}" aria-label="Sumar uno">+</button></div><span class="line-total">${money(p.price*num)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
@@ -565,13 +573,24 @@ function editarClavo(id){
  cart[id]=1;clavoCents[id]=cents;save();renderCart();renderProducts();toast('✓ Importe actualizado');
  return true;
 }
+function editarCantidad(id){
+ if(!dictionary.has(id)||esClavo(id))return false;
+ const p=dictionary.get(id);
+ const actual=formatearCantidad(cart[id]||1);
+ const entrada=window.prompt('Cantidad de '+p.name+' (ejemplos: 0.66, 0.12, 1.25):',actual);
+ if(entrada===null)return false;
+ const n=leerCantidad(entrada);
+ if(n===null){window.alert('Cantidad inválida. Escribe entre 0.001 y 9999, con hasta 3 decimales.');return false;}
+ cart[id]=n;save();renderCart();renderProducts();toast('✓ Cantidad actualizada: '+formatearCantidad(n));
+ return true;
+}
 function change(id,amount){
  if(esClavo(id)){
   if(amount>0)editarClavo(id);
   else if(amount<0){delete cart[id];delete clavoCents[id];save();renderCart();renderProducts()}
   return;
  }
- const n=Math.max(0,Math.min(9999,(cart[id]||0)+amount));
+ const n=Math.max(0,Math.min(9999,Math.round(((cart[id]||0)+amount)*1000)/1000));
  if(n)cart[id]=n;else delete cart[id];
  save();renderCart();renderProducts();
 }
@@ -590,7 +609,7 @@ window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
 
 function composeOrder(){
  if(tieneClavos())return ''; // No inventar equivalencia entre pesos y unidades de SIFO.
- return Object.entries(cart).map(([id,n])=>`${n} ${id}`).join('\n');
+ return Object.entries(cart).filter(([id,n])=>dictionary.has(id)&&n>0).map(([id,n])=>`${formatearCantidad(n)} ${id}`).join('\n');
 }
 function renderOrderPreview(){
  const target=q('#order-message-preview');if(!target)return;
@@ -620,9 +639,9 @@ q('#subfilters').addEventListener('click',e=>{const btn=e.target.closest('[data-
 q('#search').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search-mobile').value=search;q('#clear-search').style.display=search?'block':'none';renderProducts()});
 q('#clear-search').addEventListener('click',()=>{nameLimit=LIMIT;q('#search').value='';q('#search-mobile').value='';search='';renderProducts();q('#search').focus();q('#clear-search').style.display='none'});
 q('#search-more').addEventListener('click',()=>{nameLimit+=LIMIT;renderProducts()});
-q('#products').addEventListener('click',e=>{const btn=e.target.closest('button');if(btn){if(btn.dataset.inc)change(btn.dataset.inc,1);if(btn.dataset.dec)change(btn.dataset.dec,-1);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;change(card.dataset.card,1);toast('✓ Agregado al carrito')});
+q('#products').addEventListener('click',e=>{const btn=e.target.closest('button');if(btn){if(btn.dataset.inc)change(btn.dataset.inc,1);if(btn.dataset.dec)change(btn.dataset.dec,-1);if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;change(card.dataset.card,1);toast('✓ Agregado al carrito')});
 q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();change(card.dataset.card,1)}});
-q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clavoEdit){editarClavo(b.dataset.clavoEdit);return;}if(b.dataset.clavoRemove){const id=b.dataset.clavoRemove;delete cart[id];delete clavoCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1)});
+q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.clavoEdit){editarClavo(b.dataset.clavoEdit);return;}if(b.dataset.clavoRemove){const id=b.dataset.clavoRemove;delete cart[id];delete clavoCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
 q('#mobile-cart-open').onclick=openCart;q('#mobile-whatsapp').onclick=()=>{if(count()>0)send();else window.open('https://wa.me/'+WHATSAPP,'_blank','noopener,noreferrer')};q('#search-mobile').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search').value=search;renderProducts()});q('#cart-top').onclick=openCart;q('#floating-cart').onclick=openCart;q('#cart-close').onclick=closeCart;q('#overlay').onclick=closeCart;
 const menuToggle=q('#mobile-nav-toggle'),menuPanel=q('#mobile-menu-panel');if(menuToggle&&menuPanel){menuToggle.addEventListener('click',()=>{const expanded=menuToggle.getAttribute('aria-expanded')==='true';menuPanel.hidden=expanded;menuToggle.setAttribute('aria-expanded',String(!expanded))});menuPanel.addEventListener('click',e=>{if(e.target.closest('a')){menuPanel.hidden=true;menuToggle.setAttribute('aria-expanded','false')}})}
 q('#send-whatsapp').onclick=send;q('#copy-order').onclick=copyOrder;q('#clear-cart').onclick=()=>{cart={};clavoCents={};save();renderCart();renderProducts()};
