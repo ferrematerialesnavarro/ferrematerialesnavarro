@@ -1,0 +1,54 @@
+name: NAVARRO 360 V36 - ajuste controlado por importe
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v36-una-vez.yml'
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Aplicar cambio exacto y verificar
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('navarro360-movil/index.html')
+          raw=p.read_bytes()
+          digest=hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest()
+          old='1c5ea83bb897fb17b1ae41acbf573580176d4b2d'
+          new='7d417654a831b23acd1e151a6d358d7e03319952'
+          if digest==new:
+              print('V36 ya se encontraba instalada')
+              raise SystemExit(0)
+          if digest!=old:
+              raise SystemExit('ERROR: archivo original cambiado; no se modifica nada')
+          data=raw.decode('utf-8')
+          a='/* NAVARRO 360 V35: lápiz visible en tarjeta para kg, metro y litro. */'
+          b='/* NAVARRO 360 V36: clasificación auditada de venta por importe. */\n  /* NAVARRO 360 V35: lápiz visible en tarjeta para kg, metro y litro. */'
+          c=" if(!m)return '';"
+          d=" // El catálogo también tiene presentaciones explícitas \"METRO CABLE...\" y \"METRO CUERDA...\"\n // sin \"DE\": son venta por metro, NO rollos/cajas por longitud nominal.\n if(!m){\n  if(/^METRO\\s+(?:CABLE|CUERDA)\\b/.test(name))return 'm';\n  return '';\n }"
+          assert data.count(a)==1 and data.count(c)==1
+          data=data.replace(a,b).replace(c,d)
+          out=data.encode('utf-8')
+          got=hashlib.sha1(b'blob '+str(len(out)).encode()+b'\0'+out).hexdigest()
+          if got!=new: raise SystemExit('ERROR: resultado distinto del archivo V36 validado')
+          p.write_bytes(out)
+          print('Verificado V36',got)
+          PY
+      - name: Publicar solamente index.html
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html
+          if git diff --cached --quiet; then
+            echo "Ya estaba actualizado"
+          else
+            git commit -m "NAVARRO 360 V36: mejorar clasificacion por metro en tarjetas"
+            git push origin HEAD:main
+          fi
