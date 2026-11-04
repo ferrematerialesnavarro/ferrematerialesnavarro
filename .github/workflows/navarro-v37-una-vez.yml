@@ -1,0 +1,82 @@
+name: NAVARRO 360 V37 - tubos galvanizados
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v37-una-vez.yml'
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Actualizar sección de tubería galvanizada y comprobar resultado
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,re
+          p=Path('navarro360-movil/index.html')
+          raw=p.read_bytes()
+          def gitsha(b):return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          old='7d417654a831b23acd1e151a6d358d7e03319952'
+          new='455551f5624deac12e393a83377c5965ee79aa43'
+          if gitsha(raw)==new:
+              print('V37 ya instalada');raise SystemExit(0)
+          if gitsha(raw)!=old:raise SystemExit('Archivo base cambió. Sin modificaciones.')
+          s=raw.decode('utf-8')
+          rows=[('7777000109','½”','Tramo 6 m · tapón rojo'),('7777000110','½”','Por metro · tapón rojo'),('7777000113','1”','Tramo 6 m'),('7777000112','¾”','Por metro'),('7777000114','1”','Por metro'),('7777000259','¾”','Tramo 6 m'),('7777001883','½”','Tramo 6 m · tapón azul'),('7777001884','½”','Por metro · tapón azul')]
+          js='\n// NAVARRO 360 V37 — tubos galvanizados del catálogo real, sin alterar SKU ni precio.\nROWS.push(\n'+',\n'.join('  ["%s","Galvanizado","%s","Tubos","%s"]'%r for r in rows)+'\n);\n'
+          anchor="const MATERIALS=['PVC','CPVC','Hidráulico','Polimex','PPR / Termofusión','Cobre','Galvanizado'];"
+          assert s.count(anchor)==1
+          s=s.replace(anchor,js+anchor)
+          a="(state.section==='Niples rectos'?r[3]==='Niples rectos':r[3]!=='Niples rectos')"
+          b="(state.section==='Niples rectos'?r[3]==='Niples rectos':state.section==='Tubos'?r[3]==='Tubos':r[3]!=='Niples rectos'&&r[3]!=='Tubos')"
+          assert s.count(a)==2
+          s=s.replace(a,b)
+          a="nodes('Tipo',['Conexiones','Niples rectos'],state.section,'section')"
+          b="nodes('Tipo',['Conexiones','Tubos','Niples rectos'],state.section,'section')"
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          a="step(2,'Conexiones o niples',"
+          b="step(2,'Conexiones, tubos o niples',"
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          a="return 'Selecciona conexiones o niples';"
+          b="return 'Selecciona conexiones, tubos o niples';"
+          assert s.count(a)==1
+          s=s.replace(a,b)
+          for code,size,form in rows:
+              assert len(re.findall(r'\["'+code+r'","TUBO GALVANIZADO',s))==1
+              assert len(re.findall(r'\["'+code+r'","Galvanizado"',s))==1
+          result=s.encode('utf-8')
+          if gitsha(result)!=new:raise SystemExit('Resultado diferente del V37 validado')
+          p.write_bytes(result)
+          print('Validado NAVARRO V37',gitsha(result))
+          PY
+      - name: Verificar sintaxis módulo Plomería
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          s=Path('navarro360-movil/index.html').read_text()
+          scripts=re.findall(r'<script\b[^>]*>(.*?)</script>',s,re.S|re.I)
+          found=[x for x in scripts if 'const ROWS=' in x]
+          assert len(found)==1
+          Path('/tmp/nav_plomeria_v37.js').write_text(found[0])
+          PY
+          node --check /tmp/nav_plomeria_v37.js
+      - name: Publicar solo index.html
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html
+          if git diff --cached --quiet; then
+            echo "Archivo ya actualizado"
+          else
+            git commit -m "NAVARRO 360 V37: tubos galvanizados por metro y tramo en Plomeria"
+            git push origin HEAD:main
+          fi
