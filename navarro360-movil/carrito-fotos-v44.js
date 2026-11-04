@@ -1,4 +1,4 @@
-/* NAVARRO 360 V46: miniaturas por código exacto y mismas fuentes que las tarjetas. */
+/* NAVARRO 360 V47: miniaturas por código exacto y mismas fuentes que las tarjetas. */
 (function(){'use strict';
 if(window.NAVARRO_CARRITO_FOTOS_V44)return;window.NAVARRO_CARRITO_FOTOS_V44=true;
 const personal=new Map();
@@ -9,6 +9,13 @@ function sourceFor(id){
  const local=personal.get(id);
  if(local)return {kind:'url',src:local};
  const atlas=window.NAVARRO_ATLAS;
+ // Los artículos de Plomería usan mapas privados del navegador que no estaban
+ // conectados al carrito: PVC, CPVC y piezas especiales por SKU exacto.
+ const plumbing=window.NAVARRO_FOTOS_PLOMERIA_V47?.[id];
+ if(typeof plumbing==='string'&&plumbing){
+  const index=atlas?.files?.[plumbing];
+  if(Number.isInteger(index))return {kind:'atlas',atlas,index};
+ }
  const codePhotos=window.NAVARRO_FOTOS_PAGINA||{};
  const byCode=Object.prototype.hasOwnProperty.call(codePhotos,id)?codePhotos[id]:'';
  const featured=Array.isArray(window.NAVARRO_DESTACADOS)
