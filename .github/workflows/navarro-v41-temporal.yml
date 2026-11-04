@@ -1,0 +1,47 @@
+name: NAVARRO 360 V41 - escaner continuo
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v41-temporal.yml'
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar escaner y actualizar cache
+        shell: bash
+        run: |
+          node --check navarro360-movil/escaner-barras.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          def sha(b):return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          old='26eb2c9bbfbb6e7ffabef3831fa944cecaae09af'
+          raw=p.read_bytes()
+          if sha(raw)!=old:raise SystemExit('La página cambió; se detiene sin reemplazar.')
+          s=raw.decode('utf-8')
+          assert s.count('escaner-barras.js?v=6')==1
+          assert s.count('sw.js?v=40')==1
+          s=s.replace('escaner-barras.js?v=6','escaner-barras.js?v=41')
+          s=s.replace('sw.js?v=40','sw.js?v=41')
+          p.write_text(s)
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert "navarro360-fullstore-v40-buscador-fotos" in t
+          t=t.replace('navarro360-fullstore-v40-buscador-fotos','navarro360-fullstore-v41-escaner-continuo')
+          t=t.replace("'./escaner-barras.js?v=6'","'./escaner-barras.js?v=41'")
+          sw.write_text(t)
+          print('Validado: nuevo escaner, nuevo cache, catálogo y carrito preservados.')
+          PY
+      - name: Publicar
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V41: recargar escaner continuo en iPhone"
+          git push origin HEAD:main
