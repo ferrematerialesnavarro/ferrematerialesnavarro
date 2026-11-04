@@ -15,17 +15,17 @@ function sourceFor(id){
   ?window.NAVARRO_DESTACADOS.find(p=>String(p.id)===id):null;
  // Una fotografía que vive dentro del atlas NO es un archivo individual.
  // Verificar el atlas antes de construir './assets/nombre.webp'.
- const names=[byCode,featured?.img,atlas?.byCode?.[id]].filter(Boolean);
- for(const name of names){
-  if(!atlas||!atlas.files)break;
-  const index=atlas.files[name];
+ // La foto explicitamente asociada al SKU prevalece sobre ilustraciones destacadas.
+ if(typeof byCode==='string'&&byCode){
+  const index=atlas?.files?.[byCode];
   if(Number.isInteger(index))return {kind:'atlas',atlas,index};
- }
- // Fotos externas y fotografías publicadas, asociadas al código exacto.
- if(typeof byCode==='string'){
   if(/^https:\/\//.test(byCode))return {kind:'url',src:byCode};
   if(/^[a-z0-9][a-z0-9_.-]*\.(?:png|jpe?g|webp)$/i.test(byCode))
    return {kind:'url',src:'./assets/'+byCode};
+ }
+ for(const name of [featured?.img,atlas?.byCode?.[id]].filter(Boolean)){
+  const index=atlas?.files?.[name];
+  if(Number.isInteger(index))return {kind:'atlas',atlas,index};
  }
  // La imagen que ya aparece en la ficha es la mejor referencia cuando proviene
  // de un módulo independiente (materiales, fotos recuperadas, baño, etc.).
