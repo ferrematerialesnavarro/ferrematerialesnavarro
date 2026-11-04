@@ -505,11 +505,17 @@ function leerCantidad(raw){
  const n=Number(s);
  return Number.isFinite(n)&&n>0&&n<=9999?Number(n.toFixed(3)):null;
 }
-// NAVARRO 360 IMPORTE A CANTIDAD V1. Precios y catálogo permanecen intactos.
-function esImporte(id){
+// NAVARRO 360 UNIDADES DE VENTA V2: el importe solo aplica a kilos, metros, litros
+// y a los clavos sueltos ya confirmados. No usar la medida del empaque como unidad de venta.
+function unidadVenta(id){
  const p=dictionary.get(String(id));
- return !!(p && Number.isFinite(p.price) && p.price>0);
+ if(!p||!Number.isFinite(p.price)||p.price<=0)return '';
+ if(esClavo(id))return 'kg';
+ const m=norm(p.name).match(/\b(?:POR|AL)\s+(KILOGRAMOS?|KILOS?|KG|METROS?|MTS?|LITROS?|LTS?)\b/);
+ if(!m)return '';
+ return /^(?:KILO|KILOGRAMO|KG)/.test(m[1])?'kg':/^(?:METRO|MT)/.test(m[1])?'m':'L';
 }
+function esImporte(id){return unidadVenta(id)!=='';}
 const IMPORTE_KEY='navarro_importes_cents_v1';
 const icons={'Herramientas':'🛠️','Construcción':'🧱','Plomería':'🚰','Electricidad':'⚡','Pintura':'🎨','Por código':'📦'};
 const toolIcons={'Desarmadores':'🪛','Martillos y marros':'🔨','Taladros y rotomartillos':'🔩','Esmeriladoras':'⚙️','Cortadoras de piso y azulejo':'🪚','Serruchos y sierras':'🪚','Palas, picos y coas':'⛏️','Bombas de agua':'💧','Escaleras de tijera':'🪜','Pinzas y alicates':'🗜️','Llaves y dados':'🔧','Medición y niveles':'📏','Albañilería':'🧱','Brocas y discos':'⚙️','Otras herramientas':'🛠️'};
@@ -592,8 +598,8 @@ function renderProducts(){
  const posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;
  const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;
  const qty=n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';
- const pencil=`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✎</button>`;
- return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">${importeFinal(p.id)>0?'Importe ingresado: '+money(importeFinal(p.id)):'Precio base'}</div></div>${qty}</div></div></article>`;
+ const pencil=esImporte(p.id)?`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✎</button>`:'';
+ return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${money(p.price)}</div><div class="price-note">Precio base${esImporte(p.id)?' por '+unidadVenta(p.id):''}</div>${importeFinal(p.id)>0?'<div class="price-note">Importe del carrito: '+money(importeFinal(p.id))+'</div>':''}</div>${qty}</div></div></article>`;
  }).join('');
 }
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
@@ -602,13 +608,14 @@ function renderCart(){
  const entries=Object.entries(cart);
  q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
  const p=dictionary.get(id),imp=importeFinal(id),total=imp>0?imp:p.price*num;
- return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div><button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button><button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button><button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
+ return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div><button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${esImporte(id)?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
 function editarClavo(id){return editarImporte(id);}
 function editarImporte(id){
  if(!dictionary.has(id))return false;
+ if(!esImporte(id)){window.alert('Este artículo se vende por unidad completa y no admite importe fraccionado.');return false;}
  const p=dictionary.get(id);
  if(!Number.isFinite(p.price)||p.price<=0){window.alert('No es posible convertir importes porque este artículo no tiene precio base positivo.');return false;}
  const previo=importeFinal(id)||(p.price*(cart[id]||0));
@@ -633,10 +640,10 @@ function editarCantidad(id){
  
  const p=dictionary.get(id);
  const actual=formatearCantidad(cart[id]||1);
- const entrada=window.prompt('Cantidad de '+p.name+' (ejemplos: 0.66, 0.12, 1.25):',actual);
+ const entrada=window.prompt('Cantidad de '+p.name+(esImporte(id)?' (ejemplos: 0.66, 0.12, 1.25):':' (solo unidades enteras):'),actual);
  if(entrada===null)return false;
  const n=leerCantidad(entrada);
- if(n===null){window.alert('Cantidad inválida. Escribe entre 0.001 y 9999, con hasta 3 decimales.');return false;}
+ if(n===null||(!esImporte(id)&&!Number.isInteger(n))){window.alert(esImporte(id)?'Cantidad inválida. Escribe entre 0.001 y 9999, con hasta 3 decimales.':'Este artículo se vende por unidad completa. Escribe una cantidad entera entre 1 y 9999.');return false;}
  cart[id]=n;delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();toast('✓ Cantidad actualizada: '+formatearCantidad(n));
  return true;
 }
@@ -665,6 +672,8 @@ function composeOrder(){
  for(const [id,n] of Object.entries(cart)){
   const p=dictionary.get(id);
   if(!p||!Number.isFinite(n)||n<=0)continue;
+  // No enviar como fracción artículos empaquetados o vendidos por pieza.
+  if(!esImporte(id)&&!Number.isInteger(n))return '';
   let cantidad=n;
   if(esImporte(id)){
    const importe=importeFinal(id);
@@ -682,16 +691,16 @@ function composeOrder(){
 function renderOrderPreview(){
  const target=q('#order-message-preview');if(!target)return;
  const msg=composeOrder();
- target.textContent=msg|| (Object.keys(cart).length?'Revisa el importe de los artículos fraccionados antes del envío.':'Agrega productos al carrito para preparar el mensaje.');
+ target.textContent=msg|| (Object.keys(cart).length?'Revisa cantidades e importes del carrito antes del envío.':'Agrega productos al carrito para preparar el mensaje.');
 }
 function send(){
  const msg=composeOrder();
- if(!msg){window.alert('Hay un importe que se redondea a cantidad cero o no puede expresarse con hasta 3 decimales. Revísalo con ✎.');return;}
+ if(!msg){window.alert('Revisa el carrito: los artículos por pieza, caja, saco o tramo requieren cantidades enteras. Los importes por kilo, metro y litro deben convertirse a cantidades válidas.');return;}
  window.open('https://wa.me/'+WHATSAPP+'?text='+encodeURIComponent(msg),'_blank','noopener,noreferrer');
 }
 async function copyOrder(){
  const msg=composeOrder();
- if(!msg){window.alert('Revisa los importes antes de copiar el pedido.');return;}
+ if(!msg){window.alert('Revisa las cantidades e importes antes de copiar el pedido.');return;}
  try{if(!navigator.clipboard?.writeText)throw Error('Clipboard unavailable');await navigator.clipboard.writeText(msg);toast('✓ Pedido copiado');}
  catch{const t=q('#order-message-preview');q('#order-verify').open=true;renderOrderPreview();if(t){const selection=window.getSelection();const range=document.createRange();range.selectNodeContents(t);selection.removeAllRanges();selection.addRange(range);toast('Selecciona el texto para copiarlo')}}
 }
@@ -712,5 +721,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classL
 })();
 
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=13').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=6"></script></body>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=14').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=6"></script></body>
 </html>
