@@ -538,6 +538,21 @@ function renderCart(){
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
 function change(id,amount){const n=Math.max(0,Math.min(9999,(cart[id]||0)+amount));if(n)cart[id]=n;else delete cart[id];save();renderCart();renderProducts()}
+
+/* Escáner: una unidad por lectura, a través de la lógica ORIGINAL del carrito. */
+window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
+ const code=String(rawCode||'').trim();
+ if(!/^\d{5,}$/.test(code)||!dictionary.has(code))return {ok:false,reason:'Código no disponible en el catálogo'};
+ const before=cart[code]||0;
+ if(before>=9999)return {ok:false,reason:'Este producto alcanzó el máximo de 9,999 unidades'};
+ change(code,1);
+ try{
+  const saved=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');
+  if(cart[code]===before+1&&saved?.[code]===before+1)return {ok:true,quantity:cart[code]};
+ }catch(_){}
+ return {ok:false,reason:'No se confirmó el guardado del carrito. Comprueba las cantidades antes de reintentar'};
+};
+
 function composeOrder(){
  const entries=Object.entries(cart);
  if(!entries.length)return '';
@@ -573,5 +588,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classL
 })();
 
 </script>
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=10').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script></body>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=10').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=5"></script></body>
 </html>

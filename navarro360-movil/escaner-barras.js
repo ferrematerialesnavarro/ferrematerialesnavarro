@@ -1,4 +1,4 @@
-/* NAVARRO 360: escáner de barras V4 IPHONE PRO. Solo UI; el carrito lo gestiona la app original. */
+/* NAVARRO 360: escáner V5 IPHONE PRO. Integración nativa con carrito si está disponible; conservamos compatibilidad. */
 (function(){
 'use strict';
 if(window.NAVARRO_ESCANER_INSTALADO)return;
@@ -66,6 +66,14 @@ function cartFingerprint(){
 }
 async function addFound(p,token){
  if(closed||token!==session)return {ok:false,reason:'Lectura cancelada'};
+ // El carrito real decide y persiste la cantidad. No fingir toques ni recargar.
+ if(typeof window.NAVARRO_ESCANER_AGREGAR==='function'){
+  try{
+   const result=window.NAVARRO_ESCANER_AGREGAR(p.code);
+   return result?.ok?{ok:true}:{ok:false,reason:result?.reason||'No se pudo verificar que el carrito aumentara'};
+  }catch(_){return {ok:false,reason:'No se pudo actualizar el carrito. Revisa el pedido antes de reintentar'};}
+ }
+ // Fallback seguro para versiones previas de la tienda.
  if(!searchCode(p.code))return {ok:false,reason:'No se encontró la barra de búsqueda'};
  for(var i=0;i<16;i++){
   await pause(i===0?180:120);
@@ -98,7 +106,7 @@ function ensureOverlay(){
  overlay.querySelector('#nav-scan-take-photo').addEventListener('click',()=>{if(closed||photoBusy)return;unlockAudio();photoStop=stop();setStatus('Cámara pausada. Toma una foto nítida del código.');overlay.querySelector('#nav-scan-photo').click();});
  overlay.querySelector('#nav-scan-photo').addEventListener('change',e=>{void scanPhoto(e.target.files&&e.target.files[0]);});
  overlay.querySelector('#nav-scan-reopen').addEventListener('click',async()=>{await close();await open();});
- overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();unlockAudio();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code);});
+ overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();unlockAudio();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code,'manual');});
  overlay.addEventListener('click',e=>{if(e.target===overlay)void close()});
 }
 async function stop(){
@@ -160,7 +168,7 @@ async function repeatLast(){
  else setStatus(result.reason+'. Comprueba el carrito antes de reintentar.',true);
  updateProgress();
 }
-async function decoded(value){
+async function decoded(value,source='camera'){
  if(closed||busy||opening)return;
  var p=productFor(value);
  if(!p){
@@ -171,7 +179,7 @@ async function decoded(value){
   return;
  }
  // Una etiqueta inmóvil nunca suma dos veces. Para repetir el mismo SKU, pulsar +1.
- if(p.code===lastCode)return;
+ if(p.code===lastCode&&source==='camera')return;
  if(Date.now()<nextAllowedAt)return;
  var token=session;
  busy=true;lastCode=p.code;nextAllowedAt=Date.now()+MIN_BETWEEN_PRODUCTS_MS;
@@ -259,7 +267,7 @@ async function scanPhoto(file){
   photoReader=new window.Html5Qrcode('nav-scan-photo-reader',{formatsToSupport:formats,verbose:false});
   const code=await photoReader.scanFile(file,false);
   if(closed||token!==session)return;
-  await decoded(code);
+  await decoded(code,'photo');
  }catch(e){
   if(!closed&&token===session)setStatus('No se pudo leer la foto. Intenta con más luz, el código completo y sin reflejos. '+String(e?.message||''),true);
  }finally{
@@ -324,7 +332,7 @@ function attach(){
 }
 function install(){
  var style=document.createElement('style');
- style.textContent='.nav-scan-launch{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:44px;height:44px;z-index:8;border:0;border-radius:12px;background:#102b54;color:white;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 9px #071a3933}#nav-scan-overlay[hidden]{display:none!important}#nav-scan-overlay{position:fixed;inset:0;background:#071a39df;z-index:2147483000;display:flex;align-items:end;justify-content:center;box-sizing:border-box;padding:10px 8px max(14px,env(safe-area-inset-bottom))}.nav-scan-panel{max-width:570px;width:100%;background:white;border-radius:22px;padding:16px;box-sizing:border-box;box-shadow:0 12px 50px #0005}.nav-scan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;color:#102b54;margin-bottom:10px}.nav-scan-head strong{font-size:18px}.nav-scan-head p{color:#66748a;font-size:12px;line-height:1.4;margin:5px 0}#nav-scan-close{width:44px;height:44px;border:0;border-radius:11px;background:#edf1f8;color:#102b54;font-size:20px;flex-shrink:0}#nav-scan-camera{background:#071a39;border-radius:12px;overflow:hidden;min-height:180px}#nav-scan-camera video{max-width:100%}#nav-scan-status{margin:14px 0 7px;text-align:center;font-size:14px;font-weight:700;color:#163859;overflow-wrap:anywhere}#nav-scan-status.error{color:#a52e2e}.nav-scan-help{color:#68788a;font-size:12px;text-align:center;line-height:1.4;margin:0}body.nav-scan-open{overflow:hidden}.nav-scan-pro-tools{display:flex;align-items:center;gap:8px;margin:7px 0;flex-wrap:wrap}.nav-scan-pro-tools button{border:0;border-radius:9px;background:#eaf0fa;color:#173453;padding:9px 10px;min-height:40px;font-weight:750}.nav-scan-pro-tools button[hidden],.nav-scan-pro-tools label[hidden]{display:none!important}.nav-scan-pro-tools label{display:flex;align-items:center;gap:5px;font-size:12px;color:#173453;font-weight:700;flex:1;min-width:140px}.nav-scan-pro-tools input{min-width:70px;width:100%;accent-color:#102b54}.nav-scan-tools{display:flex;gap:8px;margin:9px 0}.nav-scan-tools button{flex:1;background:#102b54;color:#fff;border:0;border-radius:10px;min-height:44px;font-weight:750;font-size:12px}.nav-scan-file-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}#nav-scan-photo-reader{position:absolute;left:-10000px;top:0;width:320px;height:240px;opacity:0;pointer-events:none}#nav-scan-manual{display:flex;gap:7px;margin:7px 0 10px}#nav-scan-manual input{min-width:0;flex:1;min-height:43px;border:1px solid #ccd6e6;border-radius:10px;font-size:16px;padding:0 10px}#nav-scan-manual button{border:0;border-radius:10px;background:#e7b549;color:#142842;min-height:43px;padding:0 10px;font-size:12px;font-weight:800}#nav-scan-camera video{min-height:210px;object-fit:contain}.nav-scan-summary{background:#edf4fd;border:1px solid #d3e4f7;color:#122f52;border-radius:11px;padding:11px;font-weight:800;font-size:13px;text-align:center;margin:8px 0}#nav-scan-repeat{border:0;border-radius:12px;background:#e7b549;color:#142842;font-size:13px;font-weight:850;min-height:44px;padding:10px 12px;width:100%;margin-bottom:9px;white-space:normal;overflow-wrap:anywhere}#nav-scan-repeat[hidden]{display:none!important}#nav-scan-repeat:disabled{opacity:.6}';
+ style.textContent='.nav-scan-launch{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:44px;height:44px;z-index:8;border:0;border-radius:12px;background:#102b54;color:white;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 9px #071a3933}#nav-scan-overlay[hidden]{display:none!important}#nav-scan-overlay{position:fixed;inset:0;background:#071a39df;z-index:2147483000;display:flex;align-items:end;justify-content:center;box-sizing:border-box;padding:10px 8px max(14px,env(safe-area-inset-bottom))} .nav-scan-panel{max-width:570px;max-height:calc(100dvh - 24px);overflow-y:auto;width:100%;background:white;border-radius:22px;padding:16px;box-sizing:border-box;box-shadow:0 12px 50px #0005}.nav-scan-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;color:#102b54;margin-bottom:10px}.nav-scan-head strong{font-size:18px}.nav-scan-head p{color:#66748a;font-size:12px;line-height:1.4;margin:5px 0}#nav-scan-close{width:44px;height:44px;border:0;border-radius:11px;background:#edf1f8;color:#102b54;font-size:20px;flex-shrink:0}#nav-scan-camera{background:#071a39;border-radius:12px;overflow:hidden;min-height:180px}#nav-scan-camera video{max-width:100%}#nav-scan-status{margin:14px 0 7px;text-align:center;font-size:14px;font-weight:700;color:#163859;overflow-wrap:anywhere}#nav-scan-status.error{color:#a52e2e}.nav-scan-help{color:#68788a;font-size:12px;text-align:center;line-height:1.4;margin:0}body.nav-scan-open{overflow:hidden}.nav-scan-pro-tools{display:flex;align-items:center;gap:8px;margin:7px 0;flex-wrap:wrap}.nav-scan-pro-tools button{border:0;border-radius:9px;background:#eaf0fa;color:#173453;padding:9px 10px;min-height:40px;font-weight:750}.nav-scan-pro-tools button[hidden],.nav-scan-pro-tools label[hidden]{display:none!important}.nav-scan-pro-tools label{display:flex;align-items:center;gap:5px;font-size:12px;color:#173453;font-weight:700;flex:1;min-width:140px}.nav-scan-pro-tools input{min-width:70px;width:100%;accent-color:#102b54}.nav-scan-tools{display:flex;gap:8px;margin:9px 0}.nav-scan-tools button{flex:1;background:#102b54;color:#fff;border:0;border-radius:10px;min-height:44px;font-weight:750;font-size:12px}.nav-scan-file-input{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}#nav-scan-photo-reader{position:absolute;left:-10000px;top:0;width:320px;height:240px;opacity:0;pointer-events:none}#nav-scan-manual{display:flex;gap:7px;margin:7px 0 10px}#nav-scan-manual input{min-width:0;flex:1;min-height:43px;border:1px solid #ccd6e6;border-radius:10px;font-size:16px;padding:0 10px}#nav-scan-manual button{border:0;border-radius:10px;background:#e7b549;color:#142842;min-height:43px;padding:0 10px;font-size:12px;font-weight:800}#nav-scan-camera video{min-height:210px;object-fit:contain}.nav-scan-summary{background:#edf4fd;border:1px solid #d3e4f7;color:#122f52;border-radius:11px;padding:11px;font-weight:800;font-size:13px;text-align:center;margin:8px 0}#nav-scan-repeat{border:0;border-radius:12px;background:#e7b549;color:#142842;font-size:13px;font-weight:850;min-height:44px;padding:10px 12px;width:100%;margin-bottom:9px;white-space:normal;overflow-wrap:anywhere}#nav-scan-repeat[hidden]{display:none!important}#nav-scan-repeat:disabled{opacity:.6}';
  document.head.appendChild(style);attach();
  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 }
