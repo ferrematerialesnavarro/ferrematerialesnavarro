@@ -1,0 +1,114 @@
+/* NAVARRO 360 V58 — fotografías centradas en todas las tarjetas.
+   CSS de presentación, sin alterar artículos, precios, carrito ni SIFO. */
+#products article[data-card] > .product-visual {
+  box-sizing:border-box!important;
+  position:relative!important;
+  isolation:isolate!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  background:#fff!important;
+  background-image:none!important;
+  overflow:hidden!important;
+  border:1px solid #dbe3ec!important;
+  border-radius:12px!important;
+  min-width:0!important;
+}
+#products article[data-card] > .product-visual > img {
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:10px!important;
+  border:0!important;
+  border-radius:11px!important;
+  object-fit:contain!important;
+  object-position:50% 50%!important;
+  background:#fff!important;
+  background-image:none!important;
+  mix-blend-mode:normal!important;
+  transform:none!important;
+  filter:none!important;
+  z-index:2!important;
+  pointer-events:none!important;
+}
+/* Una casilla del atlas tiene exactamente 128x128 px: escalar la casilla
+   completa sin cambiar su background-position ni su background-size. */
+#products article[data-card] > .product-visual > .product-sprite,
+#products article[data-card] > .product-visual > .nav-material-photo,
+#products article[data-card] > .product-visual > .nav-material-strip {
+  display:block!important;
+  position:absolute!important;
+  top:50%!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  width:128px!important;
+  height:128px!important;
+  min-width:128px!important;
+  min-height:128px!important;
+  max-width:none!important;
+  max-height:none!important;
+  flex:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  transform-origin:center center!important;
+  transform:translate(-50%,-50%) scale(var(--nav-photo-scale,1))!important;
+  background-repeat:no-repeat!important;
+  background-color:#fff!important;
+  mix-blend-mode:normal!important;
+  filter:none!important;
+  z-index:1!important;
+  pointer-events:none!important;
+}
+#products article[data-card] > .product-visual > .product-symbol,
+#products article[data-card] > .product-visual > .nav-bath-icon {
+  text-align:center!important;
+  margin:auto!important;
+  max-width:100%!important;
+}
+#products article[data-card] > .product-visual:has(> img:not([hidden])) > .product-symbol,
+#products article[data-card] > .product-visual:has(> img:not([hidden])) > .nav-bath-icon {
+  visibility:hidden!important;
+}
+/* El lápiz de importe, las etiquetas y las cámaras siguen operativos. */
+#products article[data-card] > .product-visual > button,
+#products article[data-card] > .product-visual > .nav-camera,
+#products article[data-card] > .product-visual > .nav-v40-camera,
+#products article[data-card] > .product-visual > .card-importe {
+  z-index:10!important;
+}
+#cart-items .nav-cart-thumb img,
+.nav-visual-photo > img {
+  object-fit:contain!important;
+  object-position:center center!important;
+  box-sizing:border-box!important;
+  padding:3px!important;
+  background:#fff!important;
+}
+@media(max-width:560px){
+  #products article[data-card] > .product-visual {
+    align-self:center!important;
+    width:calc(100% - 10px)!important;
+    height:clamp(142px,43vw,174px)!important;
+    min-height:142px!important;
+    max-height:174px!important;
+    margin:5px!important;
+  }
+  #products article[data-card] > .product-visual > img {
+    padding:7px!important;
+  }
+}
+@media(min-width:561px){
+  #products article[data-card] > .product-visual {
+    min-height:148px!important;
+    height:170px!important;
+  }
+}
