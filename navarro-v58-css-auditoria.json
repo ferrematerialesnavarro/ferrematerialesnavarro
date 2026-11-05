@@ -1,0 +1,179 @@
+{
+  "html_size": 2131799,
+  "css": [
+    {
+      "selector": ".product",
+      "rules": [
+        "9px 12px;border-radius:9px}.products-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.product{display:flex;flex-direction:column;background:#fff;border:1px solid var(--border);border-radius:15px;overflow:hidden;box-shadow:0 6px 16px #18294108;transition:box-shadow .15s}",
+        "head small{font-size:9px;color:#45566c}.products-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}\n .product{border:1px solid #c4cbd1;border-radius:11px;box-shadow:0 2px 3px #00000018}",
+        "1d3b 0,#0b2948 80px,#e6e8eb 81px,#eff0f2 100%)}\n.section-heading h2{font-weight:950}\n.products-grid{gap:14px}\n.product{background:linear-gradient(155deg,#ffffff,#f4f6f8 92%);border:1px solid #c9d0d7;box-shadow:0 5px 11px #04102318}",
+        "id{order:4;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:transparent;align-items:stretch}\n .product{border:1px solid #bfc6ce;border-radius:14px;background:linear-gradient(160deg,#fff 38%,#f7f8fa 84%,#edf0f3);box-shadow:0 4px 9px #0b1a2c22,0 0 0 1px #fff9 inset;overflow:hidden;min-width:0}",
+        "strong{font-size:15px;color:#071a39;font-variant-numeric:tabular-nums}\n@media(max-width:560px){.products-grid .product{min-height:290px}",
+        "sting-head {padding:5px 5px 5px;}\n  .products-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}\n  .product {display:grid;grid-template-columns:43% 57%;min-height:177px;border-radius:12px;border:1px solid #b6bec7;background:linear-gradient(155deg,#fff,#f7f9fb 65%,#ecf0f3);box-shadow:inset 0 1px 0 white,0 3px 8px #10233e30;}",
+        "x}\n  .brand b {font-size:8px}\n  .brand strong {font-size:20px}\n  .header {min-height:78px;padding:8px 12px}\n  .product {grid-template-columns:41% 59%;min-height:172px}"
+      ],
+      "count": 7
+    },
+    {
+      "selector": ".product-visual",
+      "rules": [
+        "en;box-shadow:0 6px 16px #18294108;transition:box-shadow .15s}.product:hover{box-shadow:0 11px 30px #18294116}.product-visual{height:155px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f9fafb,#f0f3f7);position:relative}",
+        "px 9px}.listing-head{margin:19px 0 16px}.products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.product-visual{height:125px}",
+        ",minmax(0,1fr));gap:5px}\n .product{border:1px solid #c4cbd1;border-radius:11px;box-shadow:0 2px 3px #00000018}.product-visual{height:129px;background:#fff}",
+        "g-cart{display:none!important}\n}\n@media(max-width:375px){.brand strong{font-size:20px}.filter{font-size:8.5px}.product-visual{height:113px}",
+        "kground:linear-gradient(155deg,#ffffff,#f4f6f8 92%);border:1px solid #c9d0d7;box-shadow:0 5px 11px #04102318}\n.product-visual{background:#fff}",
+        "f 38%,#f7f8fa 84%,#edf0f3);box-shadow:0 4px 9px #0b1a2c22,0 0 0 1px #fff9 inset;overflow:hidden;min-width:0}\n .product-visual{height:clamp(112px,32vw,155px);position:relative;background:linear-gradient(150deg,#fff,#f8f9fa);overflow:hidden}",
+        "){.brand img{width:57px;height:57px}.brand b{font-size:8px}.brand strong{font-size:21px}.filter{font-size:9px}.product-visual{height:105px}",
+        "round:linear-gradient(155deg,#fff,#f7f9fb 65%,#ecf0f3);box-shadow:inset 0 1px 0 white,0 3px 8px #10233e30;}\n  .product-visual {height:auto;min-height:156px;width:100%;background:linear-gradient(160deg,#fff,#fafafb);display:flex;align-items:center;}"
+      ],
+      "count": 8
+    },
+    {
+      "selector": ".product-info",
+      "rules": [
+        "box-shadow:0 2px 6px #00000010;color:#6a7383;border-radius:7px;padding:6px 8px;font-size:10px;font-weight:700}.product-info{display:flex;flex-direction:column;flex:1;padding:16px}",
+        "template-columns:repeat(2,minmax(0,1fr));gap:10px}.product-visual{height:125px}.product-symbol{font-size:43px}.product-info{padding:12px}",
+        "oduct-visual img{padding:5px 4px;max-width:100%;object-fit:contain;background:white}.product-cat{display:none}.product-info{padding:7px 5px 9px;flex:1}",
+        "ion:absolute;inset:auto 10px 0;height:1px;background:linear-gradient(90deg,transparent,#d9dfe4,transparent)}\n .product-info{padding:7px 7px 10px;min-width:0;display:flex;flex-direction:column;flex:1}",
+        "fit:contain;padding:4px 1px;filter:drop-shadow(0 3px 3px #142a4020)}\n  .product-visual:after {display:none}\n  .product-info {padding:9px 5px 8px 2px;gap:2px;display:flex;flex-direction:column;justify-content:center;min-width:0}"
+      ],
+      "count": 5
+    },
+    {
+      "selector": ".product-sprite",
+      "rules": [
+        "rm:scale(.985)}\n.product.tap-product.in-cart{border-color:#d6aa50;box-shadow:0 3px 16px rgba(190,145,51,.16)}\n.product-sprite{display:block;width:128px;height:128px;max-width:100%;flex-shrink:0;background-image:url('data:image/webp;base64,UklGRqSLBABXRUJQVlA4IJiLBABwzBSdASoABgAKPpVEnUslo6yxpfJrgjASiWNu23q7d9P3WPxW9S9R+1+4Vr/0Gv0D+v65vv3oD/lflzxd/Q/YA/j/nd5p/27/2+onyUeAj95/7votzjLa/9t/o+s5vH2XRhXzcWcB/0/MV/Z/D7YH9htgb6KP+Y9NDMXpM7WXuU5T/Vf4v9F/rPHVkH6X/J/y3+i/Zv4TuS/I34l+E/z/wMf6/I76b/xebt7N/VfOf8zv+7/8v9z7uv6J/uP/d/rP3//4v2Hf13/F/td7mP/F/7f/D+//zy/y//w/735//Jz+yf8H9y/eh/7/7x/+b5Df5L7sfkM/zP/G/+/r4f//3lP8j/7v//7m/8+/8P/39pn/6/vD8TH91/8P/w/5v/L///y4f7z/1+wB///bo/gH//60fyn/Tf7j/H/6f/U/v//6vrh8i/j/9r/jv9N/zP8V+ynuT+R/af7X/B/6D/tf5L/0fVf+2Z0/ff9H/1/8P1S/oH5//sf5b/Rfs/78f9D/Uf6L9s/U/9C/i/+9/pP9f+0PyF/l/9M/3P99/fr33vuP+9/r/FO23/gf+v/Qewj7VfZv+//i/9h7JH2X/n/zPrJ+6/6r/uf574Av6f/dv+j92n0n/t/2p/0n//9O37x/vv/h/n/8n+1H2C/zP+8f+D/If8b97/lj/9/95/yv3y9536X/vP/p/uvgN/oP+K/af27v/9+//y4/en///+b4bP3B////i//5Yx8w00CBgni6oTwGuOff8ETzfqoBHS5QNsEl1uAywE+1hTi+6z22dp1Xx2F5mWKqG4Lq72+4qfKJQPlP7ujLICqXjOc9WVBPwXxySG0r5sq",
+        "d .product{min-height:290px}.product .product-bottom{flex-wrap:wrap;gap:8px}.card-qty,.card-prompt{width:100%}.product-sprite{max-height:112px;max-width:112px;background-size:contain}"
+      ],
+      "count": 2
+    },
+    {
+      "selector": ".product-symbol",
+      "rules": [
+        "on:relative}.product-visual img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;padding:9px}.product-symbol{font-size:58px;filter:drop-shadow(0 6px 8px #172c4b15)}",
+        "9px 0 16px}.products-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.product-visual{height:125px}.product-symbol{font-size:43px}"
+      ],
+      "count": 2
+    },
+    {
+      "selector": ".product-cat",
+      "rules": [
+        "in;mix-blend-mode:multiply;padding:9px}.product-symbol{font-size:58px;filter:drop-shadow(0 6px 8px #172c4b15)}.product-cat{position:absolute;left:12px;top:12px;background:#fff;box-shadow:0 2px 6px #00000010;color:#6a7383;border-radius:7px;padding:6px 8px;font-size:10px;font-weight:700}",
+        ":129px;background:#fff}.product-visual img{padding:5px 4px;max-width:100%;object-fit:contain;background:white}.product-cat{display:none}",
+        "kground:linear-gradient(#164a74,#061c3b);text-shadow:0 1px 2px #0006}\n .product-code,.price-note{display:none}.product-cat{display:none}"
+      ],
+      "count": 3
+    },
+    {
+      "selector": ".product-price",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".product-code",
+      "rules": [
+        ".product-info h3{font-size:13px;line-height:1.46;min-height:37px;margin:0 0 7px;font-weight:850;color:#202e45}.product-code{font-size:10px;color:#89929f;font-variant-numeric:tabular-nums;letter-spacing:.03em}",
+        ";line-clamp:4;max-height:58px;min-height:0;margin:0;font-weight:950;letter-spacing:-.026em;overflow:hidden}\n  .product-code {display:block;font-size:clamp(7.7px,1.95vw,9.5px);color:#435166;overflow-wrap:anywhere;line-height:1.2;margin-top:2px}",
+        "rid-template-columns:41% 59%;min-height:172px}\n  .product-info h3 {font-size:9px}\n  .price {font-size:15px}\n  .product-code {font-size:7px}"
+      ],
+      "count": 3
+    },
+    {
+      "selector": ".tap-product",
+      "rules": [
+        "N NAVARRO360_PLOMERIA_MENUS_SIEMPRE_VISIBLES_V1 */\n\n/* NAVARRO 360 — Réplica móvil de la tienda PC */\n.product.tap-product{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}"
+      ],
+      "count": 1
+    },
+    {
+      "selector": ".product-grid",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".nav-v40-photo",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".nav-truper-verified-photo",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".navarro-photo-recuperada",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".nav-bath-photo",
+      "rules": [],
+      "count": 0
+    },
+    {
+      "selector": ".card-qty",
+      "rules": [
+        "r:#fff;border-radius:10px;min-height:40px;font-size:12px;font-weight:800;padding:5px 11px;white-space:nowrap}\n.card-qty{display:flex;justify-content:space-between;align-items:center;gap:5px;border-radius:11px;background:#eaf0f5;border:1px solid #dbe3ee;min-height:40px;padding:4px;min-width:126px}",
+        "visual .card-importe{right:4px;bottom:5px;width:34px;height:34px;border-radius:10px;font-size:22px}\n .product .card-qty{min-width:0;min-height:32px;gap:2px;padding:2px;width:100%}"
+      ],
+      "count": 2
+    }
+  ],
+  "chunks": {
+    "function renderProducts(){": {
+      "offset": 2117469,
+      "source": "('#subfilters').innerHTML=options.map(c=>`<button type=\"button\" class=\"subfilter ${c===subcat?'active':''}\" data-sub=\"${esc(c)}\">${esc(c==='Todos'?(category==='Herramientas'?'Todas las herramientas':'Todos los materiales'):c)}</button>`).join('');\n}\nfunction renderProducts(){\n const plActive=category==='Plomería'&&!search.trim();\n const elActive=category==='Electricidad'&&!search.trim();\n if(plomeria)plomeria.render(plActive);\n if(electricidad)electricidad.render(elActive);\n const results=productResults();q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;\n q('#results-info').textContent=search.trim()&&nameMatches>results.length?('Mostrando '+results.length+' de '+nameMatches+' productos · Refina la búsqueda o muestra más'):results.length+' producto'+(results.length===1?'':'s')+' · Consulta el catálogo';q('#no-results').hidden=results.length>0||plActive||elActive; if(plActive&&plomeria)q('#results-info').textContent=plomeria.intro();if(elActive&&electricidad)q('#results-info').textContent=electricidad.intro();q('#search-more-wrap').hidden=!(search.trim()&&nameMatches>results.length);\n q('#products').innerHTML=results.map(p=>{\n const n=cart[p.id]||0;\n const photoName=p.img||window.NAVARRO_ATLAS?.byCode?.[p.id]||'';\n const atlas=window.NAVARRO_ATLAS;\n const ix=atlas?.files?.[photoName];\n const hasPic=Number.isInteger(ix);\n const posX=hasPic?(ix%atlas.columns)*atlas.size:0;\n const posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;\n const pic=hasPic?`<span class=\"product-sprite\" role=\"img\" aria-label=\"Imagen del catálogo\" style=\"background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px\"></span>`:`<span class=\"product-symbol\" aria-hidden=\"true\">${p.cat==='Herramientas'?(toolIcons[p.sub]|"
+    },
+    "function renderCart(){": {
+      "offset": 2121244,
+      "source": "style.overflow='hidden';renderCart();q('#cart-close').focus()}\nfunction closeCart(){q('#drawer').classList.remove('open');q('#drawer').setAttribute('aria-hidden','true');q('#overlay').hidden=true;document.body.style.overflow='';lastFocus?.focus?.()}\nfunction renderCart(){\n const entries=Object.entries(cart);\n q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{\n const p=dictionary.get(id),imp=importeFinal(id),total=imp>0?imp:p.price*num;\n return `<div class=\"cart-line\"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class=\"cart-controls\"><div class=\"quant\"><button type=\"button\" data-dec=\"${esc(id)}\" aria-label=\"Restar una unidad\">−</button><span>${formatearCantidad(num)}</span><button type=\"button\" data-inc=\"${esc(id)}\" aria-label=\"Sumar una unidad\">+</button></div><button type=\"button\" data-qty-edit=\"${esc(id)}\" aria-label=\"Escribir cantidad\">Cantidad</button>${esImporte(id)?`<button type=\"button\" data-importe-edit=\"${esc(id)}\" aria-label=\"Ingresar importe en pesos\">✎ Importe</button>`:''}<button type=\"button\" data-remove=\"${esc(id)}\">Eliminar</button><span class=\"line-total\">${money(total)}</span></div></div>`;\n }).join(''):'<div class=\"empty-cart\"><span style=\"font-size:50px\">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';\n q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;\n}\nfunction editarClavo(id){return editarImporte(id);}\nfunction editarImporte(id){\n if(!dictionary.has(id))return false;\n if(!esImporte(id)){window.alert('Este artículo se vende por unidad completa y no admite importe fraccionado.');return false;}\n const p=dictionary.get(id);\n if(!Number.isFinite(p.price)||p.price<=0){window.alert('No es posible convertir importes porque este artículo no tiene precio base positivo.');return false;}\n const previo=importeFinal(id)||(p.price*(cart[id]||0));\n c"
+    },
+    "function photoFor": {
+      "offset": -1,
+      "source": ""
+    },
+    "window.NAVARRO_ATLAS=": {
+      "offset": 2089422,
+      "source": "new Map(items.map(x=>[x.id,x.name]));\n window.NAVARRO_BUSCADOR_GENERICO=Object.freeze({version:'2026-11-02',expected:2189,loaded:items.length,searchByName,isApproved:(id,name)=>approvedExact.get(String(id))===String(name)});\n})();\n\n</script><script>\nwindow.NAVARRO_ATLAS={\"columns\":12,\"rows\":20,\"size\":128,\"files\":{\"armex-triangular-12-12-3_15-15-3.webp\":0,\"cemento-tolteca-25kg.webp\":1,\"fachada-real.webp\":2,\"foto-propietario-0965.webp\":3,\"foto-propietario-0966.webp\":4,\"foto-propietario-0967.webp\":5,\"foto-propietario-0968.webp\":6,\"foto-propietario-0969.webp\":7,\"foto-propietario-0972.webp\":8,\"foto-propietario-0973.webp\":9,\"foto-propietario-0974.webp\":10,\"foto-propietario-0975.webp\":11,\"foto-propietario-0976.webp\":12,\"foto-propietario-0977.webp\":13,\"foto-propietario-0978.webp\":14,\"foto-propietario-0979.webp\":15,\"foto-propietario-0980.webp\":16,\"foto-propietario-0981.webp\":17,\"foto-propietario-0982.webp\":18,\"foto-propietario-0983.webp\":19,\"foto-propietario-0984.webp\":20,\"foto-propietario-0985.webp\":21,\"foto-propietario-0986.webp\":22,\"foto-propietario-0987.webp\":23,\"foto-propietario-0988.webp\":24,\"foto-propietario-0989.webp\":25,\"foto-propietario-0990.webp\":26,\"foto-propietario-0991.webp\":27,\"foto-propietario-0992.webp\":28,\"foto-propietario-0993.webp\":29,\"foto-propietario-0994.webp\":30,\"foto-propietario-0995.webp\":31,\"foto-propietario-0996.webp\":32,\"logo.webp\":33,\"navarro-cobre-7501600559231.webp\":34,\"navarro-cobre-7506080660385.webp\":35,\"navarro-cobre-7777000203.webp\":36,\"navarro-cobre-7777000204.webp\":37,\"navarro-cobre-7777000205.webp\":38,\"navarro-cobre-7777000206.webp\":39,\"navarro-cobre-7777000207.webp\":40,\"navarro-cobre-7777000208.webp\":41,\"navarro-cobre-7777000209.webp\":42,\"navarro-cobre-7777000210.webp\":43,\"navarro-cobre-7777000211.webp\":44,\"navarro-cobre-7777000212.webp\":45,\"navarro-cobre-7777000213.webp\":46,\"navarro-cobre-7777000214.webp\":47,\"navarro-cobre-7777000215.webp\":48,\"navarro-cobre-7777000216.webp\":49,\"navarro-cobre-7777000217.webp\":50,\"navarro-cobre-7777000218.webp\":51,\"navarro-cobre-7777000219.webp\":52,\"n"
+    },
+    "const publicList=": {
+      "offset": 2108614,
+      "source": "7777000875':'CEMEX Cemento Antihumedad 25 kg',\n '7777000023':'Mortero CEMEX Tolteca 25 kg',\n '7777000019':'Multiplast CEMEX 25 kg',\n '7777000031':'Pegapiso Cali 20 kg',\n '7777001629':'Arena de río cernida',\n '7777001051':'Arena de río sin cernir'\n};\nconst publicList=HIGHLIGHTS.map(x=>{const p=dictionary.get(String(x.id));return p?{...p,display:displayNames[p.id]||p.name,cat:x.cat,img:x.img,sub:x.sub||\"\",public:true}:null}).filter(Boolean);\nconst publicCodes=new Set(publicList.map(x=>x.id));\nconst categories=['Construcción','Plomería','Electricidad','Herramientas','Pintura','Todos'];\nconst subs=['Todos','Cementos y morteros','Pegapisos y acabados','Arenas y agregados','Acero y estructuras','Ladrillos y paneles'];\nconst toolSubs=['Todos',...new Set(publicList.filter(p=>p.cat==='Herramientas').map(p=>p.sub).filter(Boolean))];\nconst q=s=>document.querySelector(s),money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);\nconst norm=s=>String(s??'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();\nconst esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',\"'\":'&#39;'}[c]));\n// NAVARRO 360 DECIMALES WHATS V2: cantidad decimal visible y con cero inicial.\nfunction formatearCantidad(n){return String(Number(Number(n).toFixed(3)));}\nfunction leerCantidad(raw){\n const s=String(raw??'').trim().replace(',', '.');\n if(!/^(?:\\d{1,4}(?:\\.\\d{1,3})?|\\.\\d{1,3})$/.test(s))return null;\n const n=Number(s);\n return Number.isFinite(n)&&n>0&&n<=9999?Number(n.toFixed(3)):null;\n}\n// NAVARRO 360 UNIDADES DE VENTA V2: el importe solo aplica a kilos, metros, litros\n// y a los clavos sueltos ya confirmados. No usar la medida del empaque como unidad de venta.\nfunction unidadVenta(id){\n const p=dictionary.get(String(id));\n if(!p||!Number.isFinite(p.price)||p.price<=0)return '';\n if(esClavo(id))return 'kg';\n const name=norm(p.name);\n // Unidad real: \"POR KILO\", \"KILO DE\", \"METRO DE\", \"LITRO DE\".\n // No deducir venta fraccionada solo por tamañ"
+    },
+    "<head>": {
+      "offset": 36,
+      "source": "<!doctype html>\n<html lang=\"es-MX\">\n<head>\n<meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">\n<meta name=\"theme-color\" content=\"#071a39\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"description\" content=\"Materiales de construcción, plomería, electricidad y pintura. Compra por WhatsApp en Ferremateriales Navarro y prepara tu pedido por WhatsApp.\">\n<title>NAVARRO 360 · Tienda móvil completa</title>\n<link rel=\"icon\" type=\"image/webp\" href=\"data:image/webp;base64,UklGRnJvAABXRUJQVlA4IGZvAAAwgQGdASrgAeABPlEkj0UjoiGjqDR7IHAKCWRuvhDehswkgN4WTVma0H/mPyu8MT4/i/8V+y/+K/bj5hq3/bv7V+nP7h+3fyj/8HjB1t/2PPW8//Zf9r/dP9H/7/9D/////9tf8//1P8f7pf0b/zv8F+/X0B/p9/tf7N/ov2l+Mn9lffF+6P5O/Av+qf4T/1/6P/pf//5nv75/3v7N7sv8H/k/+5/kf97///oE/qv+A/8X5//+z54fYr/eX2D/7B/tf/5/xPbV/cz/k/Kn/Wf97+3v/X+SX9iP/Z+f//z+gD/7e1Z/AP/l1j/az/R+l7yg/WfmJ/evUP8f+0f1X+E/db/E+7Bn77ZtSz5n+Mf3X9//cr8pfnv/ueIv5n/V+gR+Qfzn/Wf3/91f8b8iEcJxB73/df+d/kfyl+PL73/p+lP8b/qf+b7gP69f8n7evbW8KD8v/zP2u+AH+cf4D/yf5j/I+5z/4/6f/dep79I/03/x/2HwJfzz+3f8z/A+2L///eT+6f//93/9z//+bSkeUPz2bL9Od4ldnIImPWtM+GPzr04WHWsRurEvp/YnHMQY9+jIPDmc6K8bo4HnJYMEiQL4zzHnPh6P8hvY/GQDq0WJVrKbDJ4YAPba2KKbrFJTpfN8fScaLpyv07Cy//xl7frtzOHOQRP71oP9/ogrNvvm9Oz2/YX54RVf3cdUTR1lcTGrryVyrg/Eu3vlfvAlvbf+xUiNBM+S2aX5/rRL3fVv/uH2gYkso/+WpbjwdpScqCZkWds2kfZ2/pwre7DtfOIspVvjWxUutbMsDCd31/mlSQkXD9msyCOMIBomkLjjR5kKtdjgbnsv4kcTzY7hrXQAvCDqNgYVNZPvXeJQ3Q+Mgl8mj76fwDTREpUiOuUmVXY8y5Trh4KB1L8yyeccGETIsEfh7Wic4i1Y454lwScR5L/+45XPwLkQVmDHNEgDaYIII7i1tk55q8XkCacG6PxWuuz+FjcD0GRUW45gKPcCcheGvg3WgR0YQphqKUBm+Gp0tcPt1QFnvpcUW7ny/1+yYx2F04mF182LxOVwpo7xSdqpUSP62z7/thHBSjmfmxB11ZsGddc5qxCWPjx/4OWn85Zhc1sTPjFrFB/SJNjpJkFt4GLatcQCKC5707yOqWjI4ZlOe7IbhSQwT7iNLL7LPX8gfu9GMsvr002fUuJn/WQQhchPoDYE5YvaPYtHvZsJmyAXfacOB8MxYZqQoHNpYYIk6VV5KmL0IzQV4uXmGPyTM3JZPIDj"
+    },
+    "</head>": {
+      "offset": 481602,
+      "source": "\n<script defer src=\"./truper-fotos-catalogo-v53.js?v=53\"></script>\n<script defer src=\"./truper-fotos-integracion-v48.js?v=52\"></script>\n<script defer src=\"./carrito-fotos-v44.js?v=52\"></script>\n<script defer src=\"./buscar-foto-v57.js?v=57\"></script>\n</head>\n<body>\n<div class=\"preview-banner\"><span class=\"preview-dot\"></span> VISTA PREVIA PRIVADA · Precios sujetos a confirmación</div>\n<header class=\"header\">\n  <a class=\"brand\" href=\"#inicio\" aria-label=\"Ir al inicio de Ferremateriales Navarro\"><img src=\"data:image/webp;base64,UklGRnJvAABXRUJQVlA4IGZvAAAwgQGdASrgAeABPlEkj0UjoiGjqDR7IHAKCWRuvhDehswkgN4WTVma0H/mPyu8MT4/i/8V+y/+K/bj5hq3/bv7V+nP7h+3fyj/8HjB1t/2PPW8//Zf9r/dP9H/7/9D/////9tf8//1P8f7pf0b/zv8F+/X0B/p9/tf7N/ov2l+Mn9lffF+6P5O/Av+qf4T/1/6P/pf//5nv75/3v7N7sv8H/k/+5/kf97///oE/qv+A/8X5//+z54fYr/eX2D/7B/tf/5/xPbV/cz/k/Kn/Wf97+3v/X+SX9iP/Z+f//z+gD/7e1Z/AP/l1j/az/R+l7yg/WfmJ/evUP8f+0f1X+E/db/E+7Bn77ZtSz5n+Mf3X9//cr8pfnv/ueIv5n/V+gR+Qfzn/Wf3/91f8b8iEcJxB73/df+d/kfyl+PL73/p+lP8b/qf+b7gP69f8n7evbW8KD8v/zP2u+AH+cf4D/yf5j/I+5z/4/6f/dep79I/03/x/2HwJfzz+3f8z/A+2L///eT+6f//93/9z//+bSkeUPz2bL9Od4ldnIImPWtM+GPzr04WHWsRurEvp/YnHMQY9+jIPDmc6K8bo4HnJYMEiQL4zzHnPh6P8hvY/GQDq0WJVrKbDJ4YAPba2KKbrFJTpfN8fScaLpyv07Cy//xl7frtzOHOQRP71oP9/ogrNvvm9Oz2/YX54RVf3cdUTR1lcTGrryVyrg/Eu3vlfvAlvbf+xUiNBM+S2aX5/rRL3fVv/uH2gYkso/+WpbjwdpScqCZkWds2kfZ2/pwre7DtfOIspVvjWxUutbMsDCd31/mlSQkXD9msyCOMIBomkLjjR5kKtdjgbnsv4kcTzY7hrXQAvCDqNgYVNZPvXeJQ3Q+Mgl8mj76fwDTREpUiOuUmVXY8y5Trh4KB1L8yyeccGETIsEfh7Wic4i1Y454lwScR5L/+45XPwLkQVmDHNEgDaYIII7i1tk55q8XkCacG6PxWuuz+FjcD0GRUW45gKPcCcheGvg3WgR0YQphqKUBm+Gp0tcPt1QFnvpcUW7ny/1+yYx2F04mF182LxOVwpo7xSdqpUSP62z7/thHBSjmfmxB11ZsGddc5qxCWPjx/4OWn85Zhc1sTPjFrFB/SJNjpJkFt4GLatcQCKC5707yOqWjI4ZlOe7IbhSQwT7iNLL7LPX8gfu9GMsvr002fUuJn/WQQhchPoDYE5YvaPYtHvZsJmyAXfacOB8MxYZqQoHNpYYIk6VV5KmL0IzQV4uXmGPyTM3JZPIDjyPhU9cpqc31YXZI+FkDb9qo6VUVlRo5JAsaF8vh25zzOs2bpRK5NnOlAnupPDk/59292XsaxSySuYfc3IQVBERYSehh1EPFyFaM5u/PR1eyM0XDKkG1CnA2XSffHmkVNX0XHlMqdfE+VDkiyUcwMqL7+C7JYMFj/qJhPbGCPANiXk0TrnmB/7l/mruu1Gmh38pgW7HwW2ph6LmbRVV/ETQAdRM5"
+    },
+    "<link": {
+      "offset": 472,
+      "source": "=\"noindex,nofollow\"><meta name=\"description\" content=\"Materiales de construcción, plomería, electricidad y pintura. Compra por WhatsApp en Ferremateriales Navarro y prepara tu pedido por WhatsApp.\">\n<title>NAVARRO 360 · Tienda móvil completa</title>\n<link rel=\"icon\" type=\"image/webp\" href=\"data:image/webp;base64,UklGRnJvAABXRUJQVlA4IGZvAAAwgQGdASrgAeABPlEkj0UjoiGjqDR7IHAKCWRuvhDehswkgN4WTVma0H/mPyu8MT4/i/8V+y/+K/bj5hq3/bv7V+nP7h+3fyj/8HjB1t/2PPW8//Zf9r/dP9H/7/9D/////9tf8//1P8f7pf0b/zv8F+/X0B/p9/tf7N/ov2l+Mn9lffF+6P5O/Av+qf4T/1/6P/pf//5nv75/3v7N7sv8H/k/+5/kf97///oE/qv+A/8X5//+z54fYr/eX2D/7B/tf/5/xPbV/cz/k/Kn/Wf97+3v/X+SX9iP/Z+f//z+gD/7e1Z/AP/l1j/az/R+l7yg/WfmJ/evUP8f+0f1X+E/db/E+7Bn77ZtSz5n+Mf3X9//cr8pfnv/ueIv5n/V+gR+Qfzn/Wf3/91f8b8iEcJxB73/df+d/kfyl+PL73/p+lP8b/qf+b7gP69f8n7evbW8KD8v/zP2u+AH+cf4D/yf5j/I+5z/4/6f/dep79I/03/x/2HwJfzz+3f8z/A+2L///eT+6f//93/9z//+bSkeUPz2bL9Od4ldnIImPWtM+GPzr04WHWsRurEvp/YnHMQY9+jIPDmc6K8bo4HnJYMEiQL4zzHnPh6P8hvY/GQDq0WJVrKbDJ4YAPba2KKbrFJTpfN8fScaLpyv07Cy//xl7frtzOHOQRP71oP9/ogrNvvm9Oz2/YX54RVf3cdUTR1lcTGrryVyrg/Eu3vlfvAlvbf+xUiNBM+S2aX5/rRL3fVv/uH2gYkso/+WpbjwdpScqCZkWds2kfZ2/pwre7DtfOIspVvjWxUutbMsDCd31/mlSQkXD9msyCOMIBomkLjjR5kKtdjgbnsv4kcTzY7hrXQAvCDqNgYVNZPvXeJQ3Q+Mgl8mj76fwDTREpUiOuUmVXY8y5Trh4KB1L8yyeccGETIsEfh7Wic4i1Y454lwScR5L/+45XPwLkQVmDHNEgDaYIII7i1tk55q8XkCacG6PxWuuz+FjcD0GRUW45gKPcCcheGvg3WgR0YQphqKUBm+Gp0tcPt1QFnvpcUW7ny/1+yYx2F04mF182LxOVwpo7xSdqpUSP62z7/thHBSjmfmxB11ZsGddc5qxCWPjx/4OWn85Zhc1sTPjFrFB/SJNjpJkFt4GLatcQCKC5707yOqWjI4ZlOe7IbhSQwT7iNLL7LPX8gfu9GMsvr002fUuJn/WQQhchPoDYE5YvaPYtHvZsJmyAXfacOB8MxYZqQoHNpYYIk6VV5KmL0IzQV4uXmGPyTM3JZPIDjyPhU9cpqc31YXZI+FkDb9qo6VUVlRo5JAsaF8vh25zzOs2bpRK5NnOlAnupPDk/59292XsaxSySuYfc3IQVBERYSehh1EPFyFaM5u/PR1eyM0XDKkG1CnA2XSffHmkVNX0XHlMqdfE+VDkiyUcwMqL7+C7JYMFj/qJhPbGCPANiXk0TrnmB/7l/mruu1Gmh38pgW7HwW2ph6LmbRVV/ETQAdRM5NNUUGNSR+ycFwmCsdnnE3itdzEe/lV372X9VeuNan8QFGYmCf9jvC6pAr9JVHy3khgS8n3Zlc4bAlg/4mWYWDr4efdZYlRcwEZ4Skf7UFuF9NaKsPpDPZlbyNXLIOuuZUeRON94Hiy76dF+qXIYuhL/hJD/4xpoxtS/eFZ5/OZBDjkWw414bf779uhpNiatgCE7XZWrz++brp2M+F972cDTya"
+    },
+    "<script defer src=\"./truper-fotos": {
+      "offset": 481353,
+      "source": "\"NAVARRO 360\"><link rel=\"stylesheet\" href=\"./electricidad.css?v=6\">\n<script defer src=\"./navarro-v40-mejoras.js?v=40\"></script>\n<script defer src=\"./lector-usb-v42.js?v=43\"></script>\n<script defer src=\"./fotos-plomeria-carrito-v47.js?v=47\"></script>\n<script defer src=\"./truper-fotos-catalogo-v53.js?v=53\"></script>\n<script defer src=\"./truper-fotos-integracion-v48.js?v=52\"></script>\n<script defer src=\"./carrito-fotos-v44.js?v=52\"></script>\n<script defer src=\"./buscar-foto-v57.js?v=57\"></script>\n</head>\n<body>\n<div class=\"preview-banner\"><span class=\"preview-dot\"></span> VISTA PREVIA PRIVADA · Precios sujetos a confirmación</div>\n<header class=\"header\">\n  <a class=\"brand\" href=\"#inicio\" aria-label=\"Ir al inicio de Ferremateriales Navarro\"><img src=\"data:image/webp;base64,UklGRnJvAABXRUJQVlA4IGZvAAAwgQGdASrgAeABPlEkj0UjoiGjqDR7IHAKCWRuvhDehswkgN4WTVma0H/mPyu8MT4/i/8V+y/+K/bj5hq3/bv7V+nP7h+3fyj/8HjB1t/2PPW8//Zf9r/dP9H/7/9D/////9tf8//1P8f7pf0b/zv8F+/X0B/p9/tf7N/ov2l+Mn9lffF+6P5O/Av+qf4T/1/6P/pf//5nv75/3v7N7sv8H/k/+5/kf97///oE/qv+A/8X5//+z54fYr/eX2D/7B/tf/5/xPbV/cz/k/Kn/Wf97+3v/X+SX9iP/Z+f//z+gD/7e1Z/AP/l1j/az/R+l7yg/WfmJ/evUP8f+0f1X+E/db/E+7Bn77ZtSz5n+Mf3X9//cr8pfnv/ueIv5n/V+gR+Qfzn/Wf3/91f8b8iEcJxB73/df+d/kfyl+PL73/p+lP8b/qf+b7gP69f8n7evbW8KD8v/zP2u+AH+cf4D/yf5j/I+5z/4/6f/dep79I/03/x/2HwJfzz+3f8z/A+2L///eT+6f//93/9z//+bSkeUPz2bL9Od4ldnIImPWtM+GPzr04WHWsRurEvp/YnHMQY9+jIPDmc6K8bo4HnJYMEiQL4zzHnPh6P8hvY/GQDq0WJVrKbDJ4YAPba2KKbrFJTpfN8fScaLpyv07Cy//xl7frtzOHOQRP71oP9/ogrNvvm9Oz2/YX54RVf3cdUTR1lcTGrryVyrg/Eu3vlfvAlvbf+xUiNBM+S2aX5/rRL3fVv/uH2gYkso/+WpbjwdpScqCZkWds2kfZ2/pwre7DtfOIspVvjWxUutbMsDCd31/mlSQkXD9msyCOMIBomkLjjR5kKtdjgbnsv4kcTzY7hrXQAvCDqNgYVNZPvXeJQ3Q+Mgl8mj76fwDTREpUiOuUmVXY8y5Trh4KB1L8yyeccGETIsEfh7Wic4i1Y454lwScR5L/+45XPwLkQVmDHNEgDaYIII7i1tk55q8XkCacG6PxWuuz+FjcD0GRUW45gKPcCcheGvg3WgR0YQphqKUBm+Gp0tcPt1QFnvpcUW7ny/1+yYx2F04mF182LxOVwpo7xSdqpUSP62z7/thHBSjmfmxB11ZsGddc5qxCWPjx/4OWn85Zhc1sTPjFrFB/SJNjpJkFt4GLatcQCKC5707yOqWjI4ZlOe7IbhSQwT7iNLL7LPX8gfu9GMsvr002fUuJn/WQQhchPoDYE5YvaPYtHvZsJmyAXfacOB8MxYZqQoHNpYY"
+    },
+    "<script defer src=\"./fotos-recuperadas": {
+      "offset": -1,
+      "source": ""
+    }
+  },
+  "styleBlocks": [],
+  "head_links": [],
+  "script_srcs": [
+    "./navarro-v40-mejoras.js?v=40",
+    "./lector-usb-v42.js?v=43",
+    "./fotos-plomeria-carrito-v47.js?v=47",
+    "./truper-fotos-catalogo-v53.js?v=53",
+    "./truper-fotos-integracion-v48.js?v=52",
+    "./carrito-fotos-v44.js?v=52",
+    "./buscar-foto-v57.js?v=57",
+    "./electricidad-nav.js?v=7",
+    "./buscador-completo.js?v=3",
+    "./fotos-recuperadas.js?v=9",
+    "./escaner-barras.js?v=41"
+  ]
+}
