@@ -205,7 +205,7 @@ function installButtons(){
    '.mobile-search-wrap>.nav-scan-launch,.search-wrap>.nav-scan-launch{right:5px}',
    '.mobile-search-wrap>#search-mobile,.search-wrap>#search{min-width:0;padding-right:119px!important;box-sizing:border-box}',
    '@media(max-width:360px){.mobile-search-wrap>.nav-visual-trigger{right:55px}.mobile-search-wrap>#search-mobile{padding-right:113px!important}}'
-  ].join('\\n');
+  ].join('');
   document.head.append(layout);
  }
  for(const node of [document.getElementById('search'),document.getElementById('search-mobile')]){
