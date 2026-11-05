@@ -1,0 +1,63 @@
+name: NAVARRO V56 - publicar mejoras de ranking visual
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v56-publicar.yml'
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar motor y prueba funcional
+        run: |
+          node --check navarro360-movil/buscar-foto-v56.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          result=json.loads(Path('navarro-v56-browser-result.json').read_text())
+          assert result['ok'] is True,result['errors']
+          assert any('Agrupa modelos' in x for x in result['checks'])
+          assert any('Recorte vuelve' in x for x in result['checks'])
+          assert any('Control visible en móvil' in x for x in result['checks'])
+          assert result['samples'][1]['buttons']>0
+          print('V56 probada con productos reales, familias, recorte y móvil')
+          PY
+      - name: Conectar V56, conservar catálogo y carrito intactos
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          if sha(p.read_bytes())!='ebdd4d436e397f247b6b953c31b173ce66c0aba5':
+           raise SystemExit('HTML modificado desde V55: publicación cancelada')
+          s=p.read_text()
+          assert s.count('buscar-foto-v55.js?v=55')==1
+          assert s.count('sw.js?v=55')==1
+          p.write_text(s.replace('buscar-foto-v55.js?v=55','buscar-foto-v56.js?v=56').replace('sw.js?v=55','sw.js?v=56'))
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count('navarro360-fullstore-v55-busqueda-visual-recorte')==1
+          assert t.count("'./buscar-foto-v55.js?v=55'")==1
+          t=t.replace('navarro360-fullstore-v55-busqueda-visual-recorte','navarro360-fullstore-v56-ranking-por-familias')
+          t=t.replace("'./buscar-foto-v55.js?v=55'","'./buscar-foto-v56.js?v=56'")
+          sw.write_text(t)
+          print('Sólo archivos de carga de búsqueda visual y caché modificados')
+          PY
+      - name: Publicar NAVARRO 360 V56
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V56: priorizar coincidencias por tipo y agrupar medidas visualmente idénticas"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
