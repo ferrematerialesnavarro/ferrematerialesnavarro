@@ -404,3 +404,108 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
 else init();
 })();
+
+/* NAVARRO_PEDIDO_MULTIPLE_V62: pedidos por frase en la barra de búsqueda.
+   Confirmación obligatoria y códigos exactos; no cambia el formato de WhatsApp. */
+;(function(){
+'use strict';
+if(window.NAVARRO_PEDIDO_MULTIPLE_V62)return;
+window.NAVARRO_PEDIDO_MULTIPLE_V62=true;
+const CART='navarro_cart_v1',MAX=9999;
+const units=/^(?:sacos?|costales?|piezas?|pzas?|unidades?|metros?|mts?|kilos?|kgs?|litros?|lts?|tramos?|rollos?|cajas?|bolsas?|hojas?)\s+(?:de\s+)?/i;
+const words={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,once:11,doce:12,trece:13,catorce:14,quince:15,dieciseis:16,dieciséis:16,veinte:20,treinta:30,cincuenta:50,cien:100};
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+const qtyWord='(?:\\d{1,4}|'+Object.keys(words).join('|')+')';
+const isStart=new RegExp('^('+qtyWord+')\\s+','i');
+const boundary=new RegExp('\\s+y\\s+(?='+qtyWord+'\\s+)','gi');
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+let overlay=null,rows=[];
+function parse(text){
+ let prepared=String(text||'').trim().replace(/^((?:dame|quiero|necesito|ocupo|agrega|añade|anade|ponme|pon)\s+)/i,'');
+ const portions=prepared.split(/[,;\n]+/).flatMap(s=>s.split(boundary)).map(x=>x.trim()).filter(Boolean);
+ if(portions.length<2||portions.length>15)return null;
+ const result=[];
+ for(const portion of portions){
+  const m=portion.match(isStart);
+  if(!m)return null;
+  const qty=/^\d+$/.test(m[1])?Number(m[1]):words[norm(m[1])];
+  if(!Number.isInteger(qty)||qty<=0||qty>MAX)return null;
+  let query=portion.slice(m[0].length).replace(units,'').trim();
+  query=query.replace(/\b(?:grises)\b/ig,'gris').replace(/\bcementos\b/ig,'cemento').replace(/\b(?:duples)\b/ig,'duplex');
+  if(query.length<3)return null;
+  result.push({qty,query,original:portion,options:[]});
+ }
+ return result;
+}
+function readCart(){
+ try{const value=JSON.parse(localStorage.getItem(CART)||'{}');return value&&typeof value==='object'&&!Array.isArray(value)?value:{};}catch{return {}}
+}
+function chooseOptions(parsed){
+ const db=window.NAVARRO_DB,engine=window.NAVARRO_BUSCADOR_COMPLETO;
+ if(!Array.isArray(db)||!engine||typeof engine.searchByName!=='function')return false;
+ const dictionary=new Map(db.map(p=>[String(p[0]),{id:String(p[0]),name:String(p[1])}]));
+ for(const row of parsed){
+  const suggestions=engine.searchByName(row.query,dictionary,()=> '');
+  row.options=suggestions.filter(p=>/^\d{5,}$/.test(p.id)).slice(0,8);
+  // Nunca elegir automáticamente una coincidencia potencialmente incorrecta.
+ }
+ return true;
+}
+function ensureOverlay(){
+ if(overlay)return overlay;
+ const css=document.createElement('style');
+ css.textContent='#nav-multi-overlay[hidden]{display:none!important}#nav-multi-overlay{position:fixed;inset:0;background:#071a38dd;z-index:2147483005;display:grid;place-items:center;padding:12px;box-sizing:border-box}#nav-multi-dialog{background:white;color:#18324f;border-radius:17px;width:100%;max-width:590px;max-height:90dvh;overflow-y:auto;padding:18px;box-sizing:border-box;box-shadow:0 14px 44px #0005;font:14px/1.5 system-ui}#nav-multi-dialog h2{font-size:20px;margin:0 0 8px}#nav-multi-dialog p{margin:0 0 12px;color:#506277}#nav-multi-dialog .nav-multi-row{border:1px solid #dbe4ed;border-radius:11px;padding:12px;margin:8px 0}#nav-multi-dialog label{display:block;font-weight:750;margin-bottom:6px}#nav-multi-dialog select{width:100%;min-height:45px;font-size:15px;border:1px solid #b6c9df;border-radius:9px;background:white;color:#18324f;padding:8px}#nav-multi-dialog .nav-multi-actions{display:flex;gap:10px;position:sticky;bottom:-18px;background:white;padding:14px 0 0}#nav-multi-dialog button{flex:1;min-height:47px;border-radius:10px;border:1px solid #a4b9d0;background:#f1f5fa;color:#193b63;font-weight:750}#nav-multi-dialog button[type=submit]{background:#123a68;color:#fff}#nav-multi-error{color:#b91c1c!important;font-weight:700}';
+ document.head.appendChild(css);
+ overlay=document.createElement('div');overlay.id='nav-multi-overlay';overlay.hidden=true;
+ overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Confirmar productos de pedido');
+ overlay.innerHTML='<form id="nav-multi-dialog"><h2>Revisar pedido completo</h2><p>Selecciona el artículo exacto de cada renglón. Nada se agregará hasta confirmar.</p><div id="nav-multi-rows"></div><p id="nav-multi-error" role="alert" hidden></p><div class="nav-multi-actions"><button type="button" id="nav-multi-cancel">Cancelar</button><button type="submit">Agregar al carrito</button></div></form>';
+ document.body.appendChild(overlay);
+ document.getElementById('nav-multi-cancel').addEventListener('click',close);
+ overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+ overlay.querySelector('form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const selects=[...overlay.querySelectorAll('select[data-multi-index]')];
+  const error=document.getElementById('nav-multi-error');
+  if(selects.some(s=>!s.value)){error.textContent='Selecciona un producto exacto en cada renglón. Los artículos no identificados no se agregan.';error.hidden=false;return;}
+  const cart=readCart(),next={...cart};
+  for(const select of selects){
+   const index=Number(select.dataset.multiIndex),id=select.value;
+   if(!rows[index]?.options.some(o=>o.id===id))return;
+   const current=Number(next[id])||0;
+   if(current+rows[index].qty>MAX){error.textContent='Se supera el máximo de 9,999 unidades para uno de los productos.';error.hidden=false;return;}
+   next[id]=current+rows[index].qty;
+  }
+  try{localStorage.setItem(CART,JSON.stringify(next))}
+  catch{error.textContent='No se pudo guardar el carrito. Inténtalo nuevamente.';error.hidden=false;return;}
+  // Reutiliza el mecanismo de conservación de estado tras actualizar el carrito.
+  try{sessionStorage.setItem('navarro_ultimo_producto_v1',selects[selects.length-1].value)}catch{}
+  close();const search=document.getElementById('search')||document.getElementById('search-mobile');
+  if(search){search.value='';search.dispatchEvent(new Event('input',{bubbles:true}));}
+  window.location.reload();
+ });
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden){e.preventDefault();e.stopImmediatePropagation();close()}},true);
+ return overlay;
+}
+function close(){if(overlay)overlay.hidden=true;rows=[];}
+function show(parsed){
+ if(!chooseOptions(parsed)){window.alert('El catálogo inteligente todavía no está listo. Intenta nuevamente.');return;}
+ rows=parsed;
+ ensureOverlay();
+ document.getElementById('nav-multi-rows').innerHTML=rows.map((r,i)=>
+  '<div class="nav-multi-row"><label for="nav-multi-'+i+'">'+escapeHtml(r.qty+' × '+r.query)+'</label>'+
+  '<select id="nav-multi-'+i+'" data-multi-index="'+i+'" required><option value="">'+(r.options.length?'Selecciona producto exacto':'Sin coincidencias: corrige la búsqueda')+'</option>'+
+  r.options.map(p=>'<option value="'+escapeHtml(p.id)+'">'+escapeHtml(p.name+' · '+p.id)+'</option>').join('')+'</select></div>'
+ ).join('');
+ document.getElementById('nav-multi-error').hidden=true;
+ overlay.hidden=false;
+}
+function onKey(e){
+ if(e.key!=='Enter'||e.isComposing||!['search','search-mobile'].includes(e.target?.id))return;
+ const parsed=parse(e.target.value);
+ if(!parsed)return;
+ e.preventDefault();e.stopImmediatePropagation();
+ show(parsed);
+}
+function init(){document.addEventListener('keydown',onKey,true);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+})();
