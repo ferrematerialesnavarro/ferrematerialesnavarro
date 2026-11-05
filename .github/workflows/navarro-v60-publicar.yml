@@ -1,0 +1,68 @@
+name: NAVARRO V60 - aplicar boceto aprobado en iPhone
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v60-publicar.yml'
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar dimensiones del diseño horizontal
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          t=json.loads(Path('navarro-v60-mobile-test.json').read_text())
+          assert t['success'] is True and not t['errors']
+          assert len(t['cases'])==20
+          mobile=[x for x in t['cases'] if x['width']<=600]
+          assert len(mobile)==15
+          assert all(x['display']=='grid' and x['photo']['w']>=120 and x['info']['x']>=x['photo']['x']+x['photo']['w']-2 for x in mobile)
+          assert all(x['objectFit'] in ('','contain') for x in mobile)
+          assert any('Buscador por foto y carrito' in m for m in t['checks'])
+          print('NAVARRO V60 aprobada: fotografía izquierda, datos derecha, botones y carrito')
+          PY
+      - name: Publicar nuevo CSS sin alterar datos o ventas
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          def gitsha(b):
+           return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          html=Path('navarro360-movil/index.html')
+          expected='2574ffaea100e1a3982b066886f5e62e7ecb4002'
+          if gitsha(html.read_bytes())!=expected:
+           raise SystemExit('La página cambió. No se aplicarán cambios sobre una versión distinta.')
+          text=html.read_text()
+          assert text.count('</head>')==1
+          assert text.count('sw.js?v=59')==1
+          assert 'tarjetas-boceto-v60.css' not in text
+          text=text.replace('</head>','<link rel="stylesheet" href="./tarjetas-boceto-v60.css?v=60">\n</head>')
+          text=text.replace('sw.js?v=59','sw.js?v=60')
+          html.write_text(text)
+          sw=Path('navarro360-movil/sw.js')
+          data=sw.read_text()
+          assert data.count('navarro360-fullstore-v59-fotos-grandes-en-movil')==1
+          assert data.count("'./tarjetas-movil-v59.css?v=59'")==1
+          data=data.replace('navarro360-fullstore-v59-fotos-grandes-en-movil','navarro360-fullstore-v60-boceto-aprobado-iphone')
+          data=data.replace("'./tarjetas-movil-v59.css?v=59'","'./tarjetas-movil-v59.css?v=59','./tarjetas-boceto-v60.css?v=60'")
+          sw.write_text(data)
+          print('V60 sólo modifica presentación móvil y versión de caché; catálogo, precios, bot y SIFO intactos.')
+          PY
+      - name: Confirmar publicación en GitHub
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V60: diseño aprobado con foto izquierda, ficha derecha en móvil"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
