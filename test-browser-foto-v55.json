@@ -1,0 +1,23 @@
+{
+  "time": "2026-11-05T04:03:31.184Z",
+  "passed": [
+    "Botón visible en barra de computadora",
+    "Elegir imagen y abrir resultados",
+    "Modelo visual devuelve 10 opciones",
+    "Arrastrar recorte activa la búsqueda localizada",
+    "Modelo visual analiza recorte sin errores",
+    "Producto elegido aparece en buscador normal: 038753323510",
+    "Botón de foto accesible también en móvil"
+  ],
+  "warnings": [],
+  "errors": [],
+  "samples": [
+    {
+      "file": "navarro-publicada-038753323510.jpg",
+      "count": 10,
+      "message": "Comparé la imagen con 15,953 fotografías. Verifica la medida y presentación antes de elegir.",
+      "first": "📦Opción 1PEGAMENTO PVC 473 ML OATEYCódigo: 038753323510$150.00Ver producto+1 al carrito"
+    }
+  ],
+  "success": true
+}
