@@ -49,3 +49,5 @@ jobs:
           git add diagnostico-truper-api.json
           git commit -m "Diagnóstico EAN y API oficial Truper"
           git push origin HEAD:main
+
+# Reejecutar tras terminar diagnósticos anteriores
