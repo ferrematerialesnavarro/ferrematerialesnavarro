@@ -34,7 +34,8 @@ function sourceFor(id){
  if(Array.isArray(truper)&&truper.length===2&&/^[A-Za-z0-9+./-]{2,35}$/.test(String(truper[0]||''))){
   const official='https://www.truper.com/media/import/imagenes/'+encodeURIComponent(truper[0])+'.jpg';
   const backup=String(truper[1]||'');
-  if(/^https:\/\/ferreteriastrp\.com\/public\/mnt\/wtrp\/images\/productos\//i.test(backup))
+  if(!backup||/^https:\/\/ferreteriastrp\.com\/public\/mnt\/wtrp\/images\/productos\//i.test(backup)||
+     /^https:\/\/(?:www\.)?ferrexmayorista\.com\/productos\/productos\/\d+\/imagenes\//i.test(backup))
    return {kind:'url',src:official,fallback:backup};
  }
  for(const name of [featured?.img,atlas?.byCode?.[id]].filter(Boolean)){
