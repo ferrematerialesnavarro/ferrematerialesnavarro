@@ -194,9 +194,23 @@ function ensureUI(){
  });
 }
 function installButtons(){
+ // El lector de barras usa un botón absoluto a la derecha del buscador.
+ // Reservar DOS espacios independientes dentro de la barra: foto a la izquierda,
+ // escáner a la derecha. Nunca usar el botón de foto como elemento flex adicional.
+ if(!document.getElementById('nav-visual-search-layout-v541')){
+  const layout=el('style');layout.id='nav-visual-search-layout-v541';
+  layout.textContent=[
+   '.mobile-search-wrap,.search-wrap{position:relative;min-width:0}',
+   '.mobile-search-wrap>.nav-visual-trigger,.search-wrap>.nav-visual-trigger{position:absolute;right:57px;top:50%;transform:translateY(-50%);z-index:9;display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:1px solid #d9bd79;border-radius:12px;background:#fff9e9;color:#11365b;font-size:23px;line-height:1;box-shadow:0 2px 6px #0a204426;flex:none;touch-action:manipulation}',
+   '.mobile-search-wrap>.nav-scan-launch,.search-wrap>.nav-scan-launch{right:5px}',
+   '.mobile-search-wrap>#search-mobile,.search-wrap>#search{min-width:0;padding-right:119px!important;box-sizing:border-box}',
+   '@media(max-width:360px){.mobile-search-wrap>.nav-visual-trigger{right:55px}.mobile-search-wrap>#search-mobile{padding-right:113px!important}}'
+  ].join('\\n');
+  document.head.append(layout);
+ }
  for(const node of [document.getElementById('search'),document.getElementById('search-mobile')]){
   if(!node||!node.parentElement||node.parentElement.querySelector('.nav-visual-trigger'))continue;
-  const button=el('button','nav-visual-trigger','📷');
+  const button=el('button','nav-visual-trigger','🖼️');
   button.type='button';button.title='Buscar producto mediante una fotografía';
   button.setAttribute('aria-label','Tomar o elegir fotografía para buscar productos parecidos');
   button.onclick=()=>{ensureUI();chooser.click()};
