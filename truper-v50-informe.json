@@ -1,0 +1,265 @@
+{
+  "existing": 8860,
+  "supplier_products": 14886,
+  "catalog_unmatched": 8975,
+  "candidate_count": 6358,
+  "tested_detail": 6358,
+  "verified_extra": 5273,
+  "total_map": 14133,
+  "elapsed_seconds": 166.6,
+  "sample_new": [
+    [
+      "7506240624516",
+      [
+        "MECH-90",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/soplete-de-laton-encendido-manual-1-4-de-vuelta-truper.webp?v=1774794145"
+      ]
+    ],
+    [
+      "7506240623519",
+      [
+        "FUM-264",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/union-con-junta-conica-para-fumigadores-fum-12-16-y-20.webp?v=1774794177"
+      ]
+    ],
+    [
+      "7506240623533",
+      [
+        "FUM-211",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/tuerca-s20-x-15-para-fumigadores-fum-12-16-y-20-truper.webp?v=1774794152"
+      ]
+    ],
+    [
+      "7506240633419",
+      [
+        "HIDR-1/2X50",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/equipo-hidroneumatico-50l-jet-inoxidable-1-2-hp-truper.webp?v=1786967155"
+      ]
+    ],
+    [
+      "7506240602569",
+      [
+        "CTF-1/2X7X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/cinta-sella-roscas-1-2-x-7m-seal-pro-industrial-expert.webp?v=1792575599"
+      ]
+    ],
+    [
+      "7501206674468",
+      [
+        "CTF-1/2B",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/blister-con-2-cintas-sella-roscas-1-2-x-7m-uso-general.webp?v=1792575770"
+      ]
+    ],
+    [
+      "7501206664568",
+      [
+        "CB-SINCO-10X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bolsa-con-2-carbones-de-repuesto-para-sinco-10x-truper.webp?v=1774794158"
+      ]
+    ],
+    [
+      "7501206696408",
+      [
+        "CLICK-F",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/conector-3-4-rapido-hembra-de-abs-sistema-click-truper.webp?v=1774794152"
+      ]
+    ],
+    [
+      "7501206652619",
+      [
+        "CLICK-SET",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/juego-de-5-conectores-3-4-rapidos-de-abs-sistema-click.webp?v=1774794129"
+      ]
+    ],
+    [
+      "7506240674238",
+      [
+        "BOPA-1/2",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bomba-periferica-autocebante-1-2hp-uso-agricola-truper.webp?v=1786479897"
+      ]
+    ],
+    [
+      "7506240674245",
+      [
+        "BOPA-3/4",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bomba-periferica-autocebante-3-4hp-uso-agricola-truper.webp?v=1786479915"
+      ]
+    ],
+    [
+      "7501206614877",
+      [
+        "M-1449-N",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/matraca-cuadro-1-4-cabeza-de-pera-de-liberacion-rapida.webp?v=1774794154"
+      ]
+    ],
+    [
+      "7501206644539",
+      [
+        "M-1249",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/matraca-cuadro-1-2-cabeza-de-pera-de-liberacion-rapida.webp?v=1774794145"
+      ]
+    ],
+    [
+      "7501206644553",
+      [
+        "M-3849",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/matraca-cuadro-3-8-cabeza-de-pera-de-liberacion-rapida.webp?v=1774794173"
+      ]
+    ],
+    [
+      "7506240667490",
+      [
+        "PI-ENNE-120",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/piston-guia-para-engrapadora-neumatica-enne-120-truper.webp?v=1792581992"
+      ]
+    ],
+    [
+      "7506240667506",
+      [
+        "PI-ENNE-160",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/piston-guia-para-engrapadora-neumatica-enne-160-truper.webp?v=1792581992"
+      ]
+    ],
+    [
+      "7506240608967",
+      [
+        "R-POMA-15PD",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/pinon-derecho-de-repuesto-para-podadora-poma-15-truper.webp?v=1774794123"
+      ]
+    ],
+    [
+      "7506240672715",
+      [
+        "CB-ERGO-4570",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bolsa-con-2-carbones-de-repuesto-para-ergo-4570-truper.webp?v=1774794142"
+      ]
+    ]
+  ],
+  "failed_samples": [
+    {
+      "sku": "7506610208148",
+      "score": 100.0,
+      "reason": "different EAN 7506240690825"
+    },
+    {
+      "sku": "7501206677773",
+      "score": 100.0,
+      "reason": "different EAN 7501206677735"
+    },
+    {
+      "sku": "7506610227880",
+      "score": 100.0,
+      "reason": "different EAN 7506240665014"
+    },
+    {
+      "sku": "7506240637844",
+      "score": 100.0,
+      "reason": "different EAN 7506240637820"
+    },
+    {
+      "sku": "7501206640258",
+      "score": 100.0,
+      "reason": "different EAN 7502309730181"
+    },
+    {
+      "sku": "7501206640685",
+      "score": 100.0,
+      "reason": "different EAN 7502309730167"
+    },
+    {
+      "sku": "7506240606710",
+      "score": 100.0,
+      "reason": "different EAN 7502309739429"
+    },
+    {
+      "sku": "7501206658277",
+      "score": 100.0,
+      "reason": "different EAN 7501206658253"
+    },
+    {
+      "sku": "7506240677239",
+      "score": 99.1304347826087,
+      "reason": "different EAN 7506240677222"
+    },
+    {
+      "sku": "7506240621843",
+      "score": 99.11504424778761,
+      "reason": "different EAN 7506240621836"
+    },
+    {
+      "sku": "7502309734516",
+      "score": 99.08256880733946,
+      "reason": "different EAN 7506240675938"
+    },
+    {
+      "sku": "7506240615873",
+      "score": 99.06542056074767,
+      "reason": "different EAN 7501206692172"
+    },
+    {
+      "sku": "7501206699959",
+      "score": 99.06542056074767,
+      "reason": "different EAN 7501206697832"
+    },
+    {
+      "sku": "7506240667346",
+      "score": 99.06542056074767,
+      "reason": "different EAN 7506240667353"
+    },
+    {
+      "sku": "7506610234208",
+      "score": 99.04761904761905,
+      "reason": "different EAN 7506240696292"
+    },
+    {
+      "sku": "7506240635901",
+      "score": 98.96907216494846,
+      "reason": "different EAN 7506240609063"
+    },
+    {
+      "sku": "7506240621508",
+      "score": 98.96907216494846,
+      "reason": "different EAN 7506240621492"
+    },
+    {
+      "sku": "7506240621249",
+      "score": 98.9247311827957,
+      "reason": "different EAN 7501206654903"
+    },
+    {
+      "sku": "7506610225244",
+      "score": 98.87640449438202,
+      "reason": "different EAN 7506240684862"
+    },
+    {
+      "sku": "7506610225237",
+      "score": 98.85057471264368,
+      "reason": "different EAN 7506240684855"
+    },
+    {
+      "sku": "7506610231061",
+      "score": 98.85057471264368,
+      "reason": "different EAN 7506240694328"
+    },
+    {
+      "sku": "7506610231085",
+      "score": 98.63013698630137,
+      "reason": "different EAN 7506240694366"
+    },
+    {
+      "sku": "7506610231092",
+      "score": 98.63013698630137,
+      "reason": "different EAN 7506240694373"
+    },
+    {
+      "sku": "7506610229624",
+      "score": 98.55072463768117,
+      "reason": "different EAN 7506240663072"
+    },
+    {
+      "sku": "7506610230316",
+      "score": 98.33333333333333,
+      "reason": "different EAN 7506240636199"
+    }
+  ]
+}
