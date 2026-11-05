@@ -1,0 +1,21 @@
+{
+  "date": "2026-11-05T04:40:18.187Z",
+  "success": true,
+  "checks": [
+    "El botón de cámara aparece en buscador",
+    "Nuevo índice binario respondió y filtró familias (1)",
+    "La selección de una variante guardó su vector visual localmente: 7777000051",
+    "El artículo elegido asciende a primera opción al repetir fotografía",
+    "Permite borrar el aprendizaje local sin afectar carrito",
+    "Botón único y visible en móvil"
+  ],
+  "times": {
+    "coldMs": 530,
+    "warmMs": 112
+  },
+  "errors": [],
+  "sourceIndex": "V57 15953",
+  "chosen": "7777000051",
+  "firstAfterLearning": "7777000051",
+  "firstText": "Codo 45° galvanizado7 variantes📦✓ Seleccionado antes en este dispositivoCODO 45° GALVANIZADO DE 3 OCTAVOSCódigo: 7777000051$23.00Ver producto+1 al carritoVer variantes y medidas (6)"
+}
