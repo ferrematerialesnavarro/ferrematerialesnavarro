@@ -11,7 +11,9 @@ function imagePaths(id){
  const clave=String(record[0]||'');
  const backup=String(record[1]||'');
  if(!/^[A-Za-z0-9+./-]{2,35}$/.test(clave))return null;
- if(!/^https:\/\/ferreteriastrp\.com\/public\/mnt\/wtrp\/images\/productos\/[a-z0-9%_.-]+\.webp(?:\?[^"'<>]*)?$/i.test(backup))return null;
+ const legacy=/^https:\/\/ferreteriastrp\.com\/public\/mnt\/wtrp\/images\/productos\/[a-z0-9%_.-]+\.webp(?:\?[^"'<>]*)?$/i.test(backup);
+ const alternative=/^https:\/\/(?:www\.)?ferrexmayorista\.com\/productos\/productos\/\d+\/imagenes\/[a-z0-9_./%-]+\.(?:jpe?g|png|webp)\/?(?:\?[^"'<>]*)?$/i.test(backup);
+ if(backup&&!legacy&&!alternative)return null;
  return {
   primary:'https://www.truper.com/media/import/imagenes/'+encodeURIComponent(clave)+'.jpg',
   backup
@@ -38,7 +40,7 @@ function syncCards(){
   img.alt='Fotografía del producto '+id;
   img.loading='lazy';img.decoding='async';img.dataset.sku=id;
   img.onerror=()=>{
-   if(img.dataset.backupTried!=='1'&&img.src!==source.backup){
+   if(img.dataset.backupTried!=='1'&&source.backup&&img.src!==source.backup){
     img.dataset.backupTried='1';img.src=source.backup;
    }else{visual.dataset.navTruperPhotoFailed=id;img.remove()}
   };
