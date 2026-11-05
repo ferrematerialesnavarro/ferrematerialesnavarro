@@ -1,0 +1,26 @@
+name: NAVARRO V49 - fotos adicionales por EAN exacto
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-v49-generar.yml
+permissions:
+  contents: write
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar comparación de descripciones y verificar códigos
+        run: python3 -m pip install --quiet rapidfuzz
+      - name: Validar fichas por código de barras
+        timeout-minutes: 8
+        run: python3 tools/navarro_truper_fotos_v49.py
+      - name: Comprobar JS sin activar hasta revisar
+        run: node --check navarro360-movil/truper-fotos-catalogo-v49.js
+      - name: Guardar informe y banco adicional
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/truper-fotos-catalogo-v49.js truper-v49-informe.json
+          git commit -m "NAVARRO V49: enlaces Truper extras validados contra EAN"
+          git push origin HEAD:main
