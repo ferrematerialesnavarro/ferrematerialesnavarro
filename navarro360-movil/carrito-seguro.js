@@ -128,9 +128,9 @@ function ensureEditDialog(){
  editDialog.innerHTML='<form id="nav-quantity-form" class="nav-quantity-form">'+
   '<h3 id="nav-quantity-title">Escribir cantidad</h3>'+
   '<p id="nav-quantity-product"></p>'+
-  '<label for="nav-quantity-input">Cantidad total deseada</label>'+
-  '<input id="nav-quantity-input" type="number" inputmode="numeric" pattern="[0-9]*" min="0" max="9999" step="1" required>'+
-  '<small>Escribe, por ejemplo, 50. El número sustituye la cantidad actual. Para eliminar el artículo, escribe 0.</small>'+
+  '<label for="nav-quantity-input">Cantidad o ajuste (+ / −)</label>'+
+  '<input id="nav-quantity-input" type="text" inputmode="text" autocomplete="off" maxlength="6" required>'+
+  '<small>+5 suma 5 unidades, -3 resta 3 unidades y 50 establece el total en 50. Nunca se permite un saldo negativo.</small>'+
   '<p id="nav-quantity-error" role="alert" hidden></p>'+
   '<div class="nav-quantity-actions"><button type="button" id="nav-quantity-cancel">Cancelar</button>'+
   '<button type="submit" id="nav-quantity-save">Guardar cantidad</button></div></form>';
@@ -140,15 +140,23 @@ function ensureEditDialog(){
  el('nav-quantity-form').addEventListener('submit',e=>{
   e.preventDefault();
   const input=el('nav-quantity-input');
-  const raw=String(input.value||'').trim(),number=Number(raw),error=el('nav-quantity-error');
-  if(!/^\d{1,4}$/.test(raw)||!Number.isInteger(number)||number<0||number>MAX){
-   error.textContent='Escribe un número entero de 0 a 9,999.';
+  const raw=String(input.value||'').trim(),error=el('nav-quantity-error');
+  // Sin signo: sustituye el total. Con + o -: modifica lo existente.
+  if(!/^[+-]?\d{1,4}$/.test(raw)){
+   error.textContent='Escribe 50 para fijar el total, +5 para sumar o -3 para restar.';
    error.hidden=false;input.focus();return;
   }
   const id=editId;
   if(!id)return;
+  const number=Number(raw);
+  const previous=readCart()[id]||0;
+  const target=/^[+-]/.test(raw)?previous+number:number;
+  if(!Number.isInteger(target)||target>MAX){
+   error.textContent='La cantidad máxima es 9,999 unidades.';
+   error.hidden=false;input.focus();return;
+  }
   editDialog.hidden=true;editId='';
-  updateQuantity(id,number);
+  updateQuantity(id,Math.max(0,target));
  });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&editDialog&&!editDialog.hidden){e.preventDefault();e.stopImmediatePropagation();closeEdit()}},true);
  return editDialog;
