@@ -25,7 +25,11 @@ function syncCards(){
   const source=imagePaths(id);
   if(!source)continue;
   const visual=card.querySelector('.product-visual');
-  if(!visual||visual.querySelector('img.nav-v40-photo,img.nav-user-photo'))continue;
+  if(!visual)continue;
+  if(visual.querySelector('img.nav-v40-photo,img.nav-user-photo')){
+   visual.querySelector('img.nav-truper-verified-photo')?.remove();
+   continue;
+  }
   let img=visual.querySelector('img.nav-truper-verified-photo');
   if(img&&img.dataset.sku===id)continue;
   if(img)img.remove();
@@ -47,7 +51,7 @@ function init(){
  style.textContent='.product-visual{position:relative}.nav-truper-verified-photo{position:absolute;inset:0;width:100%;height:100%;max-width:100%;object-fit:contain;background:#fff;z-index:2;pointer-events:none;border-radius:9px}.product-visual .product-cat{z-index:3;position:relative}.product-visual .nav-camera,.product-visual .nav-v40-camera,.product-visual .card-importe{z-index:9}';
  document.head.append(style);
  const grid=document.getElementById('products');
- if(grid)new MutationObserver(syncCards).observe(grid,{childList:true});
+ if(grid)new MutationObserver(syncCards).observe(grid,{childList:true,subtree:true});
  syncCards();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
