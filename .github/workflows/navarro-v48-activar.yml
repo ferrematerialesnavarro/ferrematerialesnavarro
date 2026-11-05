@@ -1,0 +1,54 @@
+name: NAVARRO 360 V48 - publicar fotos Grupo Truper
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-v48-activar.yml
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Comprobar JS y cantidad de fotografías
+        run: |
+          node --check navarro360-movil/truper-fotos-catalogo-v48.js
+          node --check navarro360-movil/truper-fotos-integracion-v48.js
+          node --check navarro360-movil/carrito-fotos-v44.js
+          node -e "global.window={};require('./navarro360-movil/truper-fotos-catalogo-v48.js');const n=Object.keys(window.NAVARRO_FOTOS_TRUPER_V48).length;if(n<7000||n>16000)throw Error('Cantidad inesperada '+n);console.log('Fotografías asociadas:',n)"
+      - name: Activar manifest y miniaturas, conservar funcionamiento actual
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          old='6093471e41c1141ce94b9a659556b663a9e3f0d5'
+          if sha(p.read_bytes())!=old:raise SystemExit('NAVARRO 360 cambió de versión; no actualizar')
+          text=p.read_text()
+          needle='<script defer src="./carrito-fotos-v44.js?v=47"></script>'
+          assert text.count(needle)==1
+          assert text.count('sw.js?v=47')==1
+          replacement='<script defer src="./truper-fotos-catalogo-v48.js?v=48"></script>\n<script defer src="./truper-fotos-integracion-v48.js?v=48"></script>\n<script defer src="./carrito-fotos-v44.js?v=48"></script>'
+          text=text.replace(needle,replacement)
+          text=text.replace('sw.js?v=47','sw.js?v=48')
+          p.write_text(text)
+          sw=Path('navarro360-movil/sw.js')
+          st=sw.read_text()
+          assert st.count('navarro360-fullstore-v47-fotos-plomeria-carrito')==1
+          assert st.count("'./carrito-fotos-v44.js?v=47'")==1
+          st=st.replace('navarro360-fullstore-v47-fotos-plomeria-carrito','navarro360-fullstore-v48-truper-fotos-7772')
+          st=st.replace("'./carrito-fotos-v44.js?v=47'","'./truper-fotos-catalogo-v48.js?v=48','./truper-fotos-integracion-v48.js?v=48','./carrito-fotos-v44.js?v=48'")
+          sw.write_text(st)
+          print('V48 fotos activadas sin cambiar precio, catálogo, carrito ni SIFO')
+          PY
+      - name: Publicar
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V48: activar fotos Grupo Truper en tarjetas y carrito"
+          git push origin HEAD:main
