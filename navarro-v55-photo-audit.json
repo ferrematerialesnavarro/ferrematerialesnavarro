@@ -1,0 +1,673 @@
+{
+  "catalog": 17835,
+  "atlas": {
+    "keys": [
+      "columns",
+      "rows",
+      "size",
+      "files",
+      "byCode"
+    ],
+    "numberFiles": 234,
+    "codes": 193,
+    "size": 128,
+    "columns": 12,
+    "rows": 20,
+    "atlasFile": "",
+    "sample": [
+      [
+        "7501600559231",
+        "navarro-cobre-7501600559231.webp"
+      ],
+      [
+        "7506080660385",
+        "navarro-cobre-7506080660385.webp"
+      ],
+      [
+        "7777000203",
+        "navarro-cobre-7777000203.webp"
+      ],
+      [
+        "7777000204",
+        "navarro-cobre-7777000204.webp"
+      ],
+      [
+        "7777000205",
+        "navarro-cobre-7777000205.webp"
+      ],
+      [
+        "7777000206",
+        "navarro-cobre-7777000206.webp"
+      ],
+      [
+        "7777000207",
+        "navarro-cobre-7777000207.webp"
+      ],
+      [
+        "7777000208",
+        "navarro-cobre-7777000208.webp"
+      ],
+      [
+        "7777000209",
+        "navarro-cobre-7777000209.webp"
+      ],
+      [
+        "7777000210",
+        "navarro-cobre-7777000210.webp"
+      ],
+      [
+        "7777000211",
+        "navarro-cobre-7777000211.webp"
+      ],
+      [
+        "7777000212",
+        "navarro-cobre-7777000212.webp"
+      ],
+      [
+        "7777000213",
+        "navarro-cobre-7777000213.webp"
+      ],
+      [
+        "7777000214",
+        "navarro-cobre-7777000214.webp"
+      ],
+      [
+        "7777000215",
+        "navarro-cobre-7777000215.webp"
+      ]
+    ]
+  },
+  "source_counts": {
+    "truper": 15635,
+    "photos": 424,
+    "plumbing": 124
+  },
+  "source_overlap": {
+    "truper": 0,
+    "photos": 424,
+    "plumbing": 124
+  },
+  "photo_misc": {
+    ".jpg": 424
+  },
+  "types": {},
+  "photo_groups": {
+    "truper-fotos-catalogo-v50.js": [],
+    "fotos-recuperadas.js": [],
+    "sw.js": [],
+    "truper-fotos-catalogo-v49.js": [],
+    "materiales-fotos-2.js": [
+      "(function(){window.NAVARRO_MAT_STRIPS=window.NAVARRO_MAT_STRIPS||[];window.NAVARRO_MAT_STRIPS[1]='data:image/webp;base64,UklGRqgNAABXRUJQVlA4IJwNAAAwYQCdASqkAYwAPzGKulcuqSYp"
+    ],
+    "truper-fotos-catalogo-v51.js": [],
+    "navarro-v40-mejoras.js": [],
+    "electricidad-nav.js": [],
+    "escaner-barras.js": [],
+    "truper-fotos-catalogo-v52.js": [],
+    "materiales-destacados-v2.js": [
+      "  if(!window.NAVARRO_MAT_STRIPS?.[pos[0]])return;",
+      " (window.NAVARRO_MAT_STRIPS||[]).forEach((url,index)=>{"
+    ],
+    "herrajes-nav.js": [
+      "  const all=ordered(),subset=all.slice(0,limit),state=cart(),atlas=window.NAVARRO_ATLAS;"
+    ],
+    "truper-fotos-catalogo-v53.js": [],
+    "materiales-fotos-1.js": [
+      "(function(){window.NAVARRO_MAT_STRIPS=window.NAVARRO_MAT_STRIPS||[];window.NAVARRO_MAT_STRIPS[0]='data:image/webp;base64,UklGRrgJAABXRUJQVlA4IKwJAACQZACdASocArQAPxGGuFWsKSwk"
+    ],
+    "tornilleria-nav.js": [
+      "  const all=getList(),page=all.slice(0,limit),cartNow=cart(),atlas=window.NAVARRO_ATLAS;"
+    ],
+    "truper-fotos-catalogo-v48.js": [],
+    "fotos-plomeria-carrito-v47.js": [],
+    "banos-nav.js": [
+      "  const all=sorted(),part=all.slice(0,limit),qty=cart(),atlas=window.NAVARRO_ATLAS;"
+    ],
+    "jardineria-nav.js": [
+      "  const all=results(),subset=all.slice(0,limit),cart=readCart(),atlas=window.NAVARRO_ATLAS;"
+    ],
+    "truper-fotos-integracion-v48.js": [
+      "tps:\\/\\/ferreteriastrp\\.com\\/public\\/mnt\\/wtrp\\/images\\/productos\\/[a-z0-9%_.-]+\\.webp(?:\\?[^\"'<>]*)?$/i.test(backup);"
+    ],
+    "buscador-completo.js": [],
+    "carrito-fotos-v44.js": [
+      " const atlas=window.NAVARRO_ATLAS;",
+      "   const stripId=Number(strip.dataset.matStrip),url=window.NAVARRO_MAT_STRIPS?.[stripId];"
+    ],
+    "pinturas-nav.js": [
+      "const all=shortlist(),shown=all.slice(0,page*48),quantities=cart(),atlas=window.NAVARRO_ATLAS;"
+    ],
+    "carrito-seguro.js": [],
+    "materiales-fotos-3.js": [
+      "(function(){window.NAVARRO_MAT_STRIPS=window.NAVARRO_MAT_STRIPS||[];window.NAVARRO_MAT_STRIPS[2]='data:image/webp;base64,UklGRqYLAABXRUJQVlA4IJoLAACwTQCdASqkAYwAPzGEuFauqDIk"
+    ],
+    "lector-usb-v42.js": [],
+    "app.js": [],
+    "buscar-foto-v54.js": [
+      "  if(/^navarro-publicada-\\d+\\.jpg$/.test(file))return {src:'./assets/'+file,backup:''};"
+    ]
+  },
+  "catalog_missing_photo": [
+    {
+      "id": "7502602220020",
+      "name": "VENENO EXTER CHINCHE"
+    },
+    {
+      "id": "709081098042",
+      "name": "SELLADOR SELLAPEG 1L"
+    },
+    {
+      "id": "030835405770",
+      "name": "TRAMPA BLANCA PARA RATON"
+    },
+    {
+      "id": "7777000002",
+      "name": "VENENO PARA CUCARACHAS COSTALITO"
+    },
+    {
+      "id": "7777000003",
+      "name": "VENENO FUMEXTER"
+    },
+    {
+      "id": "7777000004",
+      "name": "MATA MOSCA"
+    },
+    {
+      "id": "7777000005",
+      "name": "PASTILLA DE CLORO CHICA"
+    },
+    {
+      "id": "7502002431033",
+      "name": "PEGAMENTO CONTAC AMARILLO 107 ML"
+    },
+    {
+      "id": "7502002431064",
+      "name": "PEGAMENTO CONTACT NEGRO 235ML"
+    },
+    {
+      "id": "7502002431200",
+      "name": "PEGAMENTO CONTACT AMARILLO 930 ML"
+    },
+    {
+      "id": "7777000006",
+      "name": "COLADOR CUADRO GRANDE 40 CM"
+    },
+    {
+      "id": "7777000007",
+      "name": "COLADOR CUADRO FINO 40 CM"
+    },
+    {
+      "id": "7777001636",
+      "name": "CEMENTO BLANCO POR KILO"
+    },
+    {
+      "id": "7777001635",
+      "name": "CEMENTO BLANCO SACO 25"
+    },
+    {
+      "id": "7777000011",
+      "name": "ROSCA DE MEDIA GALVANIZADO"
+    },
+    {
+      "id": "7777000012",
+      "name": "ROSCA DE TRES CUARTOS GALVANIZADO"
+    },
+    {
+      "id": "7777000013",
+      "name": "ROSCA DE MEDIA POLIMEX"
+    },
+    {
+      "id": "7506240607649",
+      "name": "PALA LAMPA RECTA PERU TRUPER"
+    },
+    {
+      "id": "7506240644729",
+      "name": "CAJA DE HERRAMIENTA 16 NEGRA"
+    },
+    {
+      "id": "7501206691038",
+      "name": "LLANTA NEUMATICA REFORZADA 16 SIN CAMARA TRUPER"
+    },
+    {
+      "id": "7501206691090",
+      "name": "EJE CORTO PARA CARRETILLAS 1 LLANTA EXPERT TRUPER Y PRETUL"
+    },
+    {
+      "id": "7501206628362",
+      "name": "PALA T2000 CUADRADA CABEZA SOLA"
+    },
+    {
+      "id": "7502309739320",
+      "name": "ESTANTE PLASTICO 4 REPISAS CAPACIDAD 35KG 92X43X140 PRETUL"
+    },
+    {
+      "id": "7501206658345",
+      "name": "PALA ESCARRAMAN MANGO LARGO PRETUL"
+    },
+    {
+      "id": "755625047595",
+      "name": "TRUTOUGH 50FT 3PLY TB 58 GARDEN HOSE"
+    },
+    {
+      "id": "755625047618",
+      "name": "TRUTOUGH 75FT 3PLY TB 58 GARDEN HOSE"
+    },
+    {
+      "id": "755625047625",
+      "name": "GARDENPRO 75FT 4PLY TT 58 GARDEN HOSE"
+    },
+    {
+      "id": "755625047632",
+      "name": "TRUTOUGH 100FT 3PLY TB 58 GARDEN HOSE"
+    },
+    {
+      "id": "7506240619314",
+      "name": "PALA CUADRADA PUNO Y MANGO DE MADERA URREOLA TRUPER"
+    },
+    {
+      "id": "7501206662700",
+      "name": "CARBONES DE REPUESTO PARA REBAJADORA ROUA2"
+    },
+    {
+      "id": "7501206691083",
+      "name": "RIN EJE Y BALEROS PARA CARRETILLAS EXPERT TRUPER Y PRETUL"
+    },
+    {
+      "id": "7777001648",
+      "name": "CEMENTO GRIS POR SACO"
+    },
+    {
+      "id": "7777001047",
+      "name": "TINER AMERICANO"
+    },
+    {
+      "id": "7777001048",
+      "name": "TINER ESTANDAR"
+    },
+    {
+      "id": "7777001647",
+      "name": "CEMENTO GRIS POR KILO"
+    },
+    {
+      "id": "7506344164505",
+      "name": "LLAVE ANGULAR DE MEDIA URREA VUELTA COMPLETA"
+    },
+    {
+      "id": "7777001049",
+      "name": "JALECILLO"
+    },
+    {
+      "id": "7777001051",
+      "name": "ARENA DE RIO SIN CERNIR"
+    },
+    {
+      "id": "7777001052",
+      "name": "GRAVA"
+    },
+    {
+      "id": "7777001053",
+      "name": "ARENA AMARILLA CERNIRDA"
+    },
+    {
+      "id": "7777001054",
+      "name": "BLOCK"
+    },
+    {
+      "id": "7777001055",
+      "name": "LADRILLO GRANDE"
+    },
+    {
+      "id": "7777001056",
+      "name": "VENENO EXTER CUCARACHA"
+    },
+    {
+      "id": "7777001057",
+      "name": "LADRILLO CHICO"
+    },
+    {
+      "id": "7777001058",
+      "name": "LADRILLO AZOTEA"
+    },
+    {
+      "id": "7777001059",
+      "name": "PANEL W 2 PULGADAS"
+    },
+    {
+      "id": "7777001060",
+      "name": "PANEL W 3 PULGADAS"
+    },
+    {
+      "id": "7506344162228",
+      "name": "LLAVE DE PASO DE MEDIA URREA"
+    },
+    {
+      "id": "7777001061",
+      "name": "GASOLINA BLANCA POR LITRO"
+    },
+    {
+      "id": "7777001062",
+      "name": "PETROLEO POR LITRO"
+    },
+    {
+      "id": "7777001063",
+      "name": "AGUARRAS POR LITRO"
+    },
+    {
+      "id": "7777001064",
+      "name": "LAVADERO GRANDE 86X76"
+    },
+    {
+      "id": "7777001065",
+      "name": "LAVADERO MEDIANO 80X70"
+    },
+    {
+      "id": "7777001066",
+      "name": "LAVADERO CHICO 77X67"
+    },
+    {
+      "id": "7777001067",
+      "name": "LAVADERO EXTRA CHICO 70X60"
+    },
+    {
+      "id": "7777001068",
+      "name": "LAVADERO MINI 60X50"
+    },
+    {
+      "id": "7777001069",
+      "name": "TUBO DE COLADO 40CM"
+    },
+    {
+      "id": "7777001070",
+      "name": "TUBO PARA COLADO 30CM"
+    },
+    {
+      "id": "7777001071",
+      "name": "TUBO PARA COLADO 15CM"
+    },
+    {
+      "id": "7777001650",
+      "name": "RENTA TERRAZA ALESSANDRA ENTRE SEMANA"
+    },
+    {
+      "id": "7777001649",
+      "name": "RENTA TERRAZA ALESSANDRA FIN DE SEMANA"
+    },
+    {
+      "id": "7777001074",
+      "name": "ALMENDRA ROJA"
+    },
+    {
+      "id": "7777001075",
+      "name": "PLAGASIN LITRO"
+    },
+    {
+      "id": "7777001076",
+      "name": "PLAGASIN 250ML"
+    },
+    {
+      "id": "7777001077",
+      "name": "BOBEDILLA 1 METRO"
+    },
+    {
+      "id": "7777001078",
+      "name": "VARILLA 3 OCTAVOS"
+    },
+    {
+      "id": "7777001079",
+      "name": "BOVEDILLA 90CM"
+    },
+    {
+      "id": "7777001080",
+      "name": "VARILLA MEDIA"
+    },
+    {
+      "id": "7777001081",
+      "name": "SELLADOR GALON 4 LITROS"
+    },
+    {
+      "id": "7777001651",
+      "name": "PERCHEROS CHICO"
+    },
+    {
+      "id": "7777001652",
+      "name": "PERCHEROS MEDIANO"
+    },
+    {
+      "id": "7777001653",
+      "name": "PERCHEROS GRANDE"
+    },
+    {
+      "id": "7777001655",
+      "name": "RAQUETA MOSCO KLEIMAN"
+    },
+    {
+      "id": "7777001654",
+      "name": "MALLA SOMBRA POR METRO"
+    },
+    {
+      "id": "7777001246",
+      "name": "CODO 90° HIDRAULICO 2 PULGADAS"
+    },
+    {
+      "id": "7777001661",
+      "name": "CAL POR SACO"
+    },
+    {
+      "id": "7777000015",
+      "name": "PINTURA 4 LITROS MARFEL"
+    },
+    {
+      "id": "7777000016",
+      "name": "BROCHA DE 4 PULGADAS"
+    },
+    {
+      "id": "7777000017",
+      "name": "CEPILLO PARA PINTAR"
+    },
+    {
+      "id": "7777000019",
+      "name": "MULTIPLAST"
+    },
+    {
+      "id": "7501973731302",
+      "name": "LLAVE ANGULAR DE MEDIA DICA"
+    },
+    {
+      "id": "7506183800077",
+      "name": "CALENTADOR KLEIMAN"
+    },
+    {
+      "id": "7501316150821",
+      "name": "SILICON BLANCO PENSILVANIA"
+    },
+    {
+      "id": "7501605507213",
+      "name": "MANGUERA COFLEX LAVABO 1 METRO"
+    },
+    {
+      "id": "710631908285",
+      "name": "MANGUERA COFLEX LAVABO40 CM"
+    },
+    {
+      "id": "710631908308",
+      "name": "MANGUERA COFLEX W.C. 35CM"
+    },
+    {
+      "id": "710631908292",
+      "name": "MANGUERA COFLEX FREGADERO 55CM"
+    },
+    {
+      "id": "710631905710",
+      "name": "MANGUERA COFLEX W.C. 50CM"
+    },
+    {
+      "id": "7501973706133",
+      "name": "VALVULA DE FLOTADOR DE MEDIA DICA"
+    },
+    {
+      "id": "7506344157927",
+      "name": "LLAVE DE CHORRO DE MEDIA URREA"
+    },
+    {
+      "id": "7502222814180",
+      "name": "FELPA DE 4 PULGADAS POR PAQUETE DE 2"
+    },
+    {
+      "id": "7777001662",
+      "name": "MALLA DE POLLO DE 1 METRO"
+    },
+    {
+      "id": "7502222818256",
+      "name": "FELPA 2 DE PULGADAS PAQUETE DE 2"
+    },
+    {
+      "id": "7506325104674",
+      "name": "REJILLA DE ACERO INOXIDABLE 4 PULGADAS"
+    },
+    {
+      "id": "7502323090100",
+      "name": "VENENO KILLMAX"
+    },
+    {
+      "id": "7898739340367",
+      "name": "VENENO RODILON"
+    },
+    {
+      "id": "7502241360101",
+      "name": "VENENO MOSQUITOS VAPE"
+    },
+    {
+      "id": "079567300250",
+      "name": "AFLOJA TODO WD-40 CHICO"
+    },
+    {
+      "id": "079567520115",
+      "name": "AFLOJA TODO WD-40 GRANDE"
+    },
+    {
+      "id": "751299034077",
+      "name": "CANDADO PHILLIPS 104 LARGO"
+    },
+    {
+      "id": "751299034060",
+      "name": "CANDADO PHILLIPS 104 CORTO"
+    },
+    {
+      "id": "751299006210",
+      "name": "CHAPA PHILLIPS IZQUIERDA MOD. 715"
+    },
+    {
+      "id": "751299006203",
+      "name": "CHAPA PHILLIPS DERECHA MOD. 715"
+    },
+    {
+      "id": "7506325113737",
+      "name": "CANASTA CON LANCETA FLEXIMATIC"
+    },
+    {
+      "id": "7777000020",
+      "name": "ALAMBRE RECOCIDO POR KILO"
+    },
+    {
+      "id": "7777000022",
+      "name": "LIJA 3M HOJA"
+    },
+    {
+      "id": "7777000023",
+      "name": "MORTERO"
+    },
+    {
+      "id": "7777000024",
+      "name": "CLAVO CONCRETO"
+    },
+    {
+      "id": "7501781200038",
+      "name": "SPRAY GENERAL NEGRO"
+    },
+    {
+      "id": "7501781213526",
+      "name": "SPRAY GENERAL NEGRO SATINADO"
+    },
+    {
+      "id": "7501781200250",
+      "name": "SPRAY GENERAL NEGRO MATE"
+    },
+    {
+      "id": "7501781200014",
+      "name": "SPRAY GENERAL BLANCO MATE"
+    },
+    {
+      "id": "7501781200021",
+      "name": "SPRAY GENERAL BLANCO"
+    },
+    {
+      "id": "7501781213564",
+      "name": "SPRAY GENERAL ALUMINIO ALTA TEMPERATURA"
+    },
+    {
+      "id": "7501781200168",
+      "name": "SPRAY GENERAL ALUMINIO"
+    },
+    {
+      "id": "7777000025",
+      "name": "CAOLIN"
+    },
+    {
+      "id": "7777000026",
+      "name": "MARMOLINA"
+    },
+    {
+      "id": "7777000027",
+      "name": "PEGAPISO PERDURA"
+    },
+    {
+      "id": "7777000028",
+      "name": "PEGAZULEJO PERDURA"
+    },
+    {
+      "id": "7777000029",
+      "name": "PEGAPISO VIVIENDERO"
+    },
+    {
+      "id": "7777000030",
+      "name": "PEGAZULEJO VIVIENDERO"
+    },
+    {
+      "id": "7777000031",
+      "name": "PEGAPISO CALI"
+    },
+    {
+      "id": "7777000032",
+      "name": "PEGAZULEJO CALI"
+    },
+    {
+      "id": "7777000033",
+      "name": "YESO"
+    },
+    {
+      "id": "7777000034",
+      "name": "PEGA PORCELANATO PERDURA"
+    },
+    {
+      "id": "7777000035",
+      "name": "PULIDO ESPEJO 10K"
+    },
+    {
+      "id": "7777000036",
+      "name": "JUNTEADOR CON ARENA ROJO"
+    },
+    {
+      "id": "7777000037",
+      "name": "JUNTEADOR CON ARENA NEGRO"
+    },
+    {
+      "id": "7777000038",
+      "name": "REDIMIX GRANDE 21.8"
+    },
+    {
+      "id": "7777000039",
+      "name": "REDIMIX CHICO 5K"
+    }
+  ],
+  "assets_count": 428
+}
