@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-05T04:26:42.619Z",
+  "ok": true,
+  "checks": [
+    "Coincidencias agrupadas y sin diez opciones arbitrarias",
+    "Ver producto conserva búsqueda normal y código exacto",
+    "Agrupa modelos y permite elegir variantes reales: 6",
+    "Segunda familia distinta: plomería",
+    "Recorte vuelve a buscar, conserva agrupación de resultados",
+    "Control visible en móvil sin duplicados"
+  ],
+  "errors": [],
+  "samples": [
+    {
+      "name": "navarro-publicada-038753323510.jpg",
+      "groups": 1,
+      "allGroups": 1,
+      "visibleCards": 1,
+      "buttons": 0,
+      "first": "Pegamento pvc1 coincidencia📦Coincidencia visual 1PEGAMENTO PVC 473 ML OATEYCódigo: 038753323510$150.00Ver producto+1 al carrito",
+      "status": "Comparé la foto con 15,953 imágenes. Encontré 1 tipos de productos visualmente parecidos. Revisa las variantes antes de elegir."
+    },
+    {
+      "name": "navarro-publicada-7777000053.jpg",
+      "groups": 1,
+      "allGroups": 1,
+      "visibleCards": 1,
+      "buttons": 1,
+      "first": "Codo 45° galvanizado7 variantes📦Coincidencia visual 1CODO 45° GALVANIZADO DE UN CUARTOCódigo: 7777000050$28.00Ver producto+1 al carritoVer variantes y medidas (6)",
+      "status": "Comparé la foto con 15,953 imágenes. Encontré 1 tipos de productos visualmente parecidos. Revisa las variantes antes de elegir."
+    }
+  ]
+}
