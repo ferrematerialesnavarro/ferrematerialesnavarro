@@ -22,3 +22,5 @@ jobs:
           git commit -m "Auditoría de fuentes fotográficas del catálogo NAVARRO 360"
           git pull --rebase origin main
           git push origin HEAD:main
+
+# Incluir inspección del sprite para ampliar índice visual.
