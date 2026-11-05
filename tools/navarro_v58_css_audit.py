@@ -25,6 +25,6 @@ rest=[]
 for i,s in enumerate(rest):
  print('Inline style',i,'length',len(s))
 head=src[:min(len(src),8000)]
-report={'html_size':len(src),'css':css,'chunks':chunks,'styleBlocks':[{'index':i,'length':len(s),'start':s[:280]} for i,s in enumerate(rest)[:35]],'head_links':re.findall(r'<link[^>]+>',head)[:25],'script_srcs':re.findall(r'<script[^>]*src=["\']([^"\']+)',src)[-40:]}
+report={'html_size':len(src),'css':css,'chunks':chunks,'styleBlocks':[{'index':i,'length':len(s),'start':s[:280]} for i,s in enumerate(rest)],'head_links':re.findall(r'<link[^>]+>',head)[:25],'script_srcs':re.findall(r'<script[^>]*src=["\']([^"\']+)',src)[-40:]}
 Path('navarro-v58-css-auditoria.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print('CSS report saved',len(report['css']),'head links',report['head_links'][:9])
