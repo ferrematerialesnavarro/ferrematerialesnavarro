@@ -1,0 +1,9 @@
+{
+  "version": 57,
+  "codes": 15953,
+  "source_gzip_bytes": 13886315,
+  "binary_gzip_bytes": 11069364,
+  "binary_decompressed_bytes": 16589472,
+  "size_reduction_percent": 20.3,
+  "note": "Mismos vectores y SKU exactos, sin pérdida de precisión; decodificación sin base64."
+}
