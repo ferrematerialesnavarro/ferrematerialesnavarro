@@ -11,7 +11,7 @@ t0=time.monotonic()
 s=Path('navarro360-movil/index.html').read_text()
 a=s.index('window.NAVARRO_DB=')+len('window.NAVARRO_DB=')
 catalog,_=json.JSONDecoder().raw_decode(s[a:])
-m=Path('navarro360-movil/truper-fotos-catalogo-v50.js').read_text()
+m=Path('navarro360-movil/truper-fotos-catalogo-v49.js').read_text()
 a=m.index('Object.freeze(')+len('Object.freeze(')
 existing,_=json.JSONDecoder().raw_decode(m[a:])
 def norm(value):
