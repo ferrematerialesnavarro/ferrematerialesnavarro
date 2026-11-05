@@ -11,7 +11,17 @@ const path=require('path');
  page.on('requestfailed',r=>{if(/mediapipe|mobilenet_v3|buscar-foto/.test(r.url()))result.errors.push('request failed: '+r.url()+' '+r.failure()?.errorText)});
  try{
   await page.goto('http://localhost:8111/index.html',{waitUntil:'domcontentloaded',timeout:90000});
-  await page.locator('.nav-visual-trigger:visible').first().waitFor({timeout:20000});
+  result.visibility=await page.evaluate(()=>[...document.querySelectorAll('.nav-visual-trigger')].map(e=>{
+    const cs=getComputedStyle(e),p=getComputedStyle(e.parentElement);
+    const box=e.getBoundingClientRect();
+    return {parent:e.parentElement.className,id:e.parentElement.querySelector('input')?.id,
+      display:cs.display,visibility:cs.visibility,opacity:cs.opacity,client:box.toJSON(),
+      parentDisplay:p.display,parentVisibility:p.visibility,outer:e.parentElement.outerHTML.slice(0,500)};
+   }));
+  console.log('Photo button visibility',JSON.stringify(result.visibility));
+  const search=document.getElementById('search');if(search)search.scrollIntoView({block:'center'});
+  await page.waitForTimeout(300);
+  await page.locator('.nav-visual-trigger:visible').first().waitFor({timeout:6000});
   const n=await page.locator('.nav-visual-trigger').count();
   result.steps.push('botones de foto visibles: '+n);
   if(n!==2)throw Error('Se esperaban 2 botones de foto');
