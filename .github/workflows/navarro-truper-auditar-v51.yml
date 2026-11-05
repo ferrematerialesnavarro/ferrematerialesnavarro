@@ -1,0 +1,21 @@
+name: NAVARRO - auditar Truper faltantes V51
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-truper-auditar-v51.yml'
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Identificar faltantes por código exacto y marca
+        run: python3 tools/navarro-truper-auditar-v51.py
+      - name: Guardar reporte de faltantes
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro-truper-faltantes-v51.json
+          git commit -m "NAVARRO: auditar códigos Truper sin foto tras V51"
+          git push origin HEAD:main
