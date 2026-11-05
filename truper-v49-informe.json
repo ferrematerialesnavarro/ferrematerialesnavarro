@@ -1,0 +1,200 @@
+{
+  "existing": 7772,
+  "supplier_products": 14946,
+  "catalog_unmatched": 10063,
+  "candidate_count": 7466,
+  "tested_detail": 1100,
+  "verified_extra": 1088,
+  "total_map": 8860,
+  "elapsed_seconds": 122.0,
+  "sample_new": [
+    [
+      "100145",
+      [
+        "SUS-CAS",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/suspension-para-cascos-ajuste-por-matraca-truper-5.webp?v=1774794169"
+      ]
+    ],
+    [
+      "7506240672739",
+      [
+        "SUS-CAS",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/suspension-para-cascos-ajuste-por-matraca-truper-5.webp?v=1774794169"
+      ]
+    ],
+    [
+      "7506240690825",
+      [
+        "BAT-20A4",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bateria-ion-litio-20v-4-ah-truper-pro.webp?v=1774794126"
+      ]
+    ],
+    [
+      "7501206677735",
+      [
+        "SU-101-D",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/blister-con-5-seguetas-6-dpp-zanco-u-corte-recto-madera.webp?v=1774794181"
+      ]
+    ],
+    [
+      "7506240665014",
+      [
+        "BAT-12P",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bateria-ion-litio-12v-2-ah-pretul.webp?v=1774794130"
+      ]
+    ],
+    [
+      "7506240637820",
+      [
+        "PA-APSE-EI",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/placa-armada-1-interruptor-escalera-marfil-linea-italiana.webp?v=1774794168"
+      ]
+    ],
+    [
+      "7502309730181",
+      [
+        "PEX-10E",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/pinza-de-extension-10-mango-de-pvc-truper.webp?v=1786974891"
+      ]
+    ],
+    [
+      "7502309730167",
+      [
+        "PEX-12E",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/pinza-de-extension-12-mango-de-pvc-truper.webp?v=1774794133"
+      ]
+    ],
+    [
+      "7502309739429",
+      [
+        "PRE-1",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/bomba-presurizadora-jet-hierro-1-hp-con-control-truper.webp?v=1786498477"
+      ]
+    ],
+    [
+      "7501206658253",
+      [
+        "POBA-17",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/portalampara-de-baquelita-con-interruptor-de-cadena-volteck.webp?v=1774794172"
+      ]
+    ],
+    [
+      "7506610220188",
+      [
+        "TIR-601AL",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/par-de-tiras-led-secuenciales-para-auto-60cm-blanco-amarillo.webp?v=1774794130"
+      ]
+    ],
+    [
+      "7506610220195",
+      [
+        "TIR-301AL",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/par-de-tiras-led-secuenciales-para-auto-30cm-blanco-amarillo.webp?v=1774794138"
+      ]
+    ],
+    [
+      "7506240618829",
+      [
+        "CABO-22P",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/rollo-de-100-m-cable-polarizado-transparente-p-bocina-22-awg.webp?v=1774794139"
+      ]
+    ],
+    [
+      "7506240637745",
+      [
+        "CABO-16P",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/rollo-de-100-m-cable-polarizado-transparente-p-bocina-16-awg.webp?v=1774794137"
+      ]
+    ],
+    [
+      "7506240637752",
+      [
+        "CABO-18P",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/rollo-de-100-m-cable-polarizado-transparente-p-bocina-18-awg.webp?v=1774794173"
+      ]
+    ],
+    [
+      "7506240637769",
+      [
+        "CABO-20P",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/rollo-de-100-m-cable-polarizado-transparente-p-bocina-20-awg.webp?v=1774794139"
+      ]
+    ],
+    [
+      "7501206690253",
+      [
+        "ARB-100S",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/arbotante-tipo-farol-tradicional-soportado-p-exterior-blanco.webp?v=1774794143"
+      ]
+    ],
+    [
+      "7501206690284",
+      [
+        "ARB-103S",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/arbotante-tipo-farol-tradicional-suspendido-p-exterior-negro.webp?v=1774794170"
+      ]
+    ]
+  ],
+  "failed_samples": [
+    {
+      "sku": "7506610208148",
+      "score": 100.0,
+      "reason": "different EAN 7506240690825"
+    },
+    {
+      "sku": "7501206677773",
+      "score": 100.0,
+      "reason": "different EAN 7501206677735"
+    },
+    {
+      "sku": "7506610227880",
+      "score": 100.0,
+      "reason": "different EAN 7506240665014"
+    },
+    {
+      "sku": "7506240637844",
+      "score": 100.0,
+      "reason": "different EAN 7506240637820"
+    },
+    {
+      "sku": "7501206640258",
+      "score": 100.0,
+      "reason": "different EAN 7502309730181"
+    },
+    {
+      "sku": "7501206640685",
+      "score": 100.0,
+      "reason": "different EAN 7502309730167"
+    },
+    {
+      "sku": "7506240606710",
+      "score": 100.0,
+      "reason": "different EAN 7502309739429"
+    },
+    {
+      "sku": "7501206658277",
+      "score": 100.0,
+      "reason": "different EAN 7501206658253"
+    },
+    {
+      "sku": "7506240677239",
+      "score": 99.1304347826087,
+      "reason": "different EAN 7506240677222"
+    },
+    {
+      "sku": "7506240621843",
+      "score": 99.11504424778761,
+      "reason": "different EAN 7506240621836"
+    },
+    {
+      "sku": "7502309734516",
+      "score": 99.08256880733946,
+      "reason": "different EAN 7506240675938"
+    },
+    {
+      "sku": "7506240615873",
+      "score": 99.06542056074767,
+      "reason": "different EAN 7501206692172"
+    }
+  ]
+}
