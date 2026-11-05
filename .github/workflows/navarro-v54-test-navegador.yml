@@ -38,3 +38,5 @@ jobs:
 # Diagnosticar estilos de botones y visibilidad.
 
 # Repetir prueba tras activar versión V54.1 con cámara visible.
+
+# Prueba V54.2: motor y catálogo completo cargados desde el propio sitio.
