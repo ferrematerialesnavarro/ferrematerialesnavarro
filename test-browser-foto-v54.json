@@ -1,7 +1,7 @@
 {
-  "date": "2026-11-05T03:40:46.306Z",
+  "date": "2026-11-05T03:42:30.956Z",
   "errors": [
-    "TimeoutError: locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('.nav-visual-trigger').first() to be visible\n    44 × locator resolved to hidden <button type=\"button\" class=\"nav-visual-trigger\" title=\"Buscar producto mediante una fotografía\" aria-label=\"Tomar o elegir fotografía para buscar productos parecidos\">📷</button>\n"
+    "TimeoutError: locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('.nav-visual-trigger:visible').first() to be visible\n"
   ],
   "console": [],
   "steps": [],
