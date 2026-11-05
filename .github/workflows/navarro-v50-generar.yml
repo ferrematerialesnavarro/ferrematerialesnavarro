@@ -24,3 +24,5 @@ jobs:
           git add navarro360-movil/truper-fotos-catalogo-v50.js truper-v50-informe.json
           git commit -m "NAVARRO V50: catálogo ampliado de fotos Truper con EAN validado"
           git push origin HEAD:main
+
+# V50: regeneración con destino corregido, exactitud EAN obligatoria.
