@@ -19,7 +19,7 @@ const path=require('path');
       parentDisplay:p.display,parentVisibility:p.visibility,outer:e.parentElement.outerHTML.slice(0,500)};
    }));
   console.log('Photo button visibility',JSON.stringify(result.visibility));
-  const search=document.getElementById('search');if(search)search.scrollIntoView({block:'center'});
+  await page.locator('#search').evaluate(e=>e.scrollIntoView({block:'center'}));
   await page.waitForTimeout(300);
   await page.locator('.nav-visual-trigger:visible').first().waitFor({timeout:6000});
   const n=await page.locator('.nav-visual-trigger').count();
