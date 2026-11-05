@@ -9,6 +9,7 @@ const MODEL_URL='https://storage.googleapis.com/mediapipe-models/image_embedder/
 const WASM_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm';
 const MODULE_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
 const INDEX_URL='./buscar-foto-indice-v54.json.gz?v=54';
+const PILOT_INDEX_URL='./buscar-foto-indice-piloto-v54.json.gz?v=54';
 const DIM=1024;
 let embedderPromise=null,indexPromise=null,dlg=null,chooser=null,previewURL='',busy=false;
 const catalog=new Map((Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[]).map(p=>[String(p[0]),{name:String(p[1]),price:Number(p[2])}]));
@@ -218,7 +219,8 @@ async function loadEmbedder(){
 async function loadIndex(){
  if(!indexPromise){
   indexPromise=(async()=>{
-   const response=await fetch(INDEX_URL,{cache:'force-cache'});
+   let response=await fetch(INDEX_URL,{cache:'force-cache'});
+   if(!response.ok)response=await fetch(PILOT_INDEX_URL,{cache:'force-cache'});
    if(!response.ok)throw Error('No se encontró el índice de fotografías del catálogo (HTTP '+response.status+')');
    let bytes=new Uint8Array(await response.arrayBuffer());
    if(bytes[0]===31&&bytes[1]===139){
