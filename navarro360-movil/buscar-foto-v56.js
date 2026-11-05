@@ -488,13 +488,14 @@ async function rankVectors(query,index,focusedQuery=null){
   const full=dotFull/512,focus=focusedQuery?dotFocus/512:-1;
   const score=Math.max(full,focus-.03);
   if(!Number.isFinite(score))continue;
-  if(ranked.length>=topLimit&&score<=ranked[ranked.length-1].score)continue;
-  const hit={code,score,full,focus};
-  ranked.push(hit);
-  ranked.sort((a,b)=>b.score-a.score||a.code.localeCompare(b.code));
-  if(ranked.length>topLimit)ranked.pop();
-  if(i>0&&i%500===0){
-   if(i%4000===0)status('Buscando coincidencias por producto ('+Math.round(i/count*100)+' %)...');
+  if(ranked.length<topLimit||score>ranked[ranked.length-1].score){
+   const hit={code,score,full,focus};
+   ranked.push(hit);
+   ranked.sort((a,b)=>b.score-a.score||a.code.localeCompare(b.code));
+   if(ranked.length>topLimit)ranked.pop();
+  }
+  if(i>0&&i%650===0){
+   if(i%3900===0)status('Buscando coincidencias ('+Math.round(i/count*100)+' %)...');
    await new Promise(resolve=>setTimeout(resolve,0));
   }
  }
