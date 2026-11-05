@@ -25,7 +25,7 @@ function syncCards(){
   const source=imagePaths(id);
   if(!source)continue;
   const visual=card.querySelector('.product-visual');
-  if(!visual)continue;
+  if(!visual||visual.dataset.navTruperPhotoFailed===id)continue;
   if(visual.querySelector('img.nav-v40-photo,img.nav-user-photo')){
    visual.querySelector('img.nav-truper-verified-photo')?.remove();
    continue;
@@ -40,7 +40,7 @@ function syncCards(){
   img.onerror=()=>{
    if(img.dataset.backupTried!=='1'&&img.src!==source.backup){
     img.dataset.backupTried='1';img.src=source.backup;
-   }else{img.remove()}
+   }else{visual.dataset.navTruperPhotoFailed=id;img.remove()}
   };
   img.src=source.primary;
   visual.prepend(img);
