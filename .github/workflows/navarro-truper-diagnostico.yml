@@ -1,0 +1,59 @@
+name: NAVARRO - inspeccionar banco de Truper
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-truper-diagnostico.yml
+permissions:
+  contents: write
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Examinar fuentes públicas y formatos
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          from html.parser import HTMLParser
+          import json,re,urllib.parse
+          class Inspector(HTMLParser):
+           def __init__(self):
+            super().__init__();self.tags=[];self.text=[]
+           def handle_starttag(self,tag,attrs):
+            if tag in ['img','form','script','a','input','meta','link','button']:
+             a=dict(attrs);self.tags.append(dict(tag=tag,attrs={k:v for k,v in a.items() if k in ['src','action','method','href','name','value','type','id','content','data-url','data-id','placeholder','class']}))
+          out=[]
+          urls=[
+           'https://www.truper.com/banco-contenido-digital/',
+           'https://www.truper.com/BancoContenidoDigital/index.php?id=10831&r=producto%2FviewInfo',
+           'https://www.truper.com/ficha_tecnica/Aceite-aflojatodo-en-aerosol-345-ml-12oz.html?code=13470',
+           'https://www.truper.com/media/import/imagenes/WT-350.jpg',
+           'https://www.truper.com/media/import/imagenes/WT-350P.jpg',
+           'https://ferreteriastrp.com/productos/lubricante-multiusos-en-aerosol-345ml-12oz-truper'
+          ]
+          for url in urls:
+           row=dict(url=url)
+           try:
+            req=Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; NAVARRO-Fotos/1.0)'})
+            with urlopen(req,timeout=18) as f:
+             raw=f.read(1900000);row.update(status=f.status,final=f.url,length=len(raw),content_type=f.headers.get('content-type'),preview=raw[:150].decode('utf-8','replace'))
+            if 'html' in (row['content_type'] or ''):
+             text=raw.decode('utf-8','replace')
+             parser=Inspector();parser.feed(text)
+             row['tags']=parser.tags[:115]
+             row['important_lines']=[s[:300] for s in text.splitlines() if any(x in s.lower() for x in ['viewinfo','jquery','fetch(','axios','productos','imagen','fotos','search','form','autocomplete','codigo','ean:','truper.com/media/import'])][:65]
+           except Exception as e:row['error']=str(e)[:400]
+           out.append(row)
+          from pathlib import Path
+          Path('diagnostico-truper-nav.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
+          print('Diagnostico completado:',[(x['url'],x.get('status'),x.get('error')) for x in out])
+          PY
+      - name: Guardar reporte sin modificar tienda
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostico-truper-nav.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Diagnóstico temporal de fuentes oficiales Truper"
+            git push origin HEAD:main
+          fi
