@@ -11,12 +11,12 @@ const path=require('path');
  page.on('requestfailed',r=>{if(/mediapipe|mobilenet_v3|buscar-foto/.test(r.url()))result.errors.push('request failed: '+r.url()+' '+r.failure()?.errorText)});
  try{
   await page.goto('http://localhost:8111/index.html',{waitUntil:'domcontentloaded',timeout:90000});
-  await page.locator('.nav-visual-trigger').first().waitFor({timeout:20000});
+  await page.locator('.nav-visual-trigger:visible').first().waitFor({timeout:20000});
   const n=await page.locator('.nav-visual-trigger').count();
   result.steps.push('botones de foto visibles: '+n);
   if(n!==2)throw Error('Se esperaban 2 botones de foto');
   const chooserPromise=page.waitForEvent('filechooser',{timeout:12000});
-  await page.locator('.nav-visual-trigger').first().click();
+  await page.locator('.nav-visual-trigger:visible').first().click();
   const chooser=await chooserPromise;
   const files=fs.readdirSync('navarro360-movil/assets').filter(f=>/^navarro-publicada-\d+\.jpg$/.test(f));
   if(!files.length)throw Error('No hay foto local para prueba');
