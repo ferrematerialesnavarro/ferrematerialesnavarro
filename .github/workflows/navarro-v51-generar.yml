@@ -1,0 +1,28 @@
+name: NAVARRO V51 - completar referencias pendientes
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v51-generar.yml'
+permissions:
+  contents: write
+jobs:
+  completar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Instalar comparador de modelos
+        run: python3 -m pip install --quiet rapidfuzz
+      - name: Comprobar fotografía y EAN de códigos pendientes
+        timeout-minutes: 12
+        run: python3 tools/navarro_truper_fotos_v51.py
+      - name: Validar banco antes de incorporar
+        run: node --check navarro360-movil/truper-fotos-catalogo-v51.js
+      - name: Guardar índice e informe, sin cambiar tienda todavía
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/truper-fotos-catalogo-v51.js truper-v51-informe.json
+          git commit -m "NAVARRO V51: fotos adicionales asociadas por EAN o modelo Truper exacto"
+          git push origin HEAD:main
