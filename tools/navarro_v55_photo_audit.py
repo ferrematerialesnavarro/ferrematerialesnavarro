@@ -22,5 +22,11 @@ for path in app.glob("*.js"):
  out["photo_groups"][path.name]=ks[:7]
 out["catalog_missing_photo"]=[{"id":c,"name":name} for c,name,*_ in cat if str(c) not in known["truper"]|known["photos"]|known["plumbing"]][:130]
 out["assets_count"]=len(list((app/"assets").iterdir()))
+out["sprite_analysis"]={
+ "sprite_mentions":[txt[max(0,m.start()-250):m.start()+450] for m in list(re.finditer(r'product-sprite|atlas-sprite|NAVARRO_ATLAS',txt,re.I))[:22]],
+ "base64_image_matches":[{"position":m.start(),"mime":m.group(1),"payloadLen":len(m.group(2)),"context":txt[max(0,m.start()-220):m.start()+85]} for m in list(re.finditer(r'data:image/(webp|png|jpeg);base64,([A-Za-z0-9+/=]+)',txt,re.I)) if len(m.group(2))>30000][:12],
+ "styles":[x[:700] for x in re.findall(r'.{0,150}background(?:Image|[-]image)\s*[:=].{0,250}',txt,re.I)[:20]]
+}
+
 Path("navarro-v55-photo-audit.json").write_text(json.dumps(out,ensure_ascii=False,indent=2))
 print("AUDIT",json.dumps({k:v for k,v in out.items() if k!="photo_groups" and k!="catalog_missing_photo"},ensure_ascii=False))
