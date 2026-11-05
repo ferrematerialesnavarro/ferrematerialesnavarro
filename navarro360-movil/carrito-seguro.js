@@ -404,3 +404,121 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
 else init();
 })();
+
+
+/* NAVARRO_VENDEDOR_RAPIDO_V1 — Independiente y reversible.
+   Activa el modo vendedor sin reemplazar buscador, catálogo, imágenes,
+   facturación, formato WhatsApp ni el flujo SIFO. */
+;(function(){
+'use strict';
+if(window.NAVARRO_VENDEDOR_RAPIDO_V1)return;
+window.NAVARRO_VENDEDOR_RAPIDO_V1=true;
+const KEY='navarro_cart_v1',MAX=9999;
+const norm=x=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ');
+const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let panel=null,search=null,results=null,message=null,count=null,items=[],timer=0,active=false;
+const catalogue=()=>Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
+function readCart(){
+ try{const c=JSON.parse(localStorage.getItem(KEY)||'{}');return c&&!Array.isArray(c)&&typeof c==='object'?c:{}}
+ catch{return {}}
+}
+function cartCount(){
+ const c=readCart();return Object.keys(c).filter(x=>Number(c[x])>0).length;
+}
+function notify(text,problem=false){
+ if(!message)return;message.textContent=text;message.style.color=problem?'#b91c1c':'#13623c';
+}
+function findProducts(raw){
+ const q=norm(raw),db=catalogue();
+ if(q.length<2)return [];
+ const terms=q.split(/\s+/);
+ const approved=window.NAVARRO_BUSCADOR_GENERICO;
+ const filtered=[];
+ for(const p of db){
+  const id=String(p?.[0]??''),name=String(p?.[1]??'');
+  if(!/^\d{5,}$/.test(id))continue;
+  const title=norm(name),exact=id===q;
+  if(!exact && !terms.every(t=>title.includes(t)))continue;
+  const generic=!!(approved?.isApproved?.(id,name));
+  filtered.push({id,name,generic,score:exact?10000:title===q?1000:title.startsWith(q)?500:title.includes(q)?200:0});
+ }
+ filtered.sort((a,b)=>b.score-a.score||Number(b.generic)-Number(a.generic)||a.name.localeCompare(b.name,'es'));
+ return filtered.slice(0,30);
+}
+function updateResults(){
+ if(!results)return;
+ const q=search.value.trim();
+ items=findProducts(q);
+ if(!q){results.innerHTML='<p class="nv-vendedor-empty">Escribe un nombre o código para localizar productos del catálogo.</p>';return;}
+ if(q.length<2){results.innerHTML='<p class="nv-vendedor-empty">Escribe al menos dos caracteres.</p>';return;}
+ if(!items.length){results.innerHTML='<p class="nv-vendedor-empty">No se encontraron coincidencias. Prueba con otro nombre o código.</p>';return;}
+ results.innerHTML=items.map((p,i)=>'<div class="nv-vendedor-item">'+
+ '<div class="nv-vendedor-desc"><b>'+esc(p.name)+'</b><small>Código '+esc(p.id)+(p.generic?' · Genérico':'')+'</small></div>'+
+ '<label class="nv-vendedor-qty">Cantidad<input aria-label="Cantidad de '+esc(p.name)+'" data-nv-qty="'+i+'" type="number" min="1" max="9999" step="1" inputmode="numeric" value="1"></label>'+
+ '<button type="button" data-nv-add="'+i+'" aria-label="Agregar '+esc(p.name)+'">Agregar</button></div>').join('');
+}
+function add(i,button){
+ const p=items[i];if(!p)return;
+ const field=results.querySelector('input[data-nv-qty="'+i+'"]');
+ const raw=String(field?.value??'').trim(),n=Number(raw);
+ if(!/^\d{1,4}$/.test(raw)||!Number.isInteger(n)||n<1||n>MAX){
+  notify('Escribe una cantidad entera entre 1 y 9,999.',true);field?.focus();return;
+ }
+ const c=readCart(),previous=Number(c[p.id])||0;
+ if(!Number.isFinite(previous)||previous<0||previous+n>MAX){
+  notify('La cantidad acumulada supera el máximo permitido.',true);return;
+ }
+ c[p.id]=Number((previous+n).toFixed(4));
+ try{
+  localStorage.setItem(KEY,JSON.stringify(c));
+  sessionStorage.setItem('navarro_ultimo_producto_v1',p.id);
+ }catch{notify('No fue posible guardar el carrito. No se agregó el artículo.',true);return;}
+ notify('Agregado: '+n+' × '+p.name+'. Ya tienes '+c[p.id]+' en el carrito.');
+ count.textContent=cartCount()+' productos distintos en el carrito';
+ button.textContent='✓ Agregado';
+ setTimeout(()=>{if(button.isConnected)button.textContent='Agregar'},950);
+}
+function close(){if(panel){panel.hidden=true;active=false;document.body.style.removeProperty('overflow');}}
+function open(){
+ if(!panel)return;
+ panel.hidden=false;active=true;
+ document.body.style.overflow='hidden';
+ count.textContent=cartCount()+' productos distintos en el carrito';
+ notify('Busca, escribe la cantidad y agrega sin salir de esta pantalla.');
+ search.focus();
+}
+function init(){
+ if(document.getElementById('nv-vendedor-btn'))return;
+ const style=document.createElement('style');
+ style.textContent='#nv-vendedor-panel[hidden]{display:none!important}#nv-vendedor-panel{position:fixed;inset:0;z-index:2147483003;background:#071a39dc;display:grid;place-items:center;padding:12px;box-sizing:border-box}#nv-vendedor-window{width:100%;max-width:680px;max-height:94dvh;display:flex;flex-direction:column;background:#fff;color:#19334f;border-radius:17px;padding:16px;box-sizing:border-box;box-shadow:0 20px 70px #0006;font:14px system-ui}#nv-vendedor-header{display:flex;align-items:center;justify-content:space-between;gap:10px}#nv-vendedor-header h2{margin:0;font-size:20px}#nv-vendedor-header button{width:42px;height:42px;border:0;border-radius:9px;background:#eef2f7;font-size:24px;color:#213957}#nv-vendedor-query{width:100%;box-sizing:border-box;min-height:48px;padding:12px;border:1px solid #bacde1;border-radius:10px;margin-top:12px;font:16px system-ui}#nv-vendedor-results{overflow:auto;min-height:90px;margin-top:8px;flex:1}#nv-vendedor-panel .nv-vendedor-item{border-bottom:1px solid #e5ecf3;padding:11px 3px;display:flex;align-items:center;gap:9px}#nv-vendedor-panel .nv-vendedor-desc{min-width:0;flex:1}#nv-vendedor-panel .nv-vendedor-desc b{display:block;font-size:13px;overflow-wrap:anywhere}#nv-vendedor-panel .nv-vendedor-desc small{display:block;color:#66778a;margin-top:4px}#nv-vendedor-panel .nv-vendedor-qty{font-size:10px;color:#4d647a;text-align:center}#nv-vendedor-panel .nv-vendedor-qty input{display:block;width:60px;max-width:18vw;box-sizing:border-box;min-height:39px;font-size:16px;text-align:center;border:1px solid #c0d1e2;border-radius:8px}#nv-vendedor-panel button[data-nv-add]{background:#123e70;border:0;border-radius:9px;color:#fff;min-height:42px;padding:9px 11px;font-weight:750;font-size:12px}#nv-vendedor-panel .nv-vendedor-empty{padding:20px;color:#64758b;text-align:center}#nv-vendedor-status{font-size:12px;margin:9px 0;min-height:17px}#nv-vendedor-bottom{border-top:1px solid #e3ebf4;padding-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}#nv-vendedor-count{font-size:12px;color:#51647b}#nv-vendedor-cart{background:#e8f0f9;color:#15385f;border:1px solid #b6cde4;border-radius:9px;padding:10px;font-weight:750}#nv-vendedor-btn{min-height:38px;background:#133b68;border:1px solid #315e8b;color:#fff;border-radius:10px;padding:7px 12px;font:750 13px system-ui;cursor:pointer;margin:7px 0}';
+ document.head.appendChild(style);
+ const button=document.createElement('button');button.id='nv-vendedor-btn';button.type='button';button.textContent='⚡ Vendedor rápido';button.setAttribute('aria-label','Abrir modo vendedor rápido');
+ const base=document.getElementById('search-mobile')||document.getElementById('search');
+ if(base?.parentElement)base.parentElement.insertAdjacentElement('afterend',button);
+ else document.body.appendChild(button);
+ panel=document.createElement('div');panel.id='nv-vendedor-panel';panel.hidden=true;
+ panel.innerHTML='<section id="nv-vendedor-window" role="dialog" aria-modal="true" aria-labelledby="nv-vendedor-title">'+
+ '<div id="nv-vendedor-header"><h2 id="nv-vendedor-title">⚡ Modo vendedor rápido</h2><button type="button" id="nv-vendedor-close" aria-label="Cerrar">×</button></div>'+
+ '<input type="search" id="nv-vendedor-query" placeholder="Buscar producto por nombre o código" autocomplete="off" aria-label="Buscar catálogo">'+
+ '<div id="nv-vendedor-results"></div><p id="nv-vendedor-status" role="status"></p>'+
+ '<div id="nv-vendedor-bottom"><span id="nv-vendedor-count"></span><button type="button" id="nv-vendedor-cart">Ver carrito</button></div></section>';
+ document.body.appendChild(panel);
+ search=document.getElementById('nv-vendedor-query');
+ results=document.getElementById('nv-vendedor-results');
+ message=document.getElementById('nv-vendedor-status');
+ count=document.getElementById('nv-vendedor-count');
+ updateResults();
+ button.addEventListener('click',open);
+ document.getElementById('nv-vendedor-close').addEventListener('click',close);
+ panel.addEventListener('click',e=>{if(e.target===panel)close();const b=e.target.closest('button[data-nv-add]');if(b)add(Number(b.dataset.nvAdd),b)});
+ search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(updateResults,110)});
+ document.getElementById('nv-vendedor-cart').addEventListener('click',()=>{
+  close();
+  // La página principal vuelve a dibujar el carrito a partir de localStorage.
+  window.location.reload();
+ });
+ document.addEventListener('keydown',e=>{if(active&&e.key==='Escape'){e.preventDefault();close()}},true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
+else init();
+})();
