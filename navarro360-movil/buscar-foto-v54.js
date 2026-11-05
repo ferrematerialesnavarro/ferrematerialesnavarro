@@ -125,7 +125,7 @@ function ensureUI(){
  if(dlg)return;
  const style=el('style');
  style.textContent=[
-  '.nav-visual-trigger{flex:none;border:1px solid #b8ccda;background:#fff;border-radius:11px;padding:4px 8px;color:#154f78;font-size:20px;min-width:38px;min-height:38px;cursor:pointer;position:relative;z-index:2}',
+  '.nav-visual-trigger{display:inline-flex!important;align-items:center;justify-content:center;visibility:visible!important;flex:none;border:1px solid #b8ccda;background:#fff;border-radius:11px;padding:4px 8px;color:#154f78;font-size:20px;min-width:38px;min-height:38px;cursor:pointer;position:relative;z-index:2}',
   '.nav-visual-trigger:focus-visible,.nav-visual-add:focus-visible,.nav-visual-see:focus-visible{outline:3px solid #528bc8;outline-offset:1px}',
   '.nav-visual-dialog{border:0;border-radius:17px;box-shadow:0 25px 90px #0a23346b;background:#fff;color:#192a3b;width:min(94vw,850px);max-height:92dvh;max-height:92vh;padding:0;overflow:auto}',
   '.nav-visual-dialog::backdrop{background:#102338ae}',
