@@ -361,12 +361,10 @@
         "inputPadding": "119px",
         "photoStyle": "absolute",
         "scannerStyle": "absolute",
-        "inHost": false
+        "inHost": true
       }
     ],
-    "errors": [
-      "Bad button layout search{\"id\":\"search\",\"visible\":true,\"photo\":{\"x\":794.796875,\"y\":977.25,\"right\":838.796875,\"bottom\":1021.25,\"w\":44,\"h\":44},\"scanner\":{\"x\":0,\"y\":0,\"right\":0,\"bottom\":0,\"w\":0,\"h\":0},\"host\":{\"x\":76.796875,\"y\":969.75,\"right\":896.796875,\"bottom\":1028.75,\"w\":820,\"h\":59},\"input\":{\"x\":126.796875,\"y\":991.25,\"right\":895.796875,\"bottom\":1007.25,\"w\":769,\"h\":16},\"overlap\":0,\"inputPadding\":\"119px\",\"photoStyle\":\"absolute\",\"scannerStyle\":\"absolute\",\"inHost\":false}"
-    ],
-    "passed": false
+    "errors": [],
+    "passed": true
   }
 ]
