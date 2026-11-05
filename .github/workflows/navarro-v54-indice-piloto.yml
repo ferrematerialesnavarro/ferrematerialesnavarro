@@ -1,0 +1,40 @@
+name: NAVARRO V54 - prueba de indice fotográfico
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v54-indice-piloto.yml'
+permissions:
+  contents: write
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Instalar embebedor visual
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libgles2 libglib2.0-0
+          python3 -m pip install --quiet 'mediapipe>=0.10.21' pillow numpy
+      - name: Crear primer índice comprobable
+        timeout-minutes: 8
+        run: python3 tools/navarro_v54_indice_piloto.py
+      - name: Validar índices
+        run: |
+          python3 - <<'PY'
+          import json,gzip
+          from pathlib import Path
+          p=Path("navarro360-movil/buscar-foto-indice-piloto-v54.json.gz")
+          doc=json.loads(gzip.decompress(p.read_bytes()))
+          assert len(doc["codes"])>1000 and len(doc["vectors"])>100000
+          print("Visual pilot:",len(doc["codes"]))
+          PY
+      - name: Publicar prototipo de índice
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/buscar-foto-indice-piloto-v54.json.gz navarro360-movil/buscar-foto-indice-piloto-info-v54.json
+          git commit -m "NAVARRO V54: índice piloto de imágenes para búsqueda visual"
+          git pull --rebase origin main
+          git push origin HEAD:main
