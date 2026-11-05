@@ -1,0 +1,32 @@
+name: NAVARRO 360 V54.1 - probar separación de cámaras
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v541-layout-test.yml'
+permissions:
+  contents: write
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar navegador
+        run: |
+          npm install --no-save --silent playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Probar sitio en diferentes tamaños de pantalla
+        run: |
+          nohup python3 -m http.server 8111 --directory navarro360-movil >/tmp/navarro-server.log 2>&1 &
+          sleep 2
+          node tools/navarro_v541_layout_test.cjs
+      - name: Guardar verificación
+        if: always()
+        run: |
+          if test -f navarro-v541-layout-report.json; then
+            git config user.name "NAVARRO 360 (GitHub Actions)"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add navarro-v541-layout-report.json
+            git commit -m "NAVARRO: verificación visual de los dos botones de cámara en móvil"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
