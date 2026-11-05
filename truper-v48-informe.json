@@ -1,0 +1,98 @@
+{
+  "catalog_nav": 17835,
+  "catalog_supplier_expected": 15735,
+  "supplier_pages": 263,
+  "supplier_rows_read": 14961,
+  "supplier_unique_titles": 14961,
+  "nombres_unicos_estrictos": 7772,
+  "source": "https://ferreteriastrp.com/productos",
+  "matching_rule": "nombre normalizado único en ambos catálogos; claves del distribuidor; EAN pendiente de validación individual",
+  "elapsed_seconds": 25.4,
+  "errors": [],
+  "sample": [
+    [
+      "7506240653295",
+      [
+        "WT-350",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/lubricante-multiusos-en-aerosol-345ml-12oz-truper.webp?v=1786471930"
+      ]
+    ],
+    [
+      "7506240690948",
+      [
+        "P12-2T",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/juego-de-12-puntas-torx-combinadas-largo-2-truper-expert.webp?v=1774794173"
+      ]
+    ],
+    [
+      "7506240674542",
+      [
+        "PET-15X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/llave-ajustable-perico-15-cromada-truper.webp?v=1774794134"
+      ]
+    ],
+    [
+      "7506240674535",
+      [
+        "PET-15C",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/llave-ajustable-perico-15-profesional-cromada-expert.webp?v=1774794159"
+      ]
+    ],
+    [
+      "7506240673903",
+      [
+        "REP-CUT-5X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/estuche-con-10-cuchillas-sk2-de-9-mm-para-cutter-expert.webp?v=1774794158"
+      ]
+    ],
+    [
+      "7506240673910",
+      [
+        "REP-CUT-6X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/estuche-con-10-cuchillas-sk2-de-18-mm-para-cutter-expert.webp?v=1774794132"
+      ]
+    ],
+    [
+      "7506240673941",
+      [
+        "REP-CUT-650",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/estuche-con-50-cuchillas-sk4-de-18-mm-para-cutter-truper.webp?v=1774794130"
+      ]
+    ],
+    [
+      "7506240673927",
+      [
+        "REP-CUT-7X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/estuche-con-10-cuchillas-sk2-de-25-mm-para-cutter-expert.webp?v=1774794178"
+      ]
+    ],
+    [
+      "7506240673934",
+      [
+        "REP-CUT-650X",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/estuche-con-50-cuchillas-sk2-de-18-mm-para-cutter-expert.webp?v=1774794153"
+      ]
+    ],
+    [
+      "7506240673156",
+      [
+        "CA-40",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/cavador-giratorio-de-acero-mango-t-30-truper.webp?v=1774794154"
+      ]
+    ],
+    [
+      "7506240675938",
+      [
+        "PAR-26",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/prensa-de-ajuste-rapido-6-uso-rudo-cuerpo-nylon-expert-2.webp?v=1774794124"
+      ]
+    ],
+    [
+      "7506240675945",
+      [
+        "PAR-212",
+        "https://ferreteriastrp.com/public/mnt/wtrp/images/productos/prensa-de-ajuste-rapido-12-uso-rudo-cuerpo-nylon-expert.webp?v=1774794148"
+      ]
+    ]
+  ]
+}
