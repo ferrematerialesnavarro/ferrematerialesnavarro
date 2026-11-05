@@ -1,0 +1,372 @@
+[
+  {
+    "width": 320,
+    "visible": [
+      "search-mobile"
+    ],
+    "results": [
+      {
+        "id": "search-mobile",
+        "visible": true,
+        "photo": {
+          "x": 221,
+          "y": 103.5,
+          "right": 265,
+          "bottom": 147.5,
+          "w": 44,
+          "h": 44
+        },
+        "scanner": {
+          "x": 271,
+          "y": 103.5,
+          "right": 315,
+          "bottom": 147.5,
+          "w": 44,
+          "h": 44
+        },
+        "host": {
+          "x": 0,
+          "y": 95,
+          "right": 320,
+          "bottom": 158,
+          "w": 320,
+          "h": 63
+        },
+        "input": {
+          "x": 15,
+          "y": 101,
+          "right": 305,
+          "bottom": 144,
+          "w": 290,
+          "h": 43
+        },
+        "overlap": 0,
+        "inputPadding": "113px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      },
+      {
+        "id": "search",
+        "visible": false,
+        "photo": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "scanner": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "host": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "input": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      }
+    ],
+    "errors": [],
+    "passed": true
+  },
+  {
+    "width": 390,
+    "visible": [
+      "search-mobile"
+    ],
+    "results": [
+      {
+        "id": "search-mobile",
+        "visible": true,
+        "photo": {
+          "x": 289,
+          "y": 124.5,
+          "right": 333,
+          "bottom": 168.5,
+          "w": 44,
+          "h": 44
+        },
+        "scanner": {
+          "x": 341,
+          "y": 124.5,
+          "right": 385,
+          "bottom": 168.5,
+          "w": 44,
+          "h": 44
+        },
+        "host": {
+          "x": 0,
+          "y": 116,
+          "right": 390,
+          "bottom": 179,
+          "w": 390,
+          "h": 63
+        },
+        "input": {
+          "x": 15,
+          "y": 122,
+          "right": 375,
+          "bottom": 165,
+          "w": 360,
+          "h": 43
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      },
+      {
+        "id": "search",
+        "visible": false,
+        "photo": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "scanner": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "host": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "input": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      }
+    ],
+    "errors": [],
+    "passed": true
+  },
+  {
+    "width": 430,
+    "visible": [
+      "search-mobile"
+    ],
+    "results": [
+      {
+        "id": "search-mobile",
+        "visible": true,
+        "photo": {
+          "x": 329,
+          "y": 124.5,
+          "right": 373,
+          "bottom": 168.5,
+          "w": 44,
+          "h": 44
+        },
+        "scanner": {
+          "x": 381,
+          "y": 124.5,
+          "right": 425,
+          "bottom": 168.5,
+          "w": 44,
+          "h": 44
+        },
+        "host": {
+          "x": 0,
+          "y": 116,
+          "right": 430,
+          "bottom": 179,
+          "w": 430,
+          "h": 63
+        },
+        "input": {
+          "x": 15,
+          "y": 122,
+          "right": 415,
+          "bottom": 165,
+          "w": 400,
+          "h": 43
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      },
+      {
+        "id": "search",
+        "visible": false,
+        "photo": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "scanner": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "host": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "input": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      }
+    ],
+    "errors": [],
+    "passed": true
+  },
+  {
+    "width": 1280,
+    "visible": [
+      "search"
+    ],
+    "results": [
+      {
+        "id": "search-mobile",
+        "visible": false,
+        "photo": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "scanner": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "host": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "input": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": true
+      },
+      {
+        "id": "search",
+        "visible": true,
+        "photo": {
+          "x": 794.796875,
+          "y": 977.25,
+          "right": 838.796875,
+          "bottom": 1021.25,
+          "w": 44,
+          "h": 44
+        },
+        "scanner": {
+          "x": 0,
+          "y": 0,
+          "right": 0,
+          "bottom": 0,
+          "w": 0,
+          "h": 0
+        },
+        "host": {
+          "x": 76.796875,
+          "y": 969.75,
+          "right": 896.796875,
+          "bottom": 1028.75,
+          "w": 820,
+          "h": 59
+        },
+        "input": {
+          "x": 126.796875,
+          "y": 991.25,
+          "right": 895.796875,
+          "bottom": 1007.25,
+          "w": 769,
+          "h": 16
+        },
+        "overlap": 0,
+        "inputPadding": "119px",
+        "photoStyle": "absolute",
+        "scannerStyle": "absolute",
+        "inHost": false
+      }
+    ],
+    "errors": [
+      "Bad button layout search{\"id\":\"search\",\"visible\":true,\"photo\":{\"x\":794.796875,\"y\":977.25,\"right\":838.796875,\"bottom\":1021.25,\"w\":44,\"h\":44},\"scanner\":{\"x\":0,\"y\":0,\"right\":0,\"bottom\":0,\"w\":0,\"h\":0},\"host\":{\"x\":76.796875,\"y\":969.75,\"right\":896.796875,\"bottom\":1028.75,\"w\":820,\"h\":59},\"input\":{\"x\":126.796875,\"y\":991.25,\"right\":895.796875,\"bottom\":1007.25,\"w\":769,\"h\":16},\"overlap\":0,\"inputPadding\":\"119px\",\"photoStyle\":\"absolute\",\"scannerStyle\":\"absolute\",\"inHost\":false}"
+    ],
+    "passed": false
+  }
+]
