@@ -1,0 +1,54 @@
+name: NAVARRO V53 - activar 15635 fotos Truper
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v53-activar.yml'
+permissions:
+  contents: write
+jobs:
+  activar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar nuevos enlaces verificados
+        run: |
+          node --check navarro360-movil/truper-fotos-catalogo-v53.js
+          node --check navarro360-movil/truper-fotos-integracion-v48.js
+          node --check navarro360-movil/carrito-fotos-v44.js
+          node -e "global.window={};require('./navarro360-movil/truper-fotos-catalogo-v53.js');const n=Object.keys(window.NAVARRO_FOTOS_TRUPER_V48).length;if(n!==15635)throw Error(n);console.log('Fotos Truper asociadas',n)"
+      - name: Actualizar solo la versión del índice fotográfico
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib,json
+          hashblob=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          if hashblob(p.read_bytes())!='965d8e9e7eb14b0d7f23707cea7ef70cf203f70f':raise SystemExit('HTML no coincide; se detiene para proteger la página.')
+          content=p.read_text()
+          assert content.count('truper-fotos-catalogo-v52.js?v=52')==1
+          assert content.count('sw.js?v=52')==1
+          content=content.replace('truper-fotos-catalogo-v52.js?v=52','truper-fotos-catalogo-v53.js?v=53')
+          content=content.replace('sw.js?v=52','sw.js?v=53')
+          p.write_text(content)
+          sw=Path('navarro360-movil/sw.js')
+          text=sw.read_text()
+          assert text.count('navarro360-fullstore-v52-truper-fotos-15619')==1
+          assert text.count('truper-fotos-catalogo-v52.js?v=52')==1
+          text=text.replace('navarro360-fullstore-v52-truper-fotos-15619','navarro360-fullstore-v53-truper-fotos-15635')
+          text=text.replace('truper-fotos-catalogo-v52.js?v=52','truper-fotos-catalogo-v53.js?v=53')
+          sw.write_text(text)
+          report=json.loads(Path('truper-v53-informe.json').read_text())
+          assert report['new_photos_verified']==16 and report['total']==15635
+          print('V53: 16 nuevas imágenes oficiales, sin tocar carrito ni SIFO')
+          PY
+      - name: Publicar V53 en GitHub
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V53: 16 fotos oficiales verificadas para productos Truper pendientes"
+          git pull --rebase origin main
+          git push origin HEAD:main
