@@ -1,0 +1,37 @@
+name: NAVARRO - catálogo Truper por páginas
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-truper-paginas-test.yml
+permissions:
+  contents: write
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar fichas de lote
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          import re,json
+          out=[]
+          urls=['https://ferreteriastrp.com/productos','https://ferreteriastrp.com/productos?orden=catalogo&pagina=2']
+          for url in urls:
+           with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=15) as r:html=r.read(400000).decode('utf-8','replace')
+           eans=re.findall(r'750(?:1206|6240|6610)\d{6}',html)
+           matches=[(m.start(),html[max(0,m.start()-120):m.start()+180]) for m in re.finditer(r'(?:EAN|ean|barcode|gtin)',html,re.I)]
+           imgs=re.findall(r'/public/mnt/wtrp/images/productos/[^"\s<>]+',html)
+           cards=re.findall(r'<article[^>]+(?:product|card)[^>]*>',html,re.I)
+           out.append({'url':url,'length':len(html),'ean_count':len(eans),'ean_example':eans[:4],'images_count':len(imgs),'images_example':imgs[:5],'matches':matches[:12],'cards':cards[:4],'links':re.findall(r'href="([^"]+pagina=[^"]+)"',html)[:5]})
+          from pathlib import Path
+          Path('truper-prueba-paginas.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
+          print([(x['length'],x['ean_count'],x['images_count']) for x in out])
+          PY
+      - name: Guardar informe de muestra
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add truper-prueba-paginas.json
+          git commit -m "Verificar si páginas de listado traen EAN e imágenes"
+          git push origin HEAD:main
