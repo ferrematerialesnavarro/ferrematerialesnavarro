@@ -25,4 +25,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add navarro360-movil/truper-fotos-catalogo-v52.js truper-v52-informe.json
           git commit -m "NAVARRO V52: nuevas imágenes Truper verificadas contra EAN de segunda fuente"
+          git pull --rebase origin main
           git push origin HEAD:main
+
+# Reejecución protegida contra modificaciones simultáneas de la tienda.
