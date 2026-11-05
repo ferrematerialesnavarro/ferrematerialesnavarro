@@ -1,0 +1,54 @@
+name: NAVARRO V54.1 - camara visible en buscador
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v541-visibilidad.yml'
+permissions:
+  contents: write
+jobs:
+  corregir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar búsqueda visual y mostrar botón
+        run: |
+          node --check navarro360-movil/buscar-foto-v54.js
+          grep -q "display:inline-flex!important" navarro360-movil/buscar-foto-v54.js
+      - name: Renovar caché manteniendo catálogo y carrito
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          h=Path('navarro360-movil/index.html')
+          if sha(h.read_bytes())!='34f8569a1bb3be7af60d1012c63181e18807fa84':raise SystemExit('Página diferente; no se reemplaza')
+          s=h.read_text()
+          assert s.count('buscar-foto-v54.js?v=54')==1
+          assert s.count('sw.js?v=54')==1
+          s=s.replace('buscar-foto-v54.js?v=54','buscar-foto-v54.js?v=541')
+          s=s.replace('sw.js?v=54','sw.js?v=541')
+          h.write_text(s)
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count('navarro360-fullstore-v54-busqueda-por-imagen')==1
+          assert t.count("'./buscar-foto-v54.js?v=54'")==1
+          t=t.replace('navarro360-fullstore-v54-busqueda-por-imagen','navarro360-fullstore-v541-boton-foto-visible')
+          t=t.replace("'./buscar-foto-v54.js?v=54'","'./buscar-foto-v54.js?v=541'")
+          sw.write_text(t)
+          print('V54.1 visible: teléfono y computadora')
+          PY
+      - name: Publicar corrección de interfaz
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V54.1: mostrar botón de foto en barra de búsqueda"
+          for attempt in 1 2 3 4; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
