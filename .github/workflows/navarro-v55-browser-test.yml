@@ -1,0 +1,51 @@
+name: NAVARRO V55 - prueba foto recorte y resultados
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v55-browser-test.yml'
+permissions:
+  contents: write
+jobs:
+  probar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Preparar versión V55 aislada, sin publicar
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('navarro360-movil/index.html')
+          s=p.read_text()
+          assert s.count('buscar-foto-v54.js?v=542')==1
+          s=s.replace('buscar-foto-v54.js?v=542','buscar-foto-v55.js?v=55')
+          Path('navarro360-movil/test-foto-v55.html').write_text(s)
+          PY
+          node --check navarro360-movil/buscar-foto-v55.js
+      - name: Instalar navegador Chromium
+        run: |
+          npm install --no-save --silent playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Servir página de pruebas
+        run: |
+          nohup python3 -m http.server 8111 --directory navarro360-movil >/tmp/navarro-v55-http.log 2>&1 &
+          sleep 2
+      - name: Probar búsqueda visual y recorte con foto del catálogo
+        timeout-minutes: 6
+        run: node tools/navarro_v55_browser_test.cjs
+      - name: Guardar informe de pruebas
+        if: always()
+        run: |
+          if [ -f test-browser-foto-v55.json ]; then
+            git config user.name "NAVARRO 360 (GitHub Actions)"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add test-browser-foto-v55.json
+            git commit -m "NAVARRO V55: resultados de prueba fotográfica y selección de recorte"
+            for n in 1 2 3 4; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
