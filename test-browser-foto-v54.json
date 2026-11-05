@@ -1,9 +1,51 @@
 {
-  "date": "2026-11-05T03:42:30.956Z",
+  "date": "2026-11-05T03:44:26.240Z",
   "errors": [
-    "TimeoutError: locator.waitFor: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('.nav-visual-trigger:visible').first() to be visible\n"
+    "ReferenceError: document is not defined"
   ],
   "console": [],
   "steps": [],
+  "visibility": [
+    {
+      "parent": "mobile-search-wrap",
+      "id": "search-mobile",
+      "display": "inline-block",
+      "visibility": "visible",
+      "opacity": "1",
+      "client": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "parentDisplay": "none",
+      "parentVisibility": "visible",
+      "outer": "<div class=\"mobile-search-wrap\" style=\"position: relative;\"><label for=\"search-mobile\" aria-label=\"Buscar productos\">⌕</label><input type=\"search\" id=\"search-mobile\" placeholder=\"Busca en 17,835 productos por nombre o código\" autocomplete=\"off\" data-navarro-scan-attached=\"1\" style=\"padding-right: 58px;\"><button class=\"nav-visual-trigger\" type=\"button\" title=\"Buscar producto mediante una fotografía\" aria-label=\"Tomar o elegir fotografía para buscar productos parecidos\">📷</button><button type=\"bu"
+    },
+    {
+      "parent": "search-wrap",
+      "id": "search",
+      "display": "none",
+      "visibility": "visible",
+      "opacity": "1",
+      "client": {
+        "x": 0,
+        "y": 0,
+        "width": 0,
+        "height": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0,
+        "left": 0
+      },
+      "parentDisplay": "flex",
+      "parentVisibility": "visible",
+      "outer": "<div class=\"search-wrap\" style=\"position: relative;\"><span class=\"search-glyph\" aria-hidden=\"true\">⌕</span><input id=\"search\" type=\"search\" autocomplete=\"off\" placeholder=\"Nombre, material, medida o código de barras\" aria-label=\"Buscar materiales por nombre o código de barras\" data-navarro-scan-attached=\"1\" style=\"padding-right: 58px;\"><button type=\"button\" id=\"clear-search\" aria-label=\"Borrar búsqueda\" title=\"Limpiar\">✕</button><button class=\"nav-visual-trigger\" type=\"button\" title=\"Buscar prod"
+    }
+  ],
   "ok": false
 }
