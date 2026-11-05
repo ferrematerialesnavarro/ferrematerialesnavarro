@@ -1,0 +1,242 @@
+{
+  "time": "2026-11-05T04:58:08.726Z",
+  "success": true,
+  "checks": [
+    "Catálogo carga y conserva tarjetas",
+    "Fotos centradas en tarjetas a 390 px",
+    "Fotos centradas en tarjetas a 860 px",
+    "El carrito permanece presente (1)",
+    "Cámara del buscador conserva botón"
+  ],
+  "errors": [],
+  "cases": [
+    {
+      "width": 390,
+      "id": "7506610231696",
+      "layout": "grid",
+      "visual": {
+        "width": 68.46875,
+        "height": 167.6875,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 66.46875,
+        "height": 165.6875,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 390,
+      "id": "7506610224100",
+      "layout": "grid",
+      "visual": {
+        "width": 68.46875,
+        "height": 167.6875,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 66.46875,
+        "height": 165.6875,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 390,
+      "id": "7506240611363",
+      "layout": "grid",
+      "visual": {
+        "width": 68.46875,
+        "height": 167.6875,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 66.46875,
+        "height": 165.6875,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 390,
+      "id": "7506240611370",
+      "layout": "grid",
+      "visual": {
+        "width": 68.46875,
+        "height": 167.6875,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 66.46875,
+        "height": 165.6875,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 390,
+      "id": "7777001082",
+      "layout": "grid",
+      "visual": {
+        "width": 68.46875,
+        "height": 167.6875,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": null,
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 860,
+      "id": "7506610231696",
+      "layout": "flex",
+      "visual": {
+        "width": 240.9375,
+        "height": 170,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 238.9375,
+        "height": 168,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 860,
+      "id": "7506610224100",
+      "layout": "flex",
+      "visual": {
+        "width": 240.9375,
+        "height": 170,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 238.9375,
+        "height": 168,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 860,
+      "id": "7506240611363",
+      "layout": "flex",
+      "visual": {
+        "width": 240.9375,
+        "height": 170,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 238.9375,
+        "height": 168,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 860,
+      "id": "7506240611370",
+      "layout": "flex",
+      "visual": {
+        "width": 240.9375,
+        "height": 170,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": {
+        "tag": "IMG",
+        "cls": "nav-truper-verified-photo",
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "position": "absolute",
+        "transform": "none",
+        "width": 238.9375,
+        "height": 168,
+        "centerOffset": 0,
+        "inside": true
+      },
+      "pencil": false,
+      "photoButton": true
+    },
+    {
+      "width": 860,
+      "id": "7777001082",
+      "layout": "flex",
+      "visual": {
+        "width": 240.9375,
+        "height": 170,
+        "background": "rgb(255, 255, 255)",
+        "border": "1px"
+      },
+      "media": null,
+      "pencil": false,
+      "photoButton": true
+    }
+  ]
+}
