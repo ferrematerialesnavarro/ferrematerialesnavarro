@@ -20,7 +20,7 @@ const fs=require('fs');
      const r=x=>{const p=x.getBoundingClientRect();return {x:p.left,y:p.top,right:p.right,bottom:p.bottom,w:p.width,h:p.height}};
      const p=r(photo),s=r(scan),h=r(host),i=r(inp);
      const intersect=Math.max(0,Math.min(p.right,s.right)-Math.max(p.x,s.x))*Math.max(0,Math.min(p.bottom,s.bottom)-Math.max(p.y,s.y));
-     items.push({id,visible:!!host.getClientRects().length&&getComputedStyle(host).display!=='none',photo:p,scanner:s,host:h,input:i,overlap:intersect,inputPadding:getComputedStyle(inp).paddingRight,photoStyle:getComputedStyle(photo).position,scannerStyle:getComputedStyle(scan).position,inHost:p.x>=h.x-1&&p.right<=h.right+1&&s.x>=h.x-1&&s.right<=h.right+1});
+     items.push({id,visible:!!host.getClientRects().length&&getComputedStyle(host).display!=='none',photo:p,scanner:s,host:h,input:i,overlap:intersect,inputPadding:getComputedStyle(inp).paddingRight,photoStyle:getComputedStyle(photo).position,scannerStyle:getComputedStyle(scan).position,inHost:p.x>=h.x-1&&p.right<=h.right+1&&(s.w===0||(s.x>=h.x-1&&s.right<=h.right+1))});
     }
     return items;
    });
