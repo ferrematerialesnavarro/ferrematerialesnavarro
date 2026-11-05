@@ -1,0 +1,55 @@
+name: NAVARRO - investigar index Truper EAN foto
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-truper-fuentes.yml
+permissions:
+  contents: write
+jobs:
+  buscar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspeccionar scripts oficiales y sitemaps
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          from html.parser import HTMLParser
+          from urllib.parse import urlparse
+          import json,re
+          urls=[
+           'https://www.truper.com/banco-contenido-digital/js/search.js',
+           'https://www.truper.com/banco-contenido-digital/mx',
+           'https://www.truper.com/banco-contenido-digital/mx/download-catalog',
+           'https://www.truper.com/robots.txt',
+           'https://ferreteriastrp.com/robots.txt',
+           'https://ferreteriastrp.com/sitemap.xml',
+           'https://ferrexmayorista.com/robots.txt',
+           'https://ferrexmayorista.com/sitemap.xml'
+          ]
+          out=[]
+          for url in urls:
+           row={'url':url}
+           try:
+            with urlopen(Request(url,headers={'User-Agent':'Mozilla/5.0'}),timeout=20) as r:
+             raw=r.read(280000)
+             row.update(status=r.status,content_type=r.headers.get('Content-Type'),size=len(raw),final=r.url)
+             text=raw.decode('utf-8','replace')
+             if url.endswith('search.js'):row['body']=text[:20000]
+             else:
+              row['preview']=text[:8000]
+              if '<html' in text[:1000]:
+               row['links']=re.findall(r'<(?:script|img|a|form)[^>]+(?:src|href|action)=["\x27]([^"\x27]+)',text,re.I)[:40]
+           except Exception as e:row['error']=str(e)[:300]
+           out.append(row)
+          from pathlib import Path
+          Path('diagnostico-truper-fuentes.json').write_text(json.dumps(out,ensure_ascii=False,indent=2))
+          print([(a['url'],a.get('status'),a.get('error')) for a in out])
+          PY
+      - name: Guardar investigación temporal
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add diagnostico-truper-fuentes.json
+          git commit -m "Investigar URLs y esquemas de datos Truper"
+          git push origin HEAD:main
