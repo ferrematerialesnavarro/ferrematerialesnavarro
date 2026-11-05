@@ -5,9 +5,10 @@
 'use strict';
 if(window.NAVARRO_BUSCAR_POR_FOTO_V54)return;
 window.NAVARRO_BUSCAR_POR_FOTO_V54=true;
-const MODEL_URL='https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite';
-const WASM_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm';
-const MODULE_URL='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/+esm';
+// El modelo y WebAssembly están en NAVARRO 360; la foto no sale del dispositivo.
+const MODEL_URL=new URL('./vendor/mediapipe/mobilenet_v3_small.tflite',location.href).href;
+const WASM_URL=new URL('./vendor/mediapipe/wasm',location.href).href;
+const MODULE_URL=new URL('./vendor/mediapipe/vision_bundle.mjs',location.href).href;
 const INDEX_URL='./buscar-foto-indice-v54.json.gz?v=54';
 const PILOT_INDEX_URL='./buscar-foto-indice-piloto-v54.json.gz?v=54';
 const DIM=1024;
