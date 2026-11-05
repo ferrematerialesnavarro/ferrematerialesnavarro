@@ -602,8 +602,8 @@ async function searchPhoto(file,region=null){
   const canvas=await prepareCanvas(file,region);
   const exactSku=await detectExactCode(canvas);
   if(exactSku){
-   const index=await loadIndex().catch(()=>null);
-   renderResults([{code:exactSku,score:2,exact:true}],index?.count||catalog.size,exactSku);
+   // Para fotos con código identificable no cargar 11 MB ni ejecutar el modelo visual.
+   renderResults([{code:exactSku,score:2,exact:true}],catalog.size,exactSku);
    return;
   }
   const [model,index]=await Promise.all([loadEmbedder(),loadIndex()]);
