@@ -34,3 +34,5 @@ jobs:
           fi
 
 # Repetir prueba usando botón de cámara visible.
+
+# Diagnosticar estilos de botones y visibilidad.
