@@ -1,4 +1,4 @@
-/* NAVARRO 360 V47: miniaturas por código exacto y mismas fuentes que las tarjetas. */
+/* NAVARRO 360 V48: miniaturas por código exacto y mismas fuentes que las tarjetas. */
 (function(){'use strict';
 if(window.NAVARRO_CARRITO_FOTOS_V44)return;window.NAVARRO_CARRITO_FOTOS_V44=true;
 const personal=new Map();
@@ -30,6 +30,13 @@ function sourceFor(id){
   if(/^[a-z0-9][a-z0-9_.-]*\.(?:png|jpe?g|webp)$/i.test(byCode))
    return {kind:'url',src:'./assets/'+byCode};
  }
+ const truper=window.NAVARRO_FOTOS_TRUPER_V48?.[id];
+ if(Array.isArray(truper)&&truper.length===2&&/^[A-Za-z0-9+./-]{2,35}$/.test(String(truper[0]||''))){
+  const official='https://www.truper.com/media/import/imagenes/'+encodeURIComponent(truper[0])+'.jpg';
+  const backup=String(truper[1]||'');
+  if(/^https:\/\/ferreteriastrp\.com\/public\/mnt\/wtrp\/images\/productos\//i.test(backup))
+   return {kind:'url',src:official,fallback:backup};
+ }
  for(const name of [featured?.img,atlas?.byCode?.[id]].filter(Boolean)){
   const index=atlas?.files?.[name];
   if(Number.isInteger(index))return {kind:'atlas',atlas,index};
@@ -55,7 +62,11 @@ function thumbFor(id){
  if(entry.kind==='url'){
   const img=document.createElement('img');
   img.src=entry.src;img.alt='Foto del producto '+id;img.loading='lazy';
-  img.onerror=()=>{wrap.remove();};
+  img.onerror=()=>{
+   if(entry.fallback&&img.dataset.usedBackup!=='1'){
+    img.dataset.usedBackup='1';img.src=entry.fallback;
+   }else{wrap.remove()}
+  };
   wrap.append(img);return wrap;
  }
  const {atlas,index}=entry;
