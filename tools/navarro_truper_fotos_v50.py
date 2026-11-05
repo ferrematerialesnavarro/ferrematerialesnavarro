@@ -86,7 +86,7 @@ with ThreadPoolExecutor(max_workers=24) as pool:
 new={code:data for code,data,_,_ in checked if data}
 result={**existing,**new}
 assert len(result)>len(existing)
-Path('navarro360-movil/truper-fotos-catalogo-v49.js').write_text('/* NAVARRO 360 V50: nombres únicos y ampliación verificada individualmente por EAN/código Truper. */\nwindow.NAVARRO_FOTOS_TRUPER_V48=Object.freeze('+json.dumps(result,ensure_ascii=False,separators=(',',':'))+');\n')
+Path('navarro360-movil/truper-fotos-catalogo-v50.js').write_text('/* NAVARRO 360 V50: nombres únicos y ampliación verificada individualmente por EAN/código Truper. */\nwindow.NAVARRO_FOTOS_TRUPER_V48=Object.freeze('+json.dumps(result,ensure_ascii=False,separators=(',',':'))+');\n')
 report={
  'existing':len(existing),'supplier_products':len(rows),'catalog_unmatched':len(unknown),
  'candidate_count':len(candidates),'tested_detail':len(checked),
