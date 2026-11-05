@@ -36,7 +36,7 @@ const fs=require('fs');
       hasPhoto:!!pic,hasButton:!!button};
     });
     report.cases.push({width,...snapshot});
-    if(!snapshot.hasPhoto||!snapshot.hasButton)throw Error('Foto o botón ausente: '+id);
+    if(!snapshot.photo||!snapshot.hasButton)throw Error('Marco o botón ausente: '+id);
     if(width<=600){
      if(snapshot.display!=='grid')throw Error('Tarjeta no tiene diseño lateral: '+width+' '+snapshot.display);
      if(snapshot.photo.w<120)throw Error('Foto demasiado angosta: '+width+' '+snapshot.photo.w);
