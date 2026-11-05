@@ -406,118 +406,141 @@ else init();
 })();
 
 
-/* NAVARRO_VENDEDOR_RAPIDO_V1 — Independiente y reversible.
-   Activa el modo vendedor sin reemplazar buscador, catálogo, imágenes,
-   facturación, formato WhatsApp ni el flujo SIFO. */
+/* NAVARRO VENDEDOR TIPO SIFO V2 — módulo reversible. Precios únicamente locales a esta sesión de vendedor.
+  La contraseña en una web estática es una barrera local, NO autentica empleados frente a un servidor.
+  Nunca transmite importes editados al bot ni modifica el precio de SIFO. */
 ;(function(){
 'use strict';
-if(window.NAVARRO_VENDEDOR_RAPIDO_V1)return;
-window.NAVARRO_VENDEDOR_RAPIDO_V1=true;
-const KEY='navarro_cart_v1',MAX=9999;
-const norm=x=>String(x==null?'':x).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim().replace(/\s+/g,' ');
+if(window.NAVARRO_VENDEDOR_SIFO_V2)return;
+window.NAVARRO_VENDEDOR_SIFO_V2=true;
+const CART='navarro_cart_v1', PASS='navarro_vendedor_pin_v2', SALE='navarro_vendedor_precios_v2', MAX=9999;
+const $=id=>document.getElementById(id);
 const esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let panel=null,search=null,results=null,message=null,count=null,items=[],timer=0,active=false;
-const catalogue=()=>Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
-function readCart(){
- try{const c=JSON.parse(localStorage.getItem(KEY)||'{}');return c&&!Array.isArray(c)&&typeof c==='object'?c:{}}
- catch{return {}}
+const norm=x=>String(x??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+const money=n=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
+let unlocked=false, dialog,query,results,status,lines,summary,mode,modalMessage,rows=[],timer;
+const db=()=>Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
+function read(key){try{const o=JSON.parse(localStorage.getItem(key)||'{}');return o&&!Array.isArray(o)&&typeof o==='object'?o:{}}catch{return {}}}
+function save(key,object){localStorage.setItem(key,JSON.stringify(object))}
+function cart(){return read(CART)}
+function prices(){return read(SALE)}
+function note(t,err=false){status.textContent=t;status.style.color=err?'#b91c1c':'#126441'}
+function resetLogin(){unlocked=false;dialog.hidden=true;mode.hidden=false;$('nv-sifo-pin').value='';document.body.style.removeProperty('overflow')}
+async function digest(pin,salt){
+ const data=new TextEncoder().encode(salt+':'+pin);
+ const buffer=await crypto.subtle.digest('SHA-256',data);
+ return Array.from(new Uint8Array(buffer)).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
-function cartCount(){
- const c=readCart();return Object.keys(c).filter(x=>Number(c[x])>0).length;
+function pinRecord(){return read(PASS)}
+function showLogin(){
+ dialog.hidden=false;mode.hidden=true;document.body.style.overflow='hidden';
+ const installed=!!pinRecord().hash;
+ $('nv-sifo-pin-title').textContent=installed?'Acceso de vendedor':'Configurar contraseña de vendedor';
+ $('nv-sifo-pin-help').textContent=installed?'Escribe tu contraseña local para abrir la caja.':'Crea una contraseña de 6 caracteres o más para este dispositivo. No uses tu contraseña de SIFO.';
+ $('nv-sifo-pin-submit').textContent=installed?'Entrar':'Guardar contraseña';
+ $('nv-sifo-pin').value='';modalMessage.textContent='';
+ $('nv-sifo-pin').focus();
 }
-function notify(text,problem=false){
- if(!message)return;message.textContent=text;message.style.color=problem?'#b91c1c':'#13623c';
+async function login(e){
+ e.preventDefault();
+ const input=$('nv-sifo-pin'),pin=input.value,stored=pinRecord();
+ if(pin.length<6||pin.length>80){modalMessage.textContent='La contraseña debe tener entre 6 y 80 caracteres.';return}
+ try{
+  if(!crypto?.subtle){modalMessage.textContent='Este navegador no permite proteger la contraseña local.';return}
+  if(!stored.hash){
+   const salt=Array.from(crypto.getRandomValues(new Uint8Array(16))).map(x=>x.toString(16).padStart(2,'0')).join('');
+   save(PASS,{salt,hash:await digest(pin,salt)});
+  }else if(await digest(pin,stored.salt)!==stored.hash){
+   modalMessage.textContent='Contraseña incorrecta.';input.value='';return;
+  }
+  unlocked=true;mode.hidden=false;input.value='';dialog.hidden=true;
+  renderSale();query.focus();
+ }catch{modalMessage.textContent='No fue posible acceder al almacenamiento local.'}
 }
-function findProducts(raw){
- const q=norm(raw),db=catalogue();
- if(q.length<2)return [];
- const terms=q.split(/\s+/);
- const approved=window.NAVARRO_BUSCADOR_GENERICO;
- const filtered=[];
- for(const p of db){
+function search(){
+ if(!unlocked)return;
+ const q=norm(query.value),tokens=q.split(/\s+/).filter(Boolean);
+ if(q.length<2){results.innerHTML='<p class="nv-sifo-muted">Busca por nombre o código para agregar productos.</p>';return}
+ const approval=window.NAVARRO_BUSCADOR_GENERICO;
+ rows=[];
+ for(const p of db()){
   const id=String(p?.[0]??''),name=String(p?.[1]??'');
   if(!/^\d{5,}$/.test(id))continue;
   const title=norm(name),exact=id===q;
-  if(!exact && !terms.every(t=>title.includes(t)))continue;
-  const generic=!!(approved?.isApproved?.(id,name));
-  filtered.push({id,name,generic,score:exact?10000:title===q?1000:title.startsWith(q)?500:title.includes(q)?200:0});
+  if(!exact&&!tokens.every(w=>title.includes(w)))continue;
+  rows.push({id,name,score:exact?10000:title===q?1000:title.startsWith(q)?500:title.includes(q)?200:0,generic:!!approval?.isApproved?.(id,name)});
  }
- filtered.sort((a,b)=>b.score-a.score||Number(b.generic)-Number(a.generic)||a.name.localeCompare(b.name,'es'));
- return filtered.slice(0,30);
+ rows.sort((a,b)=>b.score-a.score||Number(b.generic)-Number(a.generic)||a.name.localeCompare(b.name,'es'));
+ rows=rows.slice(0,25);
+ results.innerHTML=rows.length?rows.map((p,i)=>'<div class="nv-sifo-result"><div><b>'+esc(p.name)+'</b><small>'+esc(p.id)+'</small></div><button type="button" data-sifo-add="'+i+'">+ Agregar</button></div>').join(''):'<p class="nv-sifo-muted">Sin coincidencias; intenta otra palabra o código.</p>';
 }
-function updateResults(){
- if(!results)return;
- const q=search.value.trim();
- items=findProducts(q);
- if(!q){results.innerHTML='<p class="nv-vendedor-empty">Escribe un nombre o código para localizar productos del catálogo.</p>';return;}
- if(q.length<2){results.innerHTML='<p class="nv-vendedor-empty">Escribe al menos dos caracteres.</p>';return;}
- if(!items.length){results.innerHTML='<p class="nv-vendedor-empty">No se encontraron coincidencias. Prueba con otro nombre o código.</p>';return;}
- results.innerHTML=items.map((p,i)=>'<div class="nv-vendedor-item">'+
- '<div class="nv-vendedor-desc"><b>'+esc(p.name)+'</b><small>Código '+esc(p.id)+(p.generic?' · Genérico':'')+'</small></div>'+
- '<label class="nv-vendedor-qty">Cantidad<input aria-label="Cantidad de '+esc(p.name)+'" data-nv-qty="'+i+'" type="number" min="1" max="9999" step="1" inputmode="numeric" value="1"></label>'+
- '<button type="button" data-nv-add="'+i+'" aria-label="Agregar '+esc(p.name)+'">Agregar</button></div>').join('');
+function productName(id){
+ const p=db().find(x=>String(x[0])===id);return p?String(p[1]):'Producto '+id;
 }
-function add(i,button){
- const p=items[i];if(!p)return;
- const field=results.querySelector('input[data-nv-qty="'+i+'"]');
- const raw=String(field?.value??'').trim(),n=Number(raw);
- if(!/^\d{1,4}$/.test(raw)||!Number.isInteger(n)||n<1||n>MAX){
-  notify('Escribe una cantidad entera entre 1 y 9,999.',true);field?.focus();return;
+function add(i){
+ const p=rows[i];if(!p)return;
+ const c=cart(),n=Number(c[p.id])||0;
+ if(n>=MAX)return note('Cantidad máxima alcanzada.',true);
+ c[p.id]=n+1;
+ try{save(CART,c);sessionStorage.setItem('navarro_ultimo_producto_v1',p.id)}
+ catch{return note('No se pudo guardar el producto.',true)}
+ renderSale();note('Agregado: '+p.name);
+}
+function change(id,field,raw){
+ const c=cart(),p=prices();
+ if(field==='price'){
+  const v=Number(raw);
+  if(raw.trim()===''||!Number.isFinite(v)||v<0||v>10000000||!/^\d+(?:\.\d{1,2})?$/.test(raw.trim()))return note('Escribe un precio válido con máximo dos decimales.',true);
+  p[id]=v;
+  try{save(SALE,p)}catch{return note('No se pudo guardar el precio.',true)}
+ }else{
+  const n=Number(raw);
+  if(!/^\d{1,4}$/.test(raw.trim())||!Number.isInteger(n)||n>MAX)return note('Cantidad inválida (0 a 9999).',true);
+  if(n===0){delete c[id];delete p[id]}else c[id]=n;
+  try{save(CART,c);save(SALE,p)}catch{return note('No fue posible modificar el carrito.',true)}
  }
- const c=readCart(),previous=Number(c[p.id])||0;
- if(!Number.isFinite(previous)||previous<0||previous+n>MAX){
-  notify('La cantidad acumulada supera el máximo permitido.',true);return;
- }
- c[p.id]=Number((previous+n).toFixed(4));
- try{
-  localStorage.setItem(KEY,JSON.stringify(c));
-  sessionStorage.setItem('navarro_ultimo_producto_v1',p.id);
- }catch{notify('No fue posible guardar el carrito. No se agregó el artículo.',true);return;}
- notify('Agregado: '+n+' × '+p.name+'. Ya tienes '+c[p.id]+' en el carrito.');
- count.textContent=cartCount()+' productos distintos en el carrito';
- button.textContent='✓ Agregado';
- setTimeout(()=>{if(button.isConnected)button.textContent='Agregar'},950);
+ renderSale();note('Venta actualizada.');
 }
-function close(){if(panel){panel.hidden=true;active=false;document.body.style.removeProperty('overflow');}}
-function open(){
- if(!panel)return;
- panel.hidden=false;active=true;
- document.body.style.overflow='hidden';
- count.textContent=cartCount()+' productos distintos en el carrito';
- notify('Busca, escribe la cantidad y agrega sin salir de esta pantalla.');
- search.focus();
+function renderSale(){
+ const c=cart(),p=prices();const ids=Object.keys(c).filter(id=>Number(c[id])>0);
+ let total=0,missing=0;
+ lines.innerHTML=ids.map(id=>{
+  const q=Number(c[id]),v=p[id],hasPrice=Number.isFinite(Number(v))&&v!==undefined&&v!==null;
+  const price=hasPrice?Number(v):0;total+=q*price;if(!hasPrice)missing++;
+  return '<div class="nv-sifo-line"><div class="nv-sifo-name"><b>'+esc(productName(id))+'</b><small>'+esc(id)+'</small></div>'+
+  '<label>Cant.<input data-sifo-id="'+esc(id)+'" data-sifo-field="qty" type="number" min="0" max="9999" step="1" value="'+q+'"></label>'+
+  '<label>Precio $<input data-sifo-id="'+esc(id)+'" data-sifo-field="price" type="number" inputmode="decimal" min="0" max="10000000" step=".01" placeholder="Sin precio" value="'+(hasPrice?price:'')+'"></label>'+
+  '<div class="nv-sifo-amount">'+(hasPrice?money(q*price):'Pendiente')+'</div></div>';
+ }).join('')||'<p class="nv-sifo-muted">La venta está vacía. Busca un producto para empezar.</p>';
+ summary.innerHTML='<strong>Subtotal local: '+money(total)+'</strong><small>'+ids.length+' artículos distintos'+(missing?' · '+missing+' sin precio':'')+'</small>';
 }
 function init(){
- if(document.getElementById('nv-vendedor-btn'))return;
+ if($('nv-vendedor-btn'))$('nv-vendedor-btn').remove();
  const style=document.createElement('style');
- style.textContent='#nv-vendedor-panel[hidden]{display:none!important}#nv-vendedor-panel{position:fixed;inset:0;z-index:2147483003;background:#071a39dc;display:grid;place-items:center;padding:12px;box-sizing:border-box}#nv-vendedor-window{width:100%;max-width:680px;max-height:94dvh;display:flex;flex-direction:column;background:#fff;color:#19334f;border-radius:17px;padding:16px;box-sizing:border-box;box-shadow:0 20px 70px #0006;font:14px system-ui}#nv-vendedor-header{display:flex;align-items:center;justify-content:space-between;gap:10px}#nv-vendedor-header h2{margin:0;font-size:20px}#nv-vendedor-header button{width:42px;height:42px;border:0;border-radius:9px;background:#eef2f7;font-size:24px;color:#213957}#nv-vendedor-query{width:100%;box-sizing:border-box;min-height:48px;padding:12px;border:1px solid #bacde1;border-radius:10px;margin-top:12px;font:16px system-ui}#nv-vendedor-results{overflow:auto;min-height:90px;margin-top:8px;flex:1}#nv-vendedor-panel .nv-vendedor-item{border-bottom:1px solid #e5ecf3;padding:11px 3px;display:flex;align-items:center;gap:9px}#nv-vendedor-panel .nv-vendedor-desc{min-width:0;flex:1}#nv-vendedor-panel .nv-vendedor-desc b{display:block;font-size:13px;overflow-wrap:anywhere}#nv-vendedor-panel .nv-vendedor-desc small{display:block;color:#66778a;margin-top:4px}#nv-vendedor-panel .nv-vendedor-qty{font-size:10px;color:#4d647a;text-align:center}#nv-vendedor-panel .nv-vendedor-qty input{display:block;width:60px;max-width:18vw;box-sizing:border-box;min-height:39px;font-size:16px;text-align:center;border:1px solid #c0d1e2;border-radius:8px}#nv-vendedor-panel button[data-nv-add]{background:#123e70;border:0;border-radius:9px;color:#fff;min-height:42px;padding:9px 11px;font-weight:750;font-size:12px}#nv-vendedor-panel .nv-vendedor-empty{padding:20px;color:#64758b;text-align:center}#nv-vendedor-status{font-size:12px;margin:9px 0;min-height:17px}#nv-vendedor-bottom{border-top:1px solid #e3ebf4;padding-top:10px;display:flex;justify-content:space-between;align-items:center;gap:10px}#nv-vendedor-count{font-size:12px;color:#51647b}#nv-vendedor-cart{background:#e8f0f9;color:#15385f;border:1px solid #b6cde4;border-radius:9px;padding:10px;font-weight:750}#nv-vendedor-btn{position:fixed!important;right:12px;bottom:calc(82px + env(safe-area-inset-bottom));z-index:2147482000!important;min-height:48px;background:#133b68;border:2px solid #f6ca60;color:#fff;border-radius:25px;box-shadow:0 5px 19px #0006;padding:10px 16px;font:750 14px system-ui;cursor:pointer;display:block!important;visibility:visible!important}';
+ style.textContent='#nv-sifo-lock[hidden],#nv-sifo-panel[hidden]{display:none!important}#nv-sifo-access{position:fixed;z-index:2147482000;bottom:calc(82px + env(safe-area-inset-bottom));right:12px;background:#113963;color:#fff;border:2px solid #f1c95f;border-radius:24px;padding:12px 17px;min-height:48px;box-shadow:0 5px 20px #0005;font:750 14px system-ui}#nv-sifo-lock,#nv-sifo-panel{position:fixed;inset:0;z-index:2147483003;background:#081a36e6;display:grid;place-items:center;padding:10px;box-sizing:border-box}#nv-sifo-lock article,#nv-sifo-box{width:100%;max-width:850px;background:#fff;color:#17314e;border-radius:15px;padding:16px;box-sizing:border-box;font:14px/1.4 system-ui}#nv-sifo-box{max-height:96dvh;display:flex;flex-direction:column}#nv-sifo-box header{display:flex;justify-content:space-between;align-items:center;gap:10px}#nv-sifo-box h2,#nv-sifo-lock h2{font-size:20px;margin:0 0 10px}#nv-sifo-box header button,#nv-sifo-lock button{border:0;border-radius:9px;padding:11px;background:#e8eef6;color:#163d66;font-weight:750}#nv-sifo-box input,#nv-sifo-lock input{box-sizing:border-box;font-size:16px;border:1px solid #b9cbde;border-radius:9px;padding:8px;min-width:0}#nv-sifo-query{width:100%;min-height:45px;margin:8px 0}#nv-sifo-results{max-height:27dvh;overflow:auto;border:1px solid #dce5ef;border-radius:10px}#nv-sifo-results .nv-sifo-result{display:flex;justify-content:space-between;align-items:center;padding:9px;border-bottom:1px solid #e5eaf0;gap:10px}#nv-sifo-results b,#nv-sifo-results small{display:block}#nv-sifo-results small,.nv-sifo-name small{color:#65788b;font-size:11px}#nv-sifo-results button{border:0;background:#163f70;color:white;border-radius:8px;padding:9px;white-space:nowrap}#nv-sifo-lines{overflow:auto;flex:1;min-height:80px}#nv-sifo-box h3{font-size:15px;margin:12px 0 4px}.nv-sifo-line{display:grid;grid-template-columns:minmax(110px,1fr) 65px 90px 91px;align-items:center;gap:7px;border-bottom:1px solid #e4eaf2;padding:8px 0}.nv-sifo-line label{font-size:10px;color:#617388}.nv-sifo-line input{display:block;width:100%;padding:6px!important}.nv-sifo-amount{font-size:12px;text-align:right;font-weight:750}.nv-sifo-name{min-width:0;overflow-wrap:anywhere}.nv-sifo-name b{font-size:12px;display:block}.nv-sifo-muted{color:#64748b;text-align:center;padding:14px}#nv-sifo-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid #e4eaf2;padding:11px 0}#nv-sifo-summary small{display:block;color:#64748b}#nv-sifo-actions{display:flex;gap:9px}#nv-sifo-actions button{flex:1;padding:12px;border:0;border-radius:9px;background:#143e6d;color:white;font-weight:750}#nv-sifo-status{min-height:18px;font-size:12px;margin:6px 0}#nv-sifo-lock article{max-width:420px}#nv-sifo-lock form{display:grid;gap:10px}#nv-sifo-pin{width:100%}#nv-sifo-pin-help{color:#52687d}#nv-sifo-pin-error{color:#b91c1c}#nv-sifo-lock form button{background:#163d6f;color:#fff}#nv-sifo-lock .nv-close{float:right}@media(max-width:470px){.nv-sifo-line{grid-template-columns:minmax(80px,1fr) 56px 75px 70px;gap:4px}.nv-sifo-amount{font-size:11px}#nv-sifo-box{padding:11px}}';
  document.head.appendChild(style);
- const button=document.createElement('button');button.id='nv-vendedor-btn';button.type='button';button.textContent='⚡ Vendedor rápido';button.setAttribute('aria-label','Abrir modo vendedor rápido');
- const base=document.getElementById('search-mobile')||document.getElementById('search');
- document.body.appendChild(button); // Siempre visible, sin depender de si el buscador móvil está oculto.
- panel=document.createElement('div');panel.id='nv-vendedor-panel';panel.hidden=true;
- panel.innerHTML='<section id="nv-vendedor-window" role="dialog" aria-modal="true" aria-labelledby="nv-vendedor-title">'+
- '<div id="nv-vendedor-header"><h2 id="nv-vendedor-title">⚡ Modo vendedor rápido</h2><button type="button" id="nv-vendedor-close" aria-label="Cerrar">×</button></div>'+
- '<input type="search" id="nv-vendedor-query" placeholder="Buscar producto por nombre o código" autocomplete="off" aria-label="Buscar catálogo">'+
- '<div id="nv-vendedor-results"></div><p id="nv-vendedor-status" role="status"></p>'+
- '<div id="nv-vendedor-bottom"><span id="nv-vendedor-count"></span><button type="button" id="nv-vendedor-cart">Ver carrito</button></div></section>';
- document.body.appendChild(panel);
- search=document.getElementById('nv-vendedor-query');
- results=document.getElementById('nv-vendedor-results');
- message=document.getElementById('nv-vendedor-status');
- count=document.getElementById('nv-vendedor-count');
- updateResults();
- button.addEventListener('click',open);
- document.getElementById('nv-vendedor-close').addEventListener('click',close);
- panel.addEventListener('click',e=>{if(e.target===panel)close();const b=e.target.closest('button[data-nv-add]');if(b)add(Number(b.dataset.nvAdd),b)});
- search.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(updateResults,110)});
- document.getElementById('nv-vendedor-cart').addEventListener('click',()=>{
-  close();
-  // La página principal vuelve a dibujar el carrito a partir de localStorage.
-  window.location.reload();
- });
- document.addEventListener('keydown',e=>{if(active&&e.key==='Escape'){e.preventDefault();close()}},true);
+ const btn=document.createElement('button');btn.id='nv-sifo-access';btn.type='button';btn.textContent='🔒 Vendedor / Caja';document.body.appendChild(btn);
+ dialog=document.createElement('div');dialog.id='nv-sifo-lock';dialog.hidden=true;
+ dialog.innerHTML='<article><button type="button" id="nv-sifo-lock-close" class="nv-close" aria-label="Cerrar">×</button><h2 id="nv-sifo-pin-title">Acceso de vendedor</h2><p id="nv-sifo-pin-help"></p><form id="nv-sifo-login"><input type="password" id="nv-sifo-pin" autocomplete="off" minlength="6" maxlength="80" required placeholder="Contraseña"><p id="nv-sifo-pin-error" role="alert"></p><button id="nv-sifo-pin-submit" type="submit">Entrar</button></form><p style="font-size:11px;color:#65758a">Protección local del dispositivo, no autorización segura por servidor.</p></article>';
+ document.body.appendChild(dialog);
+ mode=document.createElement('div');mode.id='nv-sifo-panel';mode.hidden=true;
+ mode.innerHTML='<div id="nv-sifo-box" role="dialog" aria-modal="true" aria-labelledby="nv-sifo-title"><header><h2 id="nv-sifo-title">⚡ NAVARRO · Ventas</h2><button type="button" id="nv-sifo-close">Cerrar / Bloquear</button></header>'+
+ '<input id="nv-sifo-query" type="search" autocomplete="off" placeholder="Buscar nombre o código de producto" aria-label="Buscar producto">'+
+ '<div id="nv-sifo-results"></div><h3>Productos en venta</h3><div id="nv-sifo-lines"></div>'+
+ '<div id="nv-sifo-summary"></div><p id="nv-sifo-status" role="status"></p><div id="nv-sifo-actions"><button type="button" id="nv-sifo-cart">Ver carrito normal</button><button type="button" id="nv-sifo-locknow">Bloquear</button></div>'+
+ '<p style="font-size:11px;color:#63758a;margin:7px 0 0">Los precios editados sirven solo para calcular esta venta en este dispositivo. No cambian el catálogo público, WhatsApp ni los precios de SIFO.</p></div>';
+ document.body.appendChild(mode);
+ query=$('nv-sifo-query');results=$('nv-sifo-results');status=$('nv-sifo-status');lines=$('nv-sifo-lines');summary=$('nv-sifo-summary');modalMessage=$('nv-sifo-pin-error');
+ btn.addEventListener('click',showLogin);
+ $('nv-sifo-login').addEventListener('submit',login);
+ $('nv-sifo-lock-close').addEventListener('click',resetLogin);
+ $('nv-sifo-close').addEventListener('click',resetLogin);
+ $('nv-sifo-locknow').addEventListener('click',resetLogin);
+ $('nv-sifo-cart').addEventListener('click',()=>{resetLogin();window.location.reload()});
+ query.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(search,100)});
+ results.addEventListener('click',e=>{const b=e.target.closest('[data-sifo-add]');if(b)add(Number(b.dataset.sifoAdd))});
+ lines.addEventListener('change',e=>{const input=e.target.closest('input[data-sifo-id]');if(input)change(input.dataset.sifoId,input.dataset.sifoField,String(input.value))});
+ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(!mode.hidden||!dialog.hidden))resetLogin()},true);
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
-else init();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
