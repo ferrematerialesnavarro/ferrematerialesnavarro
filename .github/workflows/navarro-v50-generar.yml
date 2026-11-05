@@ -26,3 +26,5 @@ jobs:
           git push origin HEAD:main
 
 # V50: regeneración con destino corregido, exactitud EAN obligatoria.
+
+# V50: fuente de datos corregida a manifest V49 antes de reejecutar.
