@@ -1,0 +1,56 @@
+name: NAVARRO V54 - instalar motor visual local
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v54-vendor.yml'
+permissions:
+  contents: write
+jobs:
+  motor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Obtener versión reproducible del motor de imágenes
+        run: |
+          npm install --no-save --silent @mediapipe/tasks-vision@0.10.22
+          mkdir -p navarro360-movil/vendor/mediapipe/wasm
+          cp node_modules/@mediapipe/tasks-vision/vision_bundle.mjs navarro360-movil/vendor/mediapipe/vision_bundle.mjs
+          cp node_modules/@mediapipe/tasks-vision/wasm/* navarro360-movil/vendor/mediapipe/wasm/
+          printf '%s\n' "MediaPipe Tasks Vision 0.10.22. Licencia Apache-2.0. https://www.npmjs.com/package/@mediapipe/tasks-vision" > navarro360-movil/vendor/mediapipe/ORIGEN-Y-LICENCIA.txt
+      - name: Obtener modelo de comparación visual
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.request import urlopen
+          u='https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/1/mobilenet_v3_small.tflite'
+          with urlopen(u,timeout=50) as f:data=f.read()
+          assert 3000000<len(data)<7000000,len(data)
+          Path('navarro360-movil/vendor/mediapipe/mobilenet_v3_small.tflite').write_bytes(data)
+          print('Modelo MobileNet V3',len(data))
+          PY
+      - name: Verificar archivos de carga local
+        run: |
+          node --check navarro360-movil/vendor/mediapipe/vision_bundle.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('navarro360-movil/vendor/mediapipe')
+          wasm=list((root/'wasm').glob('*.wasm'))
+          assert len(wasm)>=2,[str(p) for p in (root/'wasm').iterdir()]
+          assert (root/'vision_bundle.mjs').stat().st_size>100000
+          assert (root/'mobilenet_v3_small.tflite').stat().st_size>3000000
+          print('Wasm',[(p.name,p.stat().st_size) for p in wasm])
+          PY
+      - name: Publicar motor de búsqueda local, sin reemplazar la tienda
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/vendor/mediapipe
+          git commit -m "NAVARRO V54: motor visual MediaPipe local para evitar errores de CDN"
+          for attempt in 1 2 3 4 5 6; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep $((attempt*2))
+          done
+          exit 1
