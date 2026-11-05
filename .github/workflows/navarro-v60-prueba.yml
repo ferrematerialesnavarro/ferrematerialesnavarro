@@ -48,3 +48,5 @@ jobs:
             done
             exit 1
           fi
+
+# Verificar también los artículos sin fotografía para no romper sus tarjetas.
