@@ -1,0 +1,51 @@
+name: NAVARRO 360 V50 - publicar 14133 fotos Truper
+on:
+  push:
+    paths:
+      - .github/workflows/navarro-v50-activar.yml
+permissions:
+  contents: write
+jobs:
+  instalar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar conteo y código de imágenes
+        run: |
+          node --check navarro360-movil/truper-fotos-catalogo-v50.js
+          node --check navarro360-movil/truper-fotos-integracion-v48.js
+          node --check navarro360-movil/carrito-fotos-v44.js
+          node -e "global.window={};require('./navarro360-movil/truper-fotos-catalogo-v50.js');const map=window.NAVARRO_FOTOS_TRUPER_V48; const n=Object.keys(map).length; if(n!==14133)throw Error('Cantidad incorrecta: '+n);console.log('SKU asociados:',n)"
+      - name: Sustituir el mapa, conservar catálogo y venta
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          p=Path('navarro360-movil/index.html')
+          if sha(p.read_bytes())!='95ed4fd77647424c412b80a81718d87d57df499b':raise SystemExit('HTML cambió; no se aplica versión incompatible')
+          s=p.read_text()
+          assert s.count('truper-fotos-catalogo-v49.js?v=49')==1
+          assert s.count('sw.js?v=49')==1
+          s=s.replace('truper-fotos-catalogo-v49.js?v=49','truper-fotos-catalogo-v50.js?v=50')
+          s=s.replace('sw.js?v=49','sw.js?v=50')
+          p.write_text(s)
+          sw=Path('navarro360-movil/sw.js')
+          text=sw.read_text()
+          assert text.count('navarro360-fullstore-v49-truper-fotos-8860')==1
+          assert text.count('truper-fotos-catalogo-v49.js?v=49')==1
+          text=text.replace('navarro360-fullstore-v49-truper-fotos-8860','navarro360-fullstore-v50-truper-fotos-14133')
+          text=text.replace('truper-fotos-catalogo-v49.js?v=49','truper-fotos-catalogo-v50.js?v=50')
+          sw.write_text(text)
+          print('V50: imágenes vinculadas por SKU; precios, carrito y SIFO intactos')
+          PY
+      - name: Publicar imágenes para todos los usuarios
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO 360 V50: 14133 fotos del Grupo Truper asociadas"
+          git push origin HEAD:main
