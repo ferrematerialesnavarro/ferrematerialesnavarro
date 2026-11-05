@@ -308,11 +308,75 @@ function captureQuantityClicks(e){
  }
  lastTap={code:id,at:now};
 }
+/* Comandos rápidos del BUSCADOR sobre el último artículo añadido. */
+const QUICK_LAST_KEY='navarro_ultimo_producto_v1';
+const QUICK_NOTICE_KEY='navarro_ajuste_busqueda_aviso_v1';
+function rememberLastAdded(before,preferred){
+ const after=readCart();
+ const increased=Object.keys(after).filter(id=>(after[id]||0)>(before[id]||0));
+ const chosen=increased.includes(preferred)?preferred:increased.length===1?increased[0]:null;
+ if(chosen)try{sessionStorage.setItem(QUICK_LAST_KEY,chosen)}catch{}
+}
+function captureLastAddedClick(e){
+ // Se escucha antes de que el carrito original procese la pulsación.
+ const target=e.target;
+ const card=target.closest?.('[data-card]');
+ const increment=target.closest?.('button[data-inc],button[data-add],button[data-plus]');
+ const preferred=String(card?.dataset.card||increment?.dataset.inc||increment?.dataset.add||increment?.dataset.plus||'');
+ if(!validId(preferred))return;
+ // No tomar como último agregado las pulsaciones de menos, eliminar, foto o lápiz.
+ if(target.closest?.('button[data-dec],button[data-minus],button[data-nav-edit],button[data-nav-remove],button.nav-v40-camera'))return;
+ const before=readCart();
+ setTimeout(()=>rememberLastAdded(before,preferred),0);
+}
+function quickTarget(cart){
+ let last='';try{last=sessionStorage.getItem(QUICK_LAST_KEY)||''}catch{}
+ if(validId(last)&&cart[last]>0)return last;
+ // Respaldo tras recargar: la última clave del carrito suele ser la última añadida.
+ const available=Object.keys(cart);
+ return available.length?available[available.length-1]:null;
+}
+function applySearchCommand(e){
+ if(e.key!=='Enter'||e.isComposing)return;
+ const input=e.target;
+ if(!input||!['search','search-mobile'].includes(input.id))return;
+ const typed=String(input.value||'').trim();
+ if(!/^[+-]\s*\d{1,4}$/.test(typed))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ const cart=readCart(),id=quickTarget(cart);
+ if(!id){
+  window.alert('Primero agrega un producto al carrito. Después podrás escribir +5 o -3 en el buscador.');
+  return;
+ }
+ const amount=Number(typed.replace(/\s/g,''));
+ const next=Math.min(MAX,Math.max(0,(cart[id]||0)+amount));
+ try{
+  sessionStorage.setItem(QUICK_LAST_KEY,id);
+  sessionStorage.setItem(QUICK_NOTICE_KEY,(amount>=0?'+':'')+amount+' → '+next+' unidades: '+nameFor(id));
+ }catch{}
+ // Borrar la orden antes de preserveUi para que la búsqueda no se restaure con "+5".
+ input.value='';
+ input.dispatchEvent(new Event('input',{bubbles:true}));
+ updateQuantity(id,next);
+}
+function showQuickNotice(){
+ let msg=null;try{msg=sessionStorage.getItem(QUICK_NOTICE_KEY);sessionStorage.removeItem(QUICK_NOTICE_KEY)}catch{}
+ if(!msg)return;
+ const notice=document.createElement('div');
+ notice.setAttribute('role','status');
+ notice.textContent=msg;
+ notice.style.cssText='position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:12px;right:12px;max-width:460px;margin:auto;background:#173b63;color:white;padding:14px 16px;border-radius:12px;z-index:2147482990;text-align:center;box-shadow:0 8px 30px #0004;font:700 14px/1.4 system-ui';
+ document.body.appendChild(notice);
+ setTimeout(()=>notice.remove(),3200);
+}
 function init(){
  if(initialized)return;
  const items=el('cart-items');
  if(!items||!el('send-whatsapp')||!el('clear-cart'))return;
  initialized=true;
+ document.addEventListener('click',captureLastAddedClick,true);
+ document.addEventListener('keydown',applySearchCommand,true);
+ showQuickNotice();
  dropSession(LEGACY_PENDING_KEY); // Antiguo diálogo de confirmación ya no se usa.
  const css=document.createElement('style');css.id='navarro-carrito-seguro-style-v2';
  css.textContent=
