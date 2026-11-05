@@ -1,0 +1,339 @@
+{
+  "previous": 14400,
+  "missing_truper_before": 1247,
+  "pages_in_source": 16039,
+  "exact_compact_title_matches": 1229,
+  "candidate_pages_checked": 1278,
+  "verified_extra": 1219,
+  "total_indexed": 15619,
+  "remaining_truper": 28,
+  "errors_conflicting_sku": [],
+  "with_image_fallback": 229,
+  "elapsed_seconds": 309.7,
+  "sample_new": [
+    [
+      "7506240675198",
+      [
+        "ST-724X",
+        ""
+      ]
+    ],
+    [
+      "7506240675181",
+      [
+        "ST-740X",
+        ""
+      ]
+    ],
+    [
+      "7506240675174",
+      [
+        "ST-1040EX",
+        ""
+      ]
+    ],
+    [
+      "7506240675167",
+      [
+        "ST-1060EX",
+        ""
+      ]
+    ],
+    [
+      "7506240675150",
+      [
+        "ST-1240EX",
+        ""
+      ]
+    ],
+    [
+      "7506240675136",
+      [
+        "ST-1260EX",
+        ""
+      ]
+    ],
+    [
+      "7501206638835",
+      [
+        "M-20B",
+        ""
+      ]
+    ],
+    [
+      "7506240672791",
+      [
+        "SPX-13R",
+        ""
+      ]
+    ],
+    [
+      "7506240673675",
+      [
+        "PES-X",
+        ""
+      ]
+    ],
+    [
+      "7506240676140",
+      [
+        "EXT-1000",
+        ""
+      ]
+    ],
+    [
+      "7506240680017",
+      [
+        "EM-50",
+        ""
+      ]
+    ],
+    [
+      "7506240676812",
+      [
+        "LIBA-4X24N3",
+        ""
+      ]
+    ],
+    [
+      "7506240676911",
+      [
+        "CAT",
+        ""
+      ]
+    ],
+    [
+      "7506240676928",
+      [
+        "CAT",
+        ""
+      ]
+    ],
+    [
+      "7506240678632",
+      [
+        "TF-112",
+        ""
+      ]
+    ],
+    [
+      "7506240679318",
+      [
+        "BACA-LT",
+        ""
+      ]
+    ],
+    [
+      "7506240683896",
+      [
+        "BJ-4PC",
+        "https://ferrexmayorista.com/productos/productos/6413/imagenes/miniatura/thumb/101540_01.jpg/"
+      ]
+    ],
+    [
+      "7506240687214",
+      [
+        "ESLI-604R",
+        ""
+      ]
+    ],
+    [
+      "7506240693956",
+      [
+        "ESTE-207",
+        ""
+      ]
+    ],
+    [
+      "7506240693963",
+      [
+        "ESTE-213",
+        ""
+      ]
+    ],
+    [
+      "7506240694694",
+      [
+        "BPJ-4M",
+        ""
+      ]
+    ],
+    [
+      "7506240694700",
+      [
+        "BPJ-5M",
+        ""
+      ]
+    ],
+    [
+      "7506240695080",
+      [
+        "BPJ-4MC",
+        ""
+      ]
+    ],
+    [
+      "7506240695097",
+      [
+        "BPJ-5MC",
+        ""
+      ]
+    ],
+    [
+      "7506240695448",
+      [
+        "PCACL-P",
+        ""
+      ]
+    ],
+    [
+      "7502309733267",
+      [
+        "PULA-6A",
+        ""
+      ]
+    ],
+    [
+      "7506240698166",
+      [
+        "ZP-6M",
+        ""
+      ]
+    ],
+    [
+      "7506240698173",
+      [
+        "ZP-4M",
+        ""
+      ]
+    ],
+    [
+      "7506240698180",
+      [
+        "TP-4M",
+        ""
+      ]
+    ],
+    [
+      "7506240698227",
+      [
+        "PCY-PF",
+        ""
+      ]
+    ]
+  ],
+  "pending_samples": [
+    [
+      "7506240607649",
+      "PALA LAMPA RECTA PERU TRUPER"
+    ],
+    [
+      "7506240644729",
+      "CAJA DE HERRAMIENTA 16 NEGRA"
+    ],
+    [
+      "7506240620785",
+      "TRONZADORA CORTADORADEMETALES14 MANGO EN D 2200 W"
+    ],
+    [
+      "7501206691038",
+      "LLANTA NEUMATICA REFORZADA 16 SIN CAMARA TRUPER"
+    ],
+    [
+      "7501206691090",
+      "EJE CORTO PARA CARRETILLAS 1 LLANTA EXPERT TRUPER Y PRETUL"
+    ],
+    [
+      "7501206647516",
+      "EXTENSION PARA MATRACA CUADRO 12 LARGO 5 TRUPER"
+    ],
+    [
+      "7501206644614",
+      "EXTENSION PARA MATRACA CUADRO 12 LARGO 10 TRUPER"
+    ],
+    [
+      "7506240630135",
+      "EXTENSION PARA MATRACA CUADRO 12 LARGO 24 TRUPER"
+    ],
+    [
+      "7506240665533",
+      "ANTORCHA TIG CON CONECTOR 12 Y CONEXION PARA GAS EXPERT"
+    ],
+    [
+      "7506240646181",
+      "LIMA TRIANGULO PESADO 6 34 DPP MANGO COMFORT GRIP TRUPER"
+    ],
+    [
+      "7506240646198",
+      "LIMA TRIANGULO PESADO 8 32 DPP MANGO COMFORT GRIP TRUPER"
+    ],
+    [
+      "7506240646242",
+      "LIMA MEDIA CANA BASTARDA 6 CON MANGO COMFORT GRIP TRUPER"
+    ],
+    [
+      "7506240622246",
+      "ESPATULA FLEXIBLE 3 ACERO INOXIDABLECOMFORT GRIP EXPERT"
+    ],
+    [
+      "7501206622452",
+      "BARRA DE REPUESTO 16 PMOTOSIERRA A GASOLINA 4550CC"
+    ],
+    [
+      "7501206612408",
+      "PALA IRRIGACION CLASSIC CERRADA MANGO LARGO 49 TRUPER"
+    ],
+    [
+      "7501206675519",
+      "TALACHOHACHA 5 LB MANGO FIBRA DE VIDRIO 36 TRUPER"
+    ],
+    [
+      "7501206684931",
+      "PINTURA AEROSOL VIOLETA BOTE ESBELTO 400 ML TRUPER"
+    ],
+    [
+      "7501206628362",
+      "PALA T2000 CUADRADA CABEZA SOLA"
+    ],
+    [
+      "7502309739320",
+      "ESTANTE PLASTICO 4 REPISAS CAPACIDAD 35KG 92X43X140 PRETUL"
+    ],
+    [
+      "7501206658345",
+      "PALA ESCARRAMAN MANGO LARGO PRETUL"
+    ],
+    [
+      "7506240619314",
+      "PALA CUADRADA PUNO Y MANGO DE MADERA URREOLA TRUPER"
+    ],
+    [
+      "7501206662700",
+      "CARBONES DE REPUESTO PARA REBAJADORA ROUA2"
+    ],
+    [
+      "7501206691083",
+      "RIN EJE Y BALEROS PARA CARRETILLAS EXPERT TRUPER Y PRETUL"
+    ],
+    [
+      "7506610222861",
+      "CODO OREJA METAL CPVC MEDIA"
+    ],
+    [
+      "7501206663707",
+      "EXTENSION USO RUDO 2 M"
+    ],
+    [
+      "7777000391",
+      "SILICON ADIOS CLAVOS TRUPER"
+    ],
+    [
+      "7501206656297",
+      "CARDA COPA 3 ALAMBRE ONDULADO FINO EJE 5811 TRUPER"
+    ],
+    [
+      "7506613011493",
+      "JUEGO DE HERRAJES MEER"
+    ]
+  ]
+}
