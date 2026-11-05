@@ -1,0 +1,68 @@
+name: NAVARRO V59 - publicar tarjetas móviles con foto arriba
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v59-publicar.yml'
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Comprobar pruebas reales de iPhone
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          report=json.loads(Path('navarro-v59-mobile-test.json').read_text())
+          assert report['ok'] and not report['errors'],report['errors']
+          assert len(report['cases'])==16
+          mobile=[r for r in report['cases'] if r['width']<=430]
+          assert len(mobile)==12
+          assert all(r['card']['display']=='flex' for r in mobile)
+          assert all(r['photo']['width']>=120 for r in mobile)
+          assert all(r['info']['y']>=r['photo']['y']+r['photo']['height']-2 for r in mobile)
+          assert all(r['media']['center']<3 and r['media']['fit']=='contain' for r in mobile)
+          print('V59: fotos grandes, todas centradas, datos debajo, carrito y cámara intactos')
+          PY
+      - name: Conectar estilos exclusivamente en móvil y renovar caché
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          h=Path('navarro360-movil/index.html')
+          if sha(h.read_bytes())!='800fff7aa31c0d042f70dcde337e6ce8be3107ae':
+           raise SystemExit('La página cambió desde la prueba. Cancelar sin reemplazar.')
+          content=h.read_text()
+          assert content.count('</head>')==1
+          assert content.count('sw.js?v=58')==1
+          assert 'tarjetas-movil-v59.css' not in content
+          content=content.replace('</head>','<link rel="stylesheet" href="./tarjetas-movil-v59.css?v=59">\n</head>')
+          content=content.replace('sw.js?v=58','sw.js?v=59')
+          h.write_text(content)
+          sw=Path('navarro360-movil/sw.js')
+          source=sw.read_text()
+          assert source.count('navarro360-fullstore-v58-fotografias-centradas')==1
+          assert source.count("'./fotos-centradas-v58.css?v=58'")==1
+          source=source.replace('navarro360-fullstore-v58-fotografias-centradas','navarro360-fullstore-v59-fotos-grandes-en-movil')
+          source=source.replace("'./fotos-centradas-v58.css?v=58'","'./fotos-centradas-v58.css?v=58','./tarjetas-movil-v59.css?v=59'")
+          sw.write_text(source)
+          print('V59 publicada: cambios exclusivos a presentación móvil, sin modificar carrito, precio, búsqueda, bot ni SIFO.')
+          PY
+      - name: Publicar CSS y versión sin tocar ventas
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V59: tarjetas iPhone con fotografía grande arriba y datos abajo"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
