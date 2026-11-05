@@ -1,0 +1,67 @@
+name: NAVARRO V58 - publicar fotos centradas en todos los productos
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v58-publicar.yml'
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validar módulo de imágenes y pruebas móvil-escritorio
+        run: |
+          node --check navarro360-movil/fotos-centradas-v58.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result=json.loads(Path('navarro-v58-prueba-fotos.json').read_text())
+          assert result['success'] and not result['errors'],result
+          assert len(result['cases'])>=10
+          sampled=[v for v in result['cases'] if v.get('media')]
+          assert len(sampled)>=8
+          assert all(v['media']['inside'] and v['media']['centerOffset']<3 for v in sampled)
+          assert all(v['media']['objectFit']=='contain' for v in sampled if v['media']['tag']=='IMG')
+          print('Verificación V58: fotos centradas, marcos uniformes y catálogo sin errores.')
+          PY
+      - name: Activar fotos centradas y renovar caché
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sha=lambda b:hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+          html=Path('navarro360-movil/index.html')
+          if sha(html.read_bytes())!='75df788d693f15950ebeb9c862df1aeb00a1606e':
+           raise SystemExit('HTML modificado desde la última auditoría: abortar sin reemplazar.')
+          s=html.read_text()
+          assert s.count('</head>')==1 and s.count('sw.js?v=57')==1
+          assert 'fotos-centradas-v58' not in s
+          snippet='<link rel="stylesheet" href="./fotos-centradas-v58.css?v=58">\n<script defer src="./fotos-centradas-v58.js?v=58"></script>\n'
+          s=s.replace('</head>',snippet+'</head>')
+          s=s.replace('sw.js?v=57','sw.js?v=58')
+          html.write_text(s)
+          sw=Path('navarro360-movil/sw.js')
+          t=sw.read_text()
+          assert t.count("navarro360-fullstore-v57-busqueda-rapida-y-aprendizaje")==1
+          assert t.count("'./buscar-foto-v57.js?v=57'")==1
+          t=t.replace('navarro360-fullstore-v57-busqueda-rapida-y-aprendizaje','navarro360-fullstore-v58-fotografias-centradas')
+          t=t.replace("'./buscar-foto-v57.js?v=57'","'./buscar-foto-v57.js?v=57','./fotos-centradas-v58.css?v=58','./fotos-centradas-v58.js?v=58'")
+          sw.write_text(t)
+          print('V58 activada. Sin modificaciones de precios, bot, carrito, WhatsApp o SIFO.')
+          PY
+      - name: Publicar código aprobado
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/index.html navarro360-movil/sw.js
+          git commit -m "NAVARRO V58: centrar fotografías de todas las categorías y miniaturas"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
