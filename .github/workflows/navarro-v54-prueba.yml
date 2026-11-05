@@ -12,6 +12,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+      - name: Preparar librerías para el modelo visual
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libgles2 libglib2.0-0
       - name: Instalar tecnología de comparación visual
         run: python3 -m pip install --quiet "mediapipe>=0.10.21" pillow numpy
       - name: Probar imágenes y revisar HTML
