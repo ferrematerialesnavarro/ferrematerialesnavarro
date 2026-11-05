@@ -1,0 +1,52 @@
+name: NAVARRO V58 - probar centrado en navegador
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v58-prueba.yml'
+permissions:
+  contents: write
+jobs:
+  prueba:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Montar página de prueba sin tocar el sitio publicado
+        run: |
+          node --check navarro360-movil/fotos-centradas-v58.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('navarro360-movil/index.html')
+          src=p.read_text()
+          assert src.count('</head>')==1
+          assert 'fotos-centradas-v58' not in src
+          snippet='<link rel="stylesheet" href="./fotos-centradas-v58.css?v=58">\n<script defer src="./fotos-centradas-v58.js?v=58"></script>\n'
+          Path('navarro360-movil/test-fotos-v58.html').write_text(src.replace('</head>',snippet+'</head>'))
+          PY
+      - name: Instalar Chromium para verificar interfaz
+        run: |
+          npm install --no-save --silent playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Servir página de prueba
+        run: |
+          nohup python3 -m http.server 8111 --directory navarro360-movil >/tmp/navarro-v58-http.log 2>&1 &
+          sleep 2
+      - name: Comprobar fotos de distintos productos sin modificar ventas
+        timeout-minutes: 5
+        run: node tools/navarro_v58_browser_test.cjs
+      - name: Guardar informe de pruebas
+        if: always()
+        run: |
+          if [ -f navarro-v58-prueba-fotos.json ]; then
+            git config user.name "NAVARRO 360 (GitHub Actions)"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add navarro-v58-prueba-fotos.json
+            git commit -m "NAVARRO V58: verificar posición de fotos en móvil y escritorio"
+            for n in 1 2 3 4; do
+              git pull --rebase origin main
+              if git push origin HEAD:main; then exit 0; fi
+              sleep 2
+            done
+            exit 1
+          fi
