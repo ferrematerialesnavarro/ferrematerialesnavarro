@@ -1,0 +1,47 @@
+name: NAVARRO V55 - ampliar indice de búsqueda visual
+on:
+  push:
+    paths:
+      - '.github/workflows/navarro-v55-completar-indice.yml'
+permissions:
+  contents: write
+jobs:
+  completar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Preparar procesador visual
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libgles2 libglib2.0-0
+          python3 -m pip install --quiet 'mediapipe>=0.10.21' pillow numpy
+      - name: Generar imágenes indexadas del atlas de NAVARRO 360
+        timeout-minutes: 7
+        run: python3 tools/navarro_v55_completar_indice.py
+      - name: Validar que cada código exista
+        run: |
+          python3 - <<'PY'
+          import json,gzip,base64
+          from pathlib import Path
+          p=Path('navarro360-movil/buscar-foto-indice-v55.json.gz')
+          data=json.loads(gzip.decompress(p.read_bytes()))
+          report=json.loads(Path('navarro360-movil/buscar-foto-indice-info-v55.json').read_text())
+          assert len(data['codes'])==report['visual_index_total']
+          assert len(data['codes'])>15807 and len(set(data['codes']))==len(data['codes'])
+          assert len(base64.b64decode(data['vectors']))==len(data['codes'])*1024
+          print('Índice de fotos comprobado: ',len(data['codes']))
+          PY
+      - name: Publicar índice de fotos sin cambiar la tienda
+        run: |
+          git config user.name "NAVARRO 360 (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add navarro360-movil/buscar-foto-indice-v55.json.gz navarro360-movil/buscar-foto-indice-info-v55.json
+          git commit -m "NAVARRO V55: ampliar índice visual con fotografías reales de plomería y materiales"
+          for i in 1 2 3 4; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+            sleep 2
+          done
+          exit 1
