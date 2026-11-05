@@ -425,7 +425,7 @@ function save(key,object){localStorage.setItem(key,JSON.stringify(object))}
 function cart(){return read(CART)}
 function prices(){return read(SALE)}
 function note(t,err=false){status.textContent=t;status.style.color=err?'#b91c1c':'#126441'}
-function resetLogin(){unlocked=false;dialog.hidden=true;mode.hidden=false;$('nv-sifo-pin').value='';document.body.style.removeProperty('overflow')}
+function resetLogin(){unlocked=false;dialog.hidden=true;mode.hidden=true;$('nv-sifo-pin').value='';document.body.style.removeProperty('overflow')}
 async function digest(pin,salt){
  const data=new TextEncoder().encode(salt+':'+pin);
  const buffer=await crypto.subtle.digest('SHA-256',data);
