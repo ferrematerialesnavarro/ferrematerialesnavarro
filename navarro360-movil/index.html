@@ -1401,6 +1401,50 @@ function change(id,amount){
  save();renderCart();renderProducts();
 }
 
+
+/* NAVARRO 360 V66: puente seguro del carrito real, sin recargar.
+   No modifica precios, búsqueda, escáner, WhatsApp ni SIFO. */
+window.NAVARRO_CARRITO_EN_VIVO_V66=Object.freeze({
+ version:66,
+ snapshot:()=>({...cart}),
+ canFractional:id=>dictionary.has(String(id))&&esImporte(String(id)),
+ replace:function(entrada){
+  if(!entrada||typeof entrada!=='object'||Array.isArray(entrada))
+   return {ok:false,reason:'Carrito inválido'};
+  const nuevo={};
+  for(const [id,valor] of Object.entries(entrada)){
+   if(!dictionary.has(id)||typeof valor!=='number'||!Number.isFinite(valor)||
+      valor<=0||valor>9999||
+      Math.abs(valor*1000-Math.round(valor*1000))>1e-7||
+      (!esImporte(id)&&!Number.isInteger(valor)))
+     return {ok:false,reason:'Cantidad o presentación inválida para el código '+id};
+   nuevo[id]=Math.round(valor*1000)/1000;
+  }
+  const anterior=cart,clavosAnteriores=clavoCents,importesAnteriores=importesCents;
+  const clavosNuevos={...clavoCents},importesNuevos={...importesCents};
+  for(const id of new Set([...Object.keys(cart),...Object.keys(nuevo)])){
+   if((cart[id]||0)!==(nuevo[id]||0)){
+    delete clavosNuevos[id];
+    delete importesNuevos[id];
+   }
+  }
+  try{
+   cart=nuevo;clavoCents=clavosNuevos;importesCents=importesNuevos;
+   save();
+   const guardado=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');
+   const claves=Object.keys(nuevo);
+   if(!guardado||Object.keys(guardado).length!==claves.length||
+      claves.some(id=>guardado[id]!==nuevo[id]))throw Error('No se pudo guardar el carrito');
+   renderCart();renderProducts();
+   return {ok:true,items:claves.length};
+  }catch(error){
+   cart=anterior;clavoCents=clavosAnteriores;importesCents=importesAnteriores;
+   try{save();renderCart();renderProducts()}catch(_){}
+   return {ok:false,reason:'No se aplicó el cambio; el carrito anterior se conservó'};
+  }
+ }
+});
+
 /* Escáner: no multiplica clavos, solicita importe. */
 window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
  const code=String(rawCode||'').trim();
@@ -1467,5 +1511,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classL
 })();
 
 </script>
+<script defer src="./carrito-seguro.js?v=66"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=60').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=41"></script></body>
 </html>
