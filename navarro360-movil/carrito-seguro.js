@@ -23,6 +23,9 @@ const el=id=>document.getElementById(id);
 let initialized=false,editDialog=null,editId='',undoToast=null,undoSnapshot=null;
 let lastTap={code:'',at:0},lastClickWasDouble=false,pendingSend=null,sendTimer=null;
 const validId=id=>/^\d{5,}$/.test(String(id||''));
+// V66: conservar cantidades fraccionarias ya registradas, sin convertirlas a enteros.
+const validQty=n=>Number.isFinite(n)&&n>0&&n<=MAX;
+const roundQty=n=>Math.round((n+Number.EPSILON)*1000000)/1000000;
 const nameFor=id=>{
  const row=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB.find(x=>String(x?.[0])===id):null;
  return String(row?.[1]||'Producto '+id);
@@ -34,7 +37,7 @@ function readCart(){
   const out={};
   for(const [id,value] of Object.entries(c)){
    const n=Number(value);
-   if(validId(id)&&Number.isInteger(n)&&n>0&&n<=MAX)out[id]=n;
+   if(validId(id)&&validQty(n))out[id]=n;
   }
   return out;
  }catch{return {}}
@@ -93,7 +96,7 @@ function reloadWithCart(next){
  return true;
 }
 function updateQuantity(id,n){
- if(!validId(id)||!Number.isInteger(n)||n<0||n>MAX)return false;
+ if(!validId(id)||!Number.isFinite(n)||n<0||n>MAX)return false;
  const current=readCart();
  if(n>0)current[id]=n;else delete current[id];
  if(!reloadWithCart(current)){
@@ -106,7 +109,7 @@ function removeWholeSku(id){
  const cart=readCart(),qty=cart[id];
  if(!qty)return;
  const container=el('cart-items');
- if(qty<=MAX_NATIVE_DECREMENTS&&container){
+ if(Number.isInteger(qty)&&qty<=MAX_NATIVE_DECREMENTS&&container){
   for(let i=0;i<qty;i++){
    const minus=[...container.querySelectorAll('button[data-dec]')].find(b=>b.dataset.dec===id);
    if(!minus)break;
@@ -151,7 +154,7 @@ function ensureEditDialog(){
   const number=Number(raw);
   const previous=readCart()[id]||0;
   const target=/^[+-]/.test(raw)?previous+number:number;
-  if(!Number.isInteger(target)||target>MAX){
+  if(!Number.isFinite(target)||target>MAX){
    error.textContent='La cantidad máxima es 9,999 unidades.';
    error.hidden=false;input.focus();return;
   }
@@ -208,7 +211,8 @@ function readUndo(){
   }
   const cleaned={};
   for(const [k,v] of Object.entries(o.cart)){
-   if(validId(k)&&Number.isInteger(v)&&v>0&&v<=MAX)cleaned[k]=v;
+   const n=Number(v);
+    if(validId(k)&&validQty(n))cleaned[k]=n;
   }
   return Object.keys(cleaned).length?{at:o.at,cart:cleaned}:null;
  }catch{dropSession(UNDO_KEY);return null}
@@ -229,7 +233,7 @@ function ensureUndo(){
   const backed=readUndo();if(!backed){hideUndo();return}
   const current=readCart(),restored={...current};
   for(const [id,q] of Object.entries(backed.cart)){
-   restored[id]=Math.min(MAX,(restored[id]||0)+q);
+   restored[id]=roundQty(Math.min(MAX,(restored[id]||0)+q));
   }
   if(reloadWithCart(restored))hideUndo();
  });
@@ -248,7 +252,7 @@ function clearAfterWhatsApp(snapshot){
  if(!saved){window.alert('No se pudo guardar una copia de recuperación. Conservamos tu carrito.');return}
  const remaining={};
  for(const [id,qty] of Object.entries(current)){
-  const rest=qty-(snapshot[id]||0);
+  const rest=roundQty(qty-(snapshot[id]||0));
   if(rest>0)remaining[id]=rest;
  }
  if(equalCarts(current,snapshot)){
@@ -349,7 +353,7 @@ function applySearchCommand(e){
   return;
  }
  const amount=Number(typed.replace(/\s/g,''));
- const next=Math.min(MAX,Math.max(0,(cart[id]||0)+amount));
+ const next=roundQty(Math.min(MAX,Math.max(0,(cart[id]||0)+amount)));
  try{
   sessionStorage.setItem(QUICK_LAST_KEY,id);
   sessionStorage.setItem(QUICK_NOTICE_KEY,(amount>=0?'+':'')+amount+' → '+next+' unidades: '+nameFor(id));
