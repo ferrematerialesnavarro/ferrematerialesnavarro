@@ -1,4 +1,4 @@
-/* NAVARRO 360 — Buscador completo V3, 04-nov-2026.
+/* NAVARRO 360 — Buscador completo V4, 09-nov-2026.
    Consulta solamente la copia de NAVARRO_DB; no altera precios, carrito, escáner ni SIFO.
    Por nombre: primero artículos ajenos al Grupo Truper, después artículos relacionados
    del Grupo Truper. Por código: mantiene la búsqueda exacta del sistema existente.
@@ -47,13 +47,20 @@
     }
   }
   const vocabulary = [...tokenIndex.keys()];
+  // Índice de prefijos: evita recorrer todo el vocabulario en cada pulsación.
+  const prefixBuckets = new Map();
+  for (const word of vocabulary) {
+    const key=word.slice(0,2);
+    if (!prefixBuckets.has(key)) prefixBuckets.set(key,[]);
+    prefixBuckets.get(key).push(word);
+  }
   const prefixCache = new Map();
   function findToken(token) {
     if (prefixCache.has(token)) return prefixCache.get(token);
     const found = new Set(tokenIndex.get(token) || []);
     // Sólo abreviaturas de texto; jamás aproximar un número, calibre, medida o material corto.
     if (token.length >= 4 && !/\d/.test(token)) {
-      for (const word of vocabulary) {
+      for (const word of (prefixBuckets.get(token.slice(0,2))||[])) {
         if (word !== token && word.startsWith(token)) {
           for (const n of tokenIndex.get(word)) found.add(n);
         }
@@ -106,7 +113,7 @@
     });
   }
   window.NAVARRO_BUSCADOR_COMPLETO = Object.freeze({
-    version:'2026-11-04-v3-prioridad',
+    version:'2026-11-09-v4-indice-prefijos',
     total:rows.length,
     genericos:rows.filter(x=>x.generic).length,
     protegidos:rows.filter(x=>!x.generic).length,
@@ -144,7 +151,8 @@ for(const p of db){
   const f=freq.get(word)||{generic:0,total:0}; f.total++;if(generic)f.generic++;freq.set(word,f);
  }
 }
-const vocab=[...posting.keys()],cache=new Map();
+const vocab=[...posting.keys()],cache=new Map(),vocabPrefix=new Map();
+for(const word of vocab){const key=word.slice(0,2);if(!vocabPrefix.has(key))vocabPrefix.set(key,[]);vocabPrefix.get(key).push(word);}
 function distance(a,b,max){
  if(Math.abs(a.length-b.length)>max)return max+1;
  let prev=Array.from({length:b.length+1},(_,i)=>i);
@@ -163,10 +171,10 @@ function expand(t){
  if(cache.has(t))return cache.get(t);
  const exact=posting.has(t)?[t]:[],prefix=[],fuzzy=[];
  if(t.length>=2&&!/\d/.test(t)){
-  for(const word of vocab)if(word!==t&&word.startsWith(t))prefix.push(word);
+  for(const word of (vocabPrefix.get(t.slice(0,2))||[]))if(word!==t&&word.startsWith(t))prefix.push(word);
   if(!exact.length&&!prefix.length&&/^[A-Z]{4,}$/.test(t)){
    const limit=t.length>=7?2:1;
-   for(const word of vocab){
+   for(const word of (vocabPrefix.get(t.slice(0,2))||vocab)){
     if(!/^[A-Z]{4,}$/.test(word)||word[0]!==t[0]||
        Math.abs(word.length-t.length)>limit)continue;
     const d=distance(t,word,limit);if(d<=limit)fuzzy.push({word,d});
