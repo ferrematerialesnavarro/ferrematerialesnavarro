@@ -90,6 +90,13 @@ function restoreUi(){
  }
 }
 function reloadWithCart(next){
+ // V66: actualizar el carrito real sin recargar; usar respaldo si falta el puente.
+ const live=window.NAVARRO_CARRITO_EN_VIVO_V66;
+ if(live?.version===66 && typeof live.replace==='function'){
+  const result=live.replace(next);
+  if(!result?.ok){window.alert(result?.reason||'No se pudo modificar el carrito.');return false;}
+  return true;
+ }
  preserveUi();
  if(!writeCart(next)){dropSession(RESTORE_KEY);return false}
  window.location.reload();
@@ -108,6 +115,11 @@ function updateQuantity(id,n){
 function removeWholeSku(id){
  const cart=readCart(),qty=cart[id];
  if(!qty)return;
+ if(window.NAVARRO_CARRITO_EN_VIVO_V66?.version===66){
+  const next={...cart};delete next[id];
+  reloadWithCart(next);
+  return;
+ }
  const container=el('cart-items');
  if(Number.isInteger(qty)&&qty<=MAX_NATIVE_DECREMENTS&&container){
   for(let i=0;i<qty;i++){
@@ -132,8 +144,8 @@ function ensureEditDialog(){
   '<h3 id="nav-quantity-title">Escribir cantidad</h3>'+
   '<p id="nav-quantity-product"></p>'+
   '<label for="nav-quantity-input">Cantidad o ajuste (+ / −)</label>'+
-  '<input id="nav-quantity-input" type="text" inputmode="text" autocomplete="off" maxlength="6" required>'+
-  '<small>+5 suma 5 unidades, -3 resta 3 unidades y 50 establece el total en 50. Nunca se permite un saldo negativo.</small>'+
+  '<input id="nav-quantity-input" type="text" inputmode="text" autocomplete="off" maxlength="12" required>'+
+  '<small>50 fija la cantidad, +5 suma y -3 resta. Los decimales solo se permiten por kilo, metro o litro.</small>'+
   '<p id="nav-quantity-error" role="alert" hidden></p>'+
   '<div class="nav-quantity-actions"><button type="button" id="nav-quantity-cancel">Cancelar</button>'+
   '<button type="submit" id="nav-quantity-save">Guardar cantidad</button></div></form>';
@@ -143,19 +155,20 @@ function ensureEditDialog(){
  el('nav-quantity-form').addEventListener('submit',e=>{
   e.preventDefault();
   const input=el('nav-quantity-input');
-  const raw=String(input.value||'').trim(),error=el('nav-quantity-error');
+  const raw=String(input.value||'').trim().replace(',','.'),error=el('nav-quantity-error');
   // Sin signo: sustituye el total. Con + o -: modifica lo existente.
-  if(!/^[+-]?\d{1,4}$/.test(raw)){
-   error.textContent='Escribe 50 para fijar el total, +5 para sumar o -3 para restar.';
+  if(!/^[+-]?(?:\d{1,4}(?:\.\d{1,3})?|\.\d{1,3})$/.test(raw)){
+   error.textContent='Escribe 50, +5, -3 o 0.66 (si se vende por kilo, metro o litro).';
    error.hidden=false;input.focus();return;
   }
   const id=editId;
   if(!id)return;
   const number=Number(raw);
   const previous=readCart()[id]||0;
-  const target=/^[+-]/.test(raw)?previous+number:number;
-  if(!Number.isFinite(target)||target>MAX){
-   error.textContent='La cantidad máxima es 9,999 unidades.';
+  const target=roundQty(/^[+-]/.test(raw)?previous+number:number);
+  const canFractional=window.NAVARRO_CARRITO_EN_VIVO_V66?.canFractional?.(id)===true;
+  if(!Number.isFinite(target)||target>MAX||(!canFractional&&!Number.isInteger(target))){
+   error.textContent=canFractional?'La cantidad máxima es 9,999 y permite hasta 3 decimales.':'Este producto se vende por unidad entera.';
    error.hidden=false;input.focus();return;
   }
   editDialog.hidden=true;editId='';
@@ -169,6 +182,11 @@ function openEdit(id){
  const dialog=ensureEditDialog();
  editId=id;
  el('nav-quantity-product').textContent=nameFor(id)+' · Código '+id;
+ const fraction=window.NAVARRO_CARRITO_EN_VIVO_V66?.canFractional?.(id)===true;
+ const help=el('nav-quantity-form')?.querySelector('small');
+ if(help)help.textContent=fraction
+  ? 'Acepta 0.66, 1.5, +0.25 o -0.5 (hasta 3 decimales). Los importes editados se recalculan.'
+  : 'Solo unidades enteras. Escribe 50 para fijar cantidad, +5 para sumar o -3 para restar.';
  el('nav-quantity-input').value=String(readCart()[id]||0);
  el('nav-quantity-error').hidden=true;
  dialog.hidden=false;
@@ -265,7 +283,7 @@ function clearAfterWhatsApp(snapshot){
  if(!reloadWithCart(remaining)){
   dropSession(UNDO_KEY);
   window.alert('No se pudo limpiar el carrito después de abrir WhatsApp; se conserva tu pedido.');
- }
+ }else if(window.NAVARRO_CARRITO_EN_VIVO_V66?.version===66)showUndo();
 }
 function captureSending(e){
  const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
@@ -400,7 +418,7 @@ function init(){
  document.addEventListener('click',captureSending,true);
  restoreUi();
  window.NAVARRO_CARRITO_SEGURO_ESTADO=Object.freeze({
-  version:2,removeWholeSku:true,writeQuantity:true,doubleTapMilliseconds:DOUBLE_MS,
+  version:66,removeWholeSku:true,writeQuantity:true,editWithoutReload:true,doubleTapMilliseconds:DOUBLE_MS,
   whatsappAutoClearOnOpening:true,whatsappUndoBackup:true,
   whatsappSendConfirmationAvailable:false,whatsappFormatUnchanged:true,sifoUntouched:true
  });
