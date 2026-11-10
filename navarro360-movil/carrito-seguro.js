@@ -285,11 +285,42 @@ function clearAfterWhatsApp(snapshot){
   window.alert('No se pudo limpiar el carrito después de abrir WhatsApp; se conserva tu pedido.');
  }else if(window.NAVARRO_CARRITO_EN_VIVO_V66?.version===66)showUndo();
 }
+function priceOverridesInOrder(cart){
+ let overrides,clavos,importes;
+ try{
+  overrides=JSON.parse(localStorage.getItem('navarro360_precio_caja_activa_v1')||'{}');
+  clavos=JSON.parse(localStorage.getItem('navarro_clavos_importe_v1')||'{}');
+  importes=JSON.parse(localStorage.getItem('navarro_importes_cents_v1')||'{}');
+ }catch{return []}
+ if(!overrides||typeof overrides!=='object'||Array.isArray(overrides))return [];
+ const ids=new Set(Object.keys(cart)),bases=new Map();
+ for(const row of Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[])
+  if(Array.isArray(row)&&ids.has(String(row[0])))bases.set(String(row[0]),Number(row[2]));
+ const out=[];
+ for(const [id,q] of Object.entries(cart)){
+  if(!Number.isFinite(q)||q<=0||Number(clavos?.[id]||importes?.[id]||0)>0)continue;
+  const p=bases.get(id),n=Number(overrides[id]);
+  if(Number.isFinite(p)&&Number.isSafeInteger(n)&&n>0&&n!==Math.round(p*100))
+   out.push({id,old:Math.round(p*100),newPrice:n});
+ }
+ return out;
+}
 function captureSending(e){
  const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
  if(!trigger||trigger.disabled)return;
  const snapshot=readCart();
  if(!Object.keys(snapshot).length)return;
+ const changed=priceOverridesInOrder(snapshot);
+ if(changed.length){
+  const details=changed.slice(0,3).map(x=>x.id+': $'+(x.old/100).toFixed(2)+' a $'+(x.newPrice/100).toFixed(2)).join('\n');
+  const message='ATENCIÓN: '+changed.length+' producto(s) tienen precio modificado.\n'+details+
+   (changed.length>3?'\nOtros '+(changed.length-3)+' productos con ajustes.':'')+
+   '\n\nWhatsApp enviará solo CANTIDAD CÓDIGO. SIFO registrará el precio de su catálogo, NO el precio modificado. Si continúas, debes corregir los precios en SIFO manualmente.\n\n¿Continuar de todos modos?';
+  if(!window.confirm(message)){
+   e.preventDefault();e.stopImmediatePropagation();
+   return; // No abrir WhatsApp ni programar limpieza del carrito.
+  }
+ }
  // El onclick nativo abre https://wa.me/… con el formato exacto CANTIDAD CÓDIGO.
  // La limpieza ocurre después del onclick y permite recuperar el pedido anterior.
  const ticket={at:Date.now(),cart:snapshot};
