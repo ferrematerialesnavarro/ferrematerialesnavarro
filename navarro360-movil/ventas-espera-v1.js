@@ -39,8 +39,13 @@ const draftMoney=(snap)=>{
 };
 const cleanMap=(map,cart,limit)=>Object.fromEntries(Object.entries(map||{}).filter(([id,n])=>cart[id]&&Number.isSafeInteger(n)&&n>0&&n<=limit));
 let prices=cleanMap(readObj(PRICE_KEY),readObj('navarro_cart_v1'),100000000);
-let panel,lines,quote,amountInput,receivedInput,status,waitingList,waitingCount,waitingVisible=false,refreshTimer=0;
-function statusMsg(msg){if(status)status.textContent=msg;}
+let panel,lines,quote,amountInput,receivedInput,status,waitingList,waitingCount,waitingVisible=false,refreshTimer=0,waitingPopup,noticeTimeout;
+function statusMsg(msg){
+ if(!status)return;
+ clearTimeout(noticeTimeout);
+ status.textContent=msg;status.hidden=!msg;
+ if(msg)noticeTimeout=setTimeout(()=>{status.hidden=true;status.textContent=''},3200);
+}
 function compute(cart){
  const cl=readObj(CLAVO_KEY),imp=readObj(IMPORTE_KEY);
  let base=0,applied=0,custom=0;
@@ -103,6 +108,7 @@ function renderWaiting(){
  const drafts=readDrafts();
  waitingCount.textContent=String(drafts.length);
  waitingList.hidden=!waitingVisible;
+ if(waitingPopup)waitingPopup.hidden=!waitingVisible;
  waitingList.replaceChildren();
  if(!waitingVisible)return;
  if(!drafts.length){const p=document.createElement('p');p.textContent='No hay ventas en espera.';waitingList.appendChild(p);return;}
@@ -123,7 +129,7 @@ function renderWaiting(){
 function refresh(){
  refreshTimer=0;
  if(!panel)return;
- addPriceEditors();renderQuote();renderWaiting();
+ addPriceEditors();renderWaiting();
 }
 function schedule(){if(refreshTimer)return;refreshTimer=setTimeout(refresh,40);}
 function capture(){
@@ -192,34 +198,53 @@ function init(){
  lines=$('cart-items');const drawer=$('drawer');const bottom=drawer?.querySelector('.drawer-bottom');
  if(!lines||!bottom||!bridge()?.replace)return;
  window.NAVARRO_VENTAS_ESPERA_V1=true;
- const css=document.createElement('style');css.id='navarro360-ventas-espera-style-v1';
- css.textContent='#drawer .drawer-bottom{max-height:68vh;max-height:68dvh;overflow-y:auto;overscroll-behavior:contain;flex-shrink:1}#drawer .cart-items{min-height:105px}#nv-caja-panel details summary{cursor:pointer;font-weight:750;padding:8px 0}#nv-caja-panel{border:1px solid #c6d8ca;border-radius:13px;padding:12px;margin-bottom:14px;background:#f9fcfa;color:#18392b;font-size:13px}#nv-caja-panel button{border:0;border-radius:9px;min-height:42px;padding:9px 12px;font-weight:750;cursor:pointer}#nv-caja-panel .nv-caja-primary{background:#185c36;color:#fff}#nv-caja-panel .nv-caja-secondary{background:#e6efe8;color:#1c4f33}.nv-caja-actions{display:flex;gap:8px;flex-wrap:wrap}.nv-caja-actions button{flex:1;min-width:125px}.nv-caja-saved-row{padding:12px 0;border-top:1px solid #d6e5d8;display:flex;justify-content:space-between;gap:9px;align-items:center}.nv-caja-saved-row small{display:block;color:#617365;margin-top:4px}.nv-caja-row-buttons{display:flex;gap:5px}.nv-caja-row-buttons button{padding:8px!important;font-size:12px}#nv-caja-panel .nv-caja-danger{background:#fce7e7;color:#9a2929}#nv-caja-panel .nv-caja-status{color:#17633c;font-size:12px;font-weight:700;min-height:16px;margin:7px 0}#nv-caja-panel .nv-caja-warning{font-size:11px;line-height:1.4;color:#75450c;background:#fff3db;padding:8px;border-radius:8px;margin-top:9px}#nv-caja-panel .nv-caja-numbers{display:flex;justify-content:space-between;gap:12px;font-size:14px;margin:9px 0}#nv-caja-panel .nv-caja-numbers strong{font-size:20px}#nv-caja-panel label{display:block;font-weight:650;font-size:12px;margin:10px 0}#nv-caja-panel input{display:block;min-height:40px;width:100%;font:inherit;font-size:16px;border:1px solid #b8cbbb;border-radius:9px;padding:8px;background:white;color:#142c20;box-sizing:border-box}#nv-caja-panel [hidden]{display:none!important}#nv-caja-panel .nv-caja-row-buttons button{min-height:38px}.nv-caja-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 1px;background:#f2f8f4;border-radius:9px;padding:8px;color:#244534;font-size:12px}.nv-caja-line label{flex:1;min-width:160px;font-weight:700}.nv-caja-line input{display:block;width:100%;min-height:37px;border:1px solid #a5c3b0;border-radius:8px;font-size:16px;padding:6px 8px;box-sizing:border-box;background:white;color:#122a1b}.nv-caja-line-total{font-weight:800;color:#22633e}.nv-caja-line small{color:#6d5d39}';
+ const css=document.createElement('style');css.id='navarro360-ventas-espera-style-v2';
+ css.textContent=
+  '#drawer .drawer-bottom{max-height:52vh;max-height:52dvh;min-height:0;overflow-y:auto;overscroll-behavior:contain;flex-shrink:1}'+
+  '#drawer .cart-items{min-height:80px}'+
+  '#nv-caja-bar{box-sizing:border-box;display:flex;gap:8px;flex:none;padding:9px 14px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #dbe5dc;box-shadow:0 -4px 14px #172a1912;z-index:6}'+
+  '#nv-caja-bar button{min-width:0;flex:1;border:0;border-radius:12px;padding:9px 7px;min-height:48px;color:#fff;background:#205a38;font:750 13px/1.2 system-ui;cursor:pointer;white-space:normal;overflow-wrap:break-word}'+
+  '#nv-caja-bar button.nv-caja-secondary{color:#1d4530;background:#e6f0e8}'+
+  '#nv-caja-bar button:focus-visible,#nv-caja-popup button:focus-visible{outline:3px solid #4c8b6c;outline-offset:2px}'+
+  '#nv-caja-popup{box-sizing:border-box;position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom,0px));max-height:min(360px,54vh);max-height:min(360px,54dvh);overflow:auto;overscroll-behavior:contain;border:1px solid #c2d9c8;border-radius:15px;background:#fff;box-shadow:0 12px 50px #0c241f33;z-index:7;padding:12px;color:#193323;font:13px/1.4 system-ui}'+
+  '#nv-caja-popup[hidden],#nv-caja-notification[hidden],#nv-caja-saved-list[hidden]{display:none!important}'+
+  '#nv-caja-popup-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}'+
+  '#nv-caja-popup-head strong{font-size:15px}'+
+  '#nv-caja-popup button{border:0;border-radius:9px;min-height:38px;padding:8px 11px;background:#e7efe9;color:#1f4c30;font-weight:750;font-size:12px;cursor:pointer}'+
+  '#nv-caja-popup button.nv-caja-danger{background:#fce7e7;color:#9a2929}'+
+  '#nv-caja-popup .nv-caja-saved-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 0;border-top:1px solid #e4ebe5}'+
+  '#nv-caja-popup .nv-caja-saved-row small{display:block;color:#65776b;margin-top:4px}'+
+  '#nv-caja-popup .nv-caja-row-buttons{display:flex;gap:5px;flex-shrink:0}'+
+  '#nv-caja-notification{position:absolute;left:14px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom,0px));padding:12px 14px;border-radius:11px;background:#e5f6e9;border:1px solid #a2cfaf;color:#1d6234;font:750 12px/1.4 system-ui;z-index:8;box-shadow:0 4px 14px #1235212e}'+
+  '.nv-caja-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 1px;background:#f2f8f4;border-radius:9px;padding:8px;color:#244534;font-size:12px}'+
+  '.nv-caja-line label{flex:1;min-width:160px;font-weight:700}'+
+  '.nv-caja-line input{display:block;width:100%;min-height:37px;border:1px solid #a5c3b0;border-radius:8px;font-size:16px;padding:6px 8px;box-sizing:border-box;background:white;color:#122a1b}'+
+  '.nv-caja-line-total{font-weight:800;color:#22633e}.nv-caja-line small{color:#6d5d39}'+
+  '@media(max-width:400px){#nv-caja-popup .nv-caja-saved-row{align-items:flex-start;flex-direction:column}#nv-caja-popup .nv-caja-row-buttons{align-self:stretch}#nv-caja-popup .nv-caja-row-buttons button{flex:1}}';
  document.head.appendChild(css);
- panel=document.createElement('section');panel.id='nv-caja-panel';panel.setAttribute('aria-label','Caja rápida y ventas en espera');
- const title=document.createElement('strong');title.textContent='CAJA RÁPIDA · VENTAS EN ESPERA';
- const actions=document.createElement('div');actions.className='nv-caja-actions';actions.style.marginTop='10px';
- const save=makeButton('💾 Guardar venta','nv-caja-primary'),show=makeButton('📂 Ventas guardadas (0)','nv-caja-secondary');
- actions.append(save,show);
+ panel=document.createElement('div');panel.id='nv-caja-bar';panel.setAttribute('aria-label','Guardar y recuperar ventas');
+ const save=makeButton('💾 Guardar venta','nv-caja-primary');
+ const show=makeButton('📂 Ventas guardadas (0)','nv-caja-secondary');
+ panel.append(save,show);
+ // Barra fija al pie del carrito: NO se superpone al subtotal ni a WhatsApp.
+ drawer.appendChild(panel);
+ waitingPopup=document.createElement('div');waitingPopup.id='nv-caja-popup';waitingPopup.hidden=true;
+ waitingPopup.setAttribute('aria-label','Ventas guardadas en este dispositivo');
+ const header=document.createElement('div');header.id='nv-caja-popup-head';
+ const heading=document.createElement('strong');heading.textContent='Ventas en espera';
+ const close=makeButton('✕ Cerrar','nv-caja-secondary');
+ header.append(heading,close);
  const savedList=document.createElement('div');savedList.id='nv-caja-saved-list';savedList.hidden=true;waitingList=savedList;
- const original=document.createElement('div');original.className='nv-caja-numbers';
- const label=document.createElement('span');label.textContent='Total catálogo';
- const originalAmount=document.createElement('b');originalAmount.id='nv-caja-catalogo';original.append(label,originalAmount);
- const calculated=document.createElement('div');calculated.className='nv-caja-numbers';
- const calcLabel=document.createElement('span');calcLabel.textContent='Total caja (referencia)';
- quote=document.createElement('strong');quote.id='nv-caja-quote';calculated.append(calcLabel,quote);
- const notice=document.createElement('p');notice.className='nv-caja-warning';notice.id='nv-caja-notice';notice.hidden=true;
- notice.textContent='Precio ajustado sólo para esta cuenta: NO cambia el catálogo ni el cobro en SIFO/WhatsApp. Verifica el importe real antes de finalizar.';
- const cash=document.createElement('label');cash.textContent='Efectivo recibido $ (calculadora)';
- receivedInput=document.createElement('input');receivedInput.type='text';receivedInput.inputMode='decimal';receivedInput.placeholder='Ej. 500';cash.appendChild(receivedInput);
- const change=document.createElement('div');change.id='nv-caja-change';change.style.fontWeight='750';change.style.marginBottom='5px';
- status=document.createElement('div');status.className='nv-caja-status';status.setAttribute('role','status');
- const bottomNote=document.createElement('p');bottomNote.style.cssText='font-size:11px;color:#62766a;line-height:1.5';
- bottomNote.textContent='Guardar sólo pausa la venta aquí. No envía mensajes ni guarda en SIFO. Esta lista pertenece a este navegador.';
- const cashDetails=document.createElement('details');const cashSummary=document.createElement('summary');cashSummary.textContent='Calcular cambio';cashDetails.append(cashSummary,cash,change);panel.append(title,actions,savedList,original,calculated,notice,cashDetails,status,bottomNote);
- bottom.insertBefore(panel,bottom.firstChild);
+ const foot=document.createElement('p');foot.textContent='Guardadas en este navegador; no se envían a SIFO.';
+ foot.style.cssText='font-size:11px;color:#687c6a;margin:9px 0 2px';
+ waitingPopup.append(header,savedList,foot);
+ drawer.appendChild(waitingPopup);
+ status=document.createElement('div');status.id='nv-caja-notification';status.hidden=true;
+ status.setAttribute('role','status');drawer.appendChild(status);
+ close.addEventListener('click',()=>{waitingVisible=false;renderWaiting();show.focus()});
  waitingCount={set textContent(n){show.textContent='📂 Ventas guardadas ('+n+')'}};
  save.addEventListener('click',saveWaiting);
- show.addEventListener('click',()=>{waitingVisible=!waitingVisible;renderWaiting()});
+ show.addEventListener('click',()=>{waitingVisible=!waitingVisible;renderWaiting();if(waitingVisible)waitingPopup.scrollTop=0});
  waitingList.addEventListener('click',e=>{
   const load=e.target.closest('[data-nv-load]'),del=e.target.closest('[data-nv-delete]');
   if(load)restore(load.dataset.nvLoad);
@@ -230,7 +255,6 @@ function init(){
    else window.alert('No se pudo eliminar la venta.');
   }
  });
- receivedInput.addEventListener('input',renderQuote);
  lines.addEventListener('change',e=>{
   const input=e.target.closest('[data-nv-price]');if(!input)return;
   const id=input.dataset.nvPrice,cart=freshCart(),p=catalog.get(id);
@@ -242,7 +266,7 @@ function init(){
   prices=next;
   const total=input.closest('.nv-caja-line')?.querySelector('.nv-caja-line-total');
   if(total)total.textContent='Importe: '+money(n*cart[id]/100);
-  renderQuote();
+  // El importe calculado del producto se actualiza en su propio renglón.
  });
  new MutationObserver(schedule).observe(lines,{childList:true,subtree:true});
  document.addEventListener('click',e=>{
