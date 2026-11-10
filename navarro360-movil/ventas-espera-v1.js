@@ -1,6 +1,6 @@
 /* NAVARRO 360 — Ventas en espera y caja local V1 (10/11/2026).
    Se monta EN EL CARRITO existente. No cambia el catálogo, bot, mensajes WhatsApp ni SIFO.
-   Los precios ajustados son sólo cálculos locales y NO se envían a SIFO.
+   Los precios ajustados se convierten en cantidades equivalentes al abrir WhatsApp; SIFO debe validarlas.
 */
 (function(){
 'use strict';
@@ -191,7 +191,7 @@ function addPriceEditors(){
   if(foot){
     notice=document.createElement('p');notice.id='nv-caja-precio-alerta';
     notice.style.cssText='font-size:11px;color:#986218;line-height:1.4;margin:4px 0 8px';
-    notice.textContent='Precio ajustado sólo en esta pantalla: WhatsApp y SIFO siguen usando su precio original.';
+    notice.textContent='Precio editado: se enviará como cantidad fraccionaria del producto; verifica el importe que confirme SIFO.';
     foot.insertBefore(notice,foot.querySelector('.cart-note'));
   }
  }
