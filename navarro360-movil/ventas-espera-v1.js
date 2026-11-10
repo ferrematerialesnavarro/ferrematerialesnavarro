@@ -10,6 +10,8 @@ const PRICE_KEY='navarro360_precio_caja_activa_v1';
 const CLAVO_KEY='navarro_clavos_importe_v1';
 const IMPORTE_KEY='navarro_importes_cents_v1';
 const MAX_DRAFTS=30;
+const STAFF_KEY='navarro360_caja_pin_local_v1';
+let unlockedUntil=0,pinBusy=false;
 const $=id=>document.getElementById(id);
 const format=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
 const money=n=>format.format(n);
@@ -73,6 +75,68 @@ function renderQuote(){
  const change=$('nv-caja-change');
  if(change)change.textContent=cash===null?'Introduce efectivo recibido':cash>=data.applied?'Cambio: '+money(cash-data.applied):'Faltan: '+money(data.applied-cash);
 }
+
+/* PIN sólo en el navegador usado por el vendedor; no sustituye autenticación remota. */
+function hex(bytes){return Array.from(bytes,x=>x.toString(16).padStart(2,'0')).join('')}
+function fromHex(s){if(!/^[0-9a-f]+$/i.test(s)||s.length%2)return null;return new Uint8Array(s.match(/../g).map(x=>parseInt(x,16)))}
+async function pinDigest(pin,salt){
+ const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),'PBKDF2',false,['deriveBits']);
+ const bits=await crypto.subtle.deriveBits({name:'PBKDF2',salt,iterations:125000,hash:'SHA-256'},key,256);
+ return hex(new Uint8Array(bits));
+}
+function readStaff(){
+ try{const p=JSON.parse(localStorage.getItem(STAFF_KEY)||'null');return p&&p.salt&&p.hash?p:null}catch{return null}
+}
+async function staffAllowed(){
+ if(Date.now()<unlockedUntil)return true;
+ if(!window.crypto?.subtle||!window.crypto?.getRandomValues){
+  window.alert('Este dispositivo no permite proteger el precio. Necesita navegador seguro (HTTPS).');return false;
+ }
+ const current=readStaff();
+ if(!current){
+  const first=window.prompt('Solo personal de caja. Configura un PIN de vendedor de 6 dígitos EN ESTE DISPOSITIVO. No uses tu NIP bancario.');
+  if(first===null)return false;
+  if(!/^\d{6}$/.test(first)){window.alert('El PIN debe tener 6 dígitos.');return false}
+  const again=window.prompt('Repite el nuevo PIN de vendedor:');
+  if(again===null||again!==first){window.alert('Los PIN no coincidieron. No se habilitó la edición.');return false}
+  try{
+   const salt=crypto.getRandomValues(new Uint8Array(16));
+   const record={salt:hex(salt),hash:await pinDigest(first,salt),version:1};
+   if(!safeStore(STAFF_KEY,record)){window.alert('No se pudo proteger este dispositivo.');return false}
+   unlockedUntil=Date.now()+60000;return true;
+  }catch{window.alert('No se pudo proteger la clave en este dispositivo.');return false}
+ }
+ const pin=window.prompt('PIN de vendedor para modificar el precio:');
+ if(pin===null)return false;
+ if(!/^\d{6}$/.test(pin)){window.alert('PIN incorrecto.');return false}
+ try{
+  if((await pinDigest(pin,fromHex(current.salt)))!==current.hash){
+   window.alert('PIN incorrecto. El precio permanece sin cambios.');return false;
+  }
+  unlockedUntil=Date.now()+60000;return true;
+ }catch{window.alert('No se pudo verificar el PIN.');return false}
+}
+async function askPrice(id){
+ if(pinBusy)return;
+ const p=catalog.get(id),cart=freshCart();
+ if(!p||!cart?.[id])return;
+ // Los productos por importe mantienen su método de captura fraccionaria existente.
+ if(Number(readObj(CLAVO_KEY)[id]||readObj(IMPORTE_KEY)[id]||0)>0){
+  window.alert('Para este producto utiliza el botón Importe que ya tiene el carrito.');return;
+ }
+ pinBusy=true;
+ try{
+  if(!(await staffAllowed()))return;
+  const before=Number(prices[id]||Math.round(p.price*100));
+  const typed=window.prompt('Precio para '+p.name+' ($). Solo se aplica a esta venta:',(before/100).toFixed(2));
+  if(typed===null)return;
+  const n=cents(typed);
+  if(n===null){window.alert('Precio inválido. Máximo dos decimales.');return}
+  const next={...prices};if(n===Math.round(p.price*100))delete next[id];else next[id]=n;
+  if(!safeStore(PRICE_KEY,next)){window.alert('No se pudo guardar este precio.');return}
+  prices=next;refresh();
+ }finally{pinBusy=false}
+}
 function addPriceEditors(){
  const cart=freshCart();if(!cart)return;
  const cl=readObj(CLAVO_KEY),imp=readObj(IMPORTE_KEY);
@@ -81,27 +145,54 @@ function addPriceEditors(){
   prices=Object.fromEntries(Object.entries(prices).filter(([id])=>activeCodes.has(id)));safeStore(PRICE_KEY,prices);
  }
  for(const line of lines.querySelectorAll('.cart-line')){
-  if(line.querySelector('.nv-caja-line'))continue;
   const id=line.querySelector('[data-dec]')?.dataset.dec;
   if(!id||!cart[id]||!catalog.has(id))continue;
+  // El precio se muestra donde ya estaba el precio base, sin editor agregado.
+  const oldField=line.querySelector('.nv-caja-line');
+  if(oldField)oldField.remove();
   const p=catalog.get(id),special=Number(cl[id]||imp[id]||0);
-  const field=document.createElement('div');field.className='nv-caja-line';
-  if(special>0){
-    const badge=document.createElement('small');
-    badge.textContent='Venta por importe: '+money(special/100)+' · Para cambiarlo usa «✎ Importe»';
-    field.appendChild(badge);
-  }else{
-    const label=document.createElement('label');label.textContent='Precio aplicado $ (esta venta)';
-    const input=document.createElement('input');
-    input.type='text';input.inputMode='decimal';input.setAttribute('aria-label','Precio aplicado de '+p.name);
-    input.dataset.nvPrice=id;input.value=((prices[id]||Math.round(p.price*100))/100).toFixed(2);
-    label.appendChild(input);field.appendChild(label);
-    const total=document.createElement('span');total.className='nv-caja-line-total';
-    total.textContent='Importe: '+money(((prices[id]||Math.round(p.price*100))*cart[id])/100);
-    field.appendChild(total);
+  const small=line.querySelector(':scope > small');
+  if(!small)continue;
+  let button=small.querySelector('.nv-caja-price');
+  if(!button){
+   const rawText=small.textContent||'';
+   const prefix=rawText.includes(' · Precio base')?rawText.split(' · Precio base')[0]:id;
+   small.textContent=prefix+' · Precio ';
+   button=document.createElement('button');button.type='button';
+   button.className='nv-caja-price';button.dataset.nvPrice=id;
+   button.setAttribute('aria-label','Precio de '+p.name);
+   small.appendChild(button);
   }
-  line.appendChild(field);
+  const centsPrice=Number(prices[id]||Math.round(p.price*100));
+  const shown=special>0?p.price:centsPrice/100;
+  const txt=money(shown);
+  if(button.textContent!==txt)button.textContent=txt;
+  button.disabled=special>0;
+  const sum=line.querySelector('.line-total');
+  const lineTotal=special>0?money(special/100):money(centsPrice*cart[id]/100);
+  if(sum&&sum.textContent!==lineTotal)sum.textContent=lineTotal;
  }
+ const total=$('cart-total'),localTotal=compute(cart);
+ const label=total?.parentElement?.querySelector('span');
+ // El precio enviado a SIFO sigue siendo del catálogo. El total visual es únicamente referencia de esta venta.
+ if(localTotal.custom>0){
+  if(label&&label.textContent!=='Total de caja (referencia)')label.textContent='Total de caja (referencia)';
+  if(total&&total.textContent!==money(localTotal.applied))total.textContent=money(localTotal.applied);
+ }else{
+  if(label&&label.textContent!=='Subtotal estimado')label.textContent='Subtotal estimado';
+  if(total&&total.textContent!==money(localTotal.base))total.textContent=money(localTotal.base);
+ }
+ let notice=$('nv-caja-precio-alerta');
+ if(!notice){
+  const foot=$('drawer')?.querySelector('.drawer-bottom');
+  if(foot){
+    notice=document.createElement('p');notice.id='nv-caja-precio-alerta';
+    notice.style.cssText='font-size:11px;color:#986218;line-height:1.4;margin:4px 0 8px';
+    notice.textContent='Precio ajustado sólo en esta pantalla: WhatsApp y SIFO siguen usando su precio original.';
+    foot.insertBefore(notice,foot.querySelector('.cart-note'));
+  }
+ }
+ if(notice)notice.hidden=localTotal.custom===0;
 }
 function renderWaiting(){
  if(!waitingList)return;
@@ -216,10 +307,9 @@ function init(){
   '#nv-caja-popup .nv-caja-saved-row small{display:block;color:#65776b;margin-top:4px}'+
   '#nv-caja-popup .nv-caja-row-buttons{display:flex;gap:5px;flex-shrink:0}'+
   '#nv-caja-notification{position:absolute;left:14px;right:14px;bottom:calc(82px + env(safe-area-inset-bottom,0px));padding:12px 14px;border-radius:11px;background:#e5f6e9;border:1px solid #a2cfaf;color:#1d6234;font:750 12px/1.4 system-ui;z-index:8;box-shadow:0 4px 14px #1235212e}'+
-  '.nv-caja-line{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0 1px;background:#f2f8f4;border-radius:9px;padding:8px;color:#244534;font-size:12px}'+
-  '.nv-caja-line label{flex:1;min-width:160px;font-weight:700}'+
-  '.nv-caja-line input{display:block;width:100%;min-height:37px;border:1px solid #a5c3b0;border-radius:8px;font-size:16px;padding:6px 8px;box-sizing:border-box;background:white;color:#122a1b}'+
-  '.nv-caja-line-total{font-weight:800;color:#22633e}.nv-caja-line small{color:#6d5d39}'+
+  '.nv-caja-price{appearance:none!important;border:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;margin:0!important;display:inline!important;min-height:0!important;color:inherit!important;font:inherit!important;font-size:inherit!important;line-height:inherit!important;vertical-align:baseline!important;cursor:pointer!important;text-decoration:none!important}'+
+  '.nv-caja-price:disabled{opacity:1!important;cursor:default!important}'+
+  '.nv-caja-price:focus-visible{outline:2px solid #2b7950!important;outline-offset:2px!important}'+
   '@media(max-width:400px){#nv-caja-popup .nv-caja-saved-row{align-items:flex-start;flex-direction:column}#nv-caja-popup .nv-caja-row-buttons{align-self:stretch}#nv-caja-popup .nv-caja-row-buttons button{flex:1}}';
  document.head.appendChild(css);
  panel=document.createElement('div');panel.id='nv-caja-bar';panel.setAttribute('aria-label','Guardar y recuperar ventas');
@@ -255,19 +345,15 @@ function init(){
    else window.alert('No se pudo eliminar la venta.');
   }
  });
- lines.addEventListener('change',e=>{
-  const input=e.target.closest('[data-nv-price]');if(!input)return;
-  const id=input.dataset.nvPrice,cart=freshCart(),p=catalog.get(id);
-  if(!cart?.[id]||!p)return;
-  const n=cents(input.value);
-  if(n===null){window.alert('Precio inválido. Escribe pesos con máximo dos decimales.');input.value=((prices[id]||Math.round(p.price*100))/100).toFixed(2);return}
-  const next={...prices,[id]:n};
-  if(!safeStore(PRICE_KEY,next)){window.alert('No se pudo conservar el precio aplicado.');return}
-  prices=next;
-  const total=input.closest('.nv-caja-line')?.querySelector('.nv-caja-line-total');
-  if(total)total.textContent='Importe: '+money(n*cart[id]/100);
-  // El importe calculado del producto se actualiza en su propio renglón.
+ lines.addEventListener('click',e=>{
+  const target=e.target.closest('button[data-nv-price]');
+  if(!target)return;
+  e.preventDefault();e.stopPropagation();
+  askPrice(target.dataset.nvPrice);
  });
+ document.addEventListener('click',e=>{
+   if(e.target.closest('#cart-close,#overlay'))unlockedUntil=0;
+ },true);
  new MutationObserver(schedule).observe(lines,{childList:true,subtree:true});
  document.addEventListener('click',e=>{
   if(e.target.closest('#clear-cart,#send-whatsapp,#mobile-whatsapp')){
