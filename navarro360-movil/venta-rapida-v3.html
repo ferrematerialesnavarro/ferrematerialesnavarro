@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NAVARRO 360 | Venta rápida V3 — ventas en espera</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,Arial,sans-serif;background:#eef0ed;color:#162619;margin:0}header{background:#163923;color:#fff;padding:16px}header strong{font-size:22px}header small{display:block;opacity:.8}main{max-width:1050px;margin:auto;padding:15px}section{background:white;border:1px solid #dee4dd;border-radius:16px;padding:17px;margin-bottom:14px}h2{font-size:19px;margin:0 0 12px}label{font-size:13px;font-weight:700;display:block;margin-bottom:5px}input,textarea,select{font:inherit;border:1px solid #b8c9bc;border-radius:8px;padding:10px;width:100%;min-width:0;background:white}input[type=number]{font-variant-numeric:tabular-nums}button{font:inherit;cursor:pointer;border:0;border-radius:9px;padding:11px 14px;background:#ffda00;color:#182414;font-weight:700}button.secondary{background:#e8eee8}button.danger{background:#ffe2df;color:#872d20}button:focus-visible,input:focus-visible{outline:3px solid #55a478}button:disabled{opacity:.45;cursor:not-allowed}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:685px}th,td{border-bottom:1px solid #e2e8e2;text-align:left;padding:9px 5px}th{font-size:12px;color:#56655a}td input{padding:8px}td .money{font-weight:700;white-space:nowrap}.totals{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:22px;font-weight:800;margin-top:14px}.note{font-size:13px;line-height:1.5;color:#56665b}.pill{background:#f0f7ee;border-radius:8px;padding:9px}.warn{background:#fff4db;padding:10px;border-radius:8px;color:#6e4d08}.saved{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #ddd;padding:12px 0}.saved small{display:block;color:#647166}.saved .actions{margin:0}.status{font-size:13px;color:#245d38;font-weight:700}.red{color:#a63221}.v{font-size:26px;font-weight:800}.sr{position:absolute;left:-10000px}@media(max-width:680px){.grid{grid-template-columns:repeat(2,1fr)}.saved{align-items:flex-start;flex-direction:column}.totals{font-size:19px}.scroll{overflow:visible}table{min-width:0}thead{display:none}tbody{display:block}tbody tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px;padding:12px;border:1px solid #dbe5dc;border-radius:12px}td{display:block;padding:0;border:0;min-width:0}td:first-child,td:last-child{grid-column:1/-1}td:nth-child(2):before{content:"Cantidad"}td:nth-child(3):before{content:"Precio base"}td:nth-child(4):before{content:"Precio aplicado"}td:nth-child(5):before{content:"Descuento %"}td:nth-child(6):before{content:"Importe"}td:before{display:block;font-weight:700;color:#596b5f;font-size:12px;margin-bottom:4px}td input{font-size:16px}td:last-child button{width:100%}.saved .actions{width:100%}}</style>
+</head><body><header><strong>FERREMATERIALES NAVARRO</strong><small>Venta rápida V3 · Guardar y recuperar · no conectado a SIFO</small></header><main>
+<section><h2>Captura de venta</h2><div class="grid"><div style="grid-column:span 2"><label for="nombre">Descripción del producto</label><input id="nombre" placeholder="Ej. Cemento antihumedad"></div><div><label for="cantidad">Cantidad</label><input id="cantidad" inputmode="decimal" value="1"></div><div><label for="precio">Precio aplicado ($)</label><input id="precio" inputmode="decimal" placeholder="0.00"></div></div>
+<div class="actions"><button id="agregar">+ Agregar a la venta</button><button class="secondary" id="ejemplo">Cargar ejemplo</button></div>
+<p class="note">Captura manual de prueba. Guardar venta no envía nada a SIFO ni WhatsApp. El carrito queda vacío después de guardar correctamente.</p></section>
+<section><h2>Artículos de la venta</h2><div class="scroll"><table><thead><tr><th style="min-width:170px">Descripción</th><th style="min-width:90px">Cantidad</th><th style="min-width:105px">Precio base</th><th style="min-width:105px">Precio aplicado</th><th>Descuento %</th><th>Importe editable</th><th></th></tr></thead><tbody id="lineas"></tbody></table></div><div class="totals"><span>Total de la venta</span><span id="total">$0.00</span></div><p id="ajuste" class="note"></p><p class="note">Puedes editar el importe de un renglón y recalcular su precio aplicado. Los descuentos se limitan a la venta actual.</p>
+<div class="actions"><button id="guardar">💾 Guardar venta y liberar carrito</button><button class="secondary" id="nueva">Nueva venta</button><button class="secondary" id="terminar">Terminar prueba (sin SIFO)</button></div><p id="aviso" class="status" role="status"></p></section>
+<section><h2>Calculadora de cobro</h2><div class="grid"><div style="grid-column:span 2"><label for="recibido">Efectivo recibido ($)</label><input id="recibido" inputmode="decimal" placeholder="0.00"></div><div style="grid-column:span 2"><label>Resultado</label><div id="cambio" class="v">—</div><small id="cambio-texto" class="note">Introduce el dinero recibido</small></div></div><div class="actions"><button class="secondary" data-cash="100">$100</button><button class="secondary" data-cash="200">$200</button><button class="secondary" data-cash="500">$500</button><button class="secondary" data-cash="1000">$1,000</button></div><p class="warn">Calculadora solamente. No registra dinero recibido ni marca la venta como PAGADA.</p></section>
+<section><h2>Ventas en espera <span id="pending-count" class="pill">0</span></h2><p class="note">Guarda cuando el cliente se tarde; atiende a otro y recupera esta venta con un toque.</p><div id="guardadas"></div><p class="note">Las ventas en espera permanecen en este navegador al recargar la página, pero no pasan a otros dispositivos. Si borras datos del navegador, podrían perderse. No se guardan en SIFO.</p></section>
+<section class="note"><strong>Seguridad</strong><p>Esta página de pruebas no modifica NAVARRO 360 actual, catálogo, inventarios, precios oficiales, tickets ni bot WhatsApp. Para integrar el sistema real se deberá validar cada artículo y su código antes de enviarlo a SIFO.</p><a href="./index.html">Regresar al catálogo NAVARRO 360</a></section>
+</main>
+<script>
+(()=>{'use strict';const $=s=>document.querySelector(s);const KEY='navarro360-venta-rapida-borradores-v1';const ACTIVE_KEY='navarro360-venta-rapida-activa-v3';let items=[],current=null;
+function validItems(v){return Array.isArray(v)&&v.length<=300&&v.every(x=>x&&typeof x.name==='string'&&Number.isFinite(x.q)&&x.q>0&&Number.isFinite(x.p)&&x.p>=0&&Number.isFinite(x.base)&&x.base>=0)}
+function readSaved(){try{const v=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(v)?v.filter(x=>x&&typeof x.id==='string'&&typeof x.date==='string'&&validItems(x.items)).slice(0,100):[]}catch(e){return []}}
+let saved=readSaved();try{const active=JSON.parse(localStorage.getItem(ACTIVE_KEY)||'null');if(active&&validItems(active.items)){items=active.items;current=typeof active.current==='string'?active.current:null}}catch(e){}
+function backupActive(){try{localStorage.setItem(ACTIVE_KEY,JSON.stringify({items,current}));return true}catch(e){$('#aviso').textContent='Aviso: no se pudo conservar la venta activa al recargar';return false}}
+function resetSale(message){items=[];current=null;$('#recibido').value='';$('#nombre').value='';$('#cantidad').value='1';$('#precio').value='';$('#aviso').textContent=message||'';backupActive();render()}
+function parse(s){s=String(s).trim().replace(',','.');if(!/^\d+(?:\.\d{1,2})?$/.test(s))return null;const [a,b='']=s.split('.');const n=Number(a)*100+Number((b+'00').slice(0,2));return Number.isSafeInteger(n)&&n>=0&&n<=100000000000?n:null;}
+function qty(s){s=String(s).trim().replace(',','.');if(!/^\d+(?:\.\d{1,3})?$/.test(s))return null;const n=Number(s);return Number.isFinite(n)&&n>0&&n<=1000000?n:null;}
+function money(c){return new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(c/100)}
+function lineTotal(x){return Math.round(x.q*x.p*(100-(x.discount||0))/100)}function sum(){return items.reduce((s,x)=>s+lineTotal(x),0)}
+function store(next){try{localStorage.setItem(KEY,JSON.stringify(next));saved=next;return true}catch(e){alert('No se pudo guardar. El carrito sigue intacto; revisa el espacio del navegador.');return false}}
+function escape(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function render(){const body=$('#lineas');body.innerHTML=items.length?'':'<tr><td colspan="7" class="note">Sin productos. Agrega un artículo para empezar.</td></tr>';items.forEach((x,i)=>{let tr=document.createElement('tr');tr.innerHTML='<td><strong>'+escape(x.name)+'</strong><small style="display:block;color:#7b6750">Producto provisional</small></td><td><input aria-label="Cantidad" inputmode="decimal" data-i="'+i+'" data-f="q" value="'+x.q+'"></td><td class="money">'+money(x.base)+'</td><td><input aria-label="Precio aplicado" inputmode="decimal" data-i="'+i+'" data-f="p" value="'+(x.p/100).toFixed(2)+'"></td><td><input aria-label="Descuento porcentual" inputmode="decimal" data-i="'+i+'" data-f="discount" value="'+(x.discount||0)+'"></td><td><input aria-label="Importe editable" inputmode="decimal" data-i="'+i+'" data-f="amount" value="'+(lineTotal(x)/100).toFixed(2)+'"></td><td><button class="danger" data-del="'+i+'" aria-label="Eliminar producto">×</button></td>';body.appendChild(tr)});$('#total').textContent=money(sum());$('#ajuste').textContent=items.some(x=>x.base!==x.p)?'Hay precios aplicados distintos a los precios de captura originales. Los ajustes permanecen sólo en esta venta.':'';calc()}
+function calc(){let v=parse($('#recibido').value),t=sum();if(v===null){$('#cambio').textContent='—';$('#cambio-texto').textContent='Introduce un importe válido';return}$('#cambio').textContent=money(Math.abs(v-t));$('#cambio-texto').textContent=v>=t?'Cambio a entregar':'Falta por recibir'}
+function renderSaved(){$('#pending-count').textContent=String(saved.length);$('#guardadas').innerHTML=saved.length?'':'<p class="note">Sin ventas en espera. Puedes atender normalmente.</p>';saved.forEach(x=>{const div=document.createElement('div');div.className='saved';const total=x.items.reduce((s,i)=>s+lineTotal(i),0);div.innerHTML='<div><strong>'+escape(x.label||x.id)+'</strong><small>'+escape(x.date)+' · '+x.items.length+' productos · '+money(total)+'</small><small>'+escape(x.items[0]?.name||'')+'</small></div><div class="actions"><button class="secondary" data-load="'+escape(x.id)+'">Recuperar venta</button><button class="danger" data-remove="'+escape(x.id)+'">Eliminar</button></div>';$('#guardadas').appendChild(div)})}
+$('#agregar').onclick=()=>{const name=$('#nombre').value.trim(),q=qty($('#cantidad').value),p=parse($('#precio').value);if(!name||name.length>180||q===null||p===null){alert('Escribe descripción, cantidad positiva y precio válido (máximo dos decimales).');return}items.push({name,q,p,base:p,discount:0});$('#nombre').value='';$('#cantidad').value='1';$('#precio').value='';$('#aviso').textContent='';render();backupActive();$('#nombre').focus()};
+$('#ejemplo').onclick=()=>{if(items.length&&!confirm('¿Añadir un producto de ejemplo?'))return;items.push({name:'CEMENTO ANTIHUMEDAD (EJEMPLO)',q:1,base:20000,p:20000,discount:0});backupActive();render()};
+$('#lineas').addEventListener('change',e=>{const el=e.target.closest('[data-i]');if(!el)return;const i=Number(el.dataset.i),f=el.dataset.f,x=items[i];if(!x)return;const v=f==='q'?qty(el.value):f==='discount'?(String(el.value).trim()===''?null:Number(String(el.value).replace(',','.'))):parse(el.value);if(v===null||!Number.isFinite(v)||(f==='discount'&&(v<0||v>100))){alert('Valor no válido. Se conserva el anterior.');render();return}if(f==='amount'){const divisor=x.q*(100-(x.discount||0))/100;if(divisor<=0){alert('El descuento del 100% impide editar el importe.');render();return}const price=Math.round(v/divisor);if(Math.abs(Math.round(price*divisor)-v)>1){alert('El importe no se puede representar con precisión de centavos para esta cantidad.');render();return}x.p=price}else{x[f]=v}$('#aviso').textContent='Cambios sin guardar';backupActive();render()});
+$('#lineas').addEventListener('click',e=>{const el=e.target.closest('[data-del]');if(!el)return;items.splice(Number(el.dataset.del),1);backupActive();render()});
+$('#recibido').addEventListener('input',calc);document.querySelectorAll('[data-cash]').forEach(b=>b.onclick=()=>{$('#recibido').value=b.dataset.cash;calc()});
+$('#guardar').onclick=()=>{
+ if(!items.length){alert('Agrega al menos un producto antes de guardar.');return}
+ const d=new Date(),all=readSaved(),id=current||('NV-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7));
+ const prev=all.findIndex(x=>x.id===id);
+ if(prev<0&&all.length>=100){alert('Ya hay 100 ventas en espera. Recupera o elimina alguna antes de guardar otra.');return}
+ const label=prev>=0?(all[prev].label||all[prev].id):('Venta en espera · '+d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}));
+ const entry={id,label,date:d.toLocaleString('es-MX'),items:JSON.parse(JSON.stringify(items))};
+ const next=all.slice();if(prev<0)next.unshift(entry);else{next.splice(prev,1);next.unshift(entry)}
+ if(!store(next))return;
+ resetSale('✅ '+label+' guardada. Carrito libre para atender al siguiente cliente.');
+ renderSaved();$('#nombre').focus();
+};
+$('#nueva').onclick=()=>{
+ if(items.length&&!confirm('¿Empezar una venta nueva? Si no guardaste la actual, se perderán sus cambios.'))return;
+ resetSale('Nueva venta lista');$('#nombre').focus();
+};
+$('#terminar').onclick=()=>{
+ if(!items.length){alert('No hay una venta activa.');return}
+ if(!confirm('Esto sólo cierra la SIMULACIÓN y borra el borrador correspondiente. NO cobra ni registra en SIFO. ¿Cerrar esta prueba?'))return;
+ if(current){const next=readSaved().filter(x=>x.id!==current);if(!store(next))return;}
+ resetSale('Prueba cerrada. No se registró ninguna venta en SIFO.');renderSaved();
+};
+$('#guardadas').addEventListener('click',e=>{
+ const load=e.target.closest('[data-load]'),del=e.target.closest('[data-remove]');
+ if(load){
+  if(items.length){alert('Ya hay una venta en curso. Primero presiona Guardar venta o Nueva venta para poder recuperar otra.');return}
+  saved=readSaved();const x=saved.find(y=>y.id===load.dataset.load);if(!x){alert('Esta venta ya no está en espera.');renderSaved();return}
+  items=JSON.parse(JSON.stringify(x.items));current=x.id;$('#recibido').value='';
+  $('#aviso').textContent='Recuperada '+(x.label||x.id)+'. Puedes seguir agregando productos o terminar la prueba.';
+  backupActive();render();window.scrollTo({top:0,behavior:'smooth'});$('#nombre').focus();
+ }else if(del){
+  if(!confirm('¿Eliminar esta venta pendiente? No se podrá recuperar desde este navegador.'))return;
+  const next=readSaved().filter(x=>x.id!==del.dataset.remove);
+  if(store(next)){if(current===del.dataset.remove){current=null;backupActive()}renderSaved()}
+ }
+});
+window.addEventListener('storage',e=>{if(e.key===KEY){saved=readSaved();renderSaved()}});
+
+render();renderSaved();
+})();
+</script></body></html>
