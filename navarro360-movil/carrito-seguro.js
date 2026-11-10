@@ -431,7 +431,7 @@ else init();
 (function(){
  if(window.NAVARRO_ESPERA_LOADER_V1)return;
  window.NAVARRO_ESPERA_LOADER_V1=true;
- var s=document.createElement('script');s.src='./ventas-espera-v1.js?v=2';s.async=true;
+ var s=document.createElement('script');s.src='./ventas-espera-v1.js?v=3';s.async=true;
  s.onerror=function(){console.warn('NAVARRO 360: módulo de ventas en espera no disponible; carrito original intacto');};
  document.head.appendChild(s);
 })();
