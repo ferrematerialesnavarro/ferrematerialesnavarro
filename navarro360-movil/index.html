@@ -1204,6 +1204,11 @@ window.NAVARRO_ATLAS={"columns":12,"rows":20,"size":128,"files":{"armex-triangul
 <script src="./buscador-completo.js?v=61"></script>
 <script>
 (()=>{'use strict';
+/* NAVARRO 360: PRODUCTOS VARIOS 00000, ficha especial con importe libre. */
+if(Array.isArray(window.NAVARRO_DB) && !window.NAVARRO_DB.some(p=>String(p[0])==='00000'))
+ window.NAVARRO_DB.unshift(['00000','PRODUCTOS VARIOS',20]);
+if(Array.isArray(window.NAVARRO_DESTACADOS) && !window.NAVARRO_DESTACADOS.some(p=>String(p.id)==='00000'))
+ window.NAVARRO_DESTACADOS.unshift({id:'00000',cat:'Todos',img:'',sub:'Importe libre'});
 const WHATSAPP='525639129040';
 const LIST=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
 const HIGHLIGHTS=Array.isArray(window.NAVARRO_DESTACADOS)?window.NAVARRO_DESTACADOS:[];
@@ -1511,6 +1516,6 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&q('#drawer').classL
 })();
 
 </script>
-<script defer src="./carrito-seguro.js?v=66"></script>
+<script defer src="./carrito-seguro.js?v=67"></script>
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=60').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=41"></script></body>
 </html>
