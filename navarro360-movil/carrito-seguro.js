@@ -305,41 +305,6 @@ function priceOverridesInOrder(cart){
  }
  return out;
 }
-function calcularPropuestaVarios(cart){
- const rows=priceOverridesInOrder(cart);
- if(!rows.length)return {status:'none'};
- const cents=Math.round(rows.reduce((sum,r)=>sum+(r.newPrice-r.old)*(cart[r.id]||0),0));
- if(cents<0)return {status:'discount',cents};
- if(cents===0)return {status:'zero',cents};
- const qty=Math.round((cents/2000)*1000)/1000;
- if(qty<=0||qty>9999||!Number.isFinite(qty))return {status:'invalid',cents};
- const represented=Math.round(qty*2000);
- if(Math.abs(represented-cents)>1)return {status:'invalid',cents};
- return {status:'preview',cents,line:String(Number(qty.toFixed(3)))+' 00000',roundingCents:represented-cents};
-}
-function mostrarAjusteVarios(){
- const details=el('order-verify'),base=el('order-message-preview');
- if(!details||!base||!details.open)return;
- const outcome=calcularPropuestaVarios(readCart());
- let node=el('nv-varios-resumen');
- if(outcome.status==='none'){if(node)node.hidden=true;return}
- if(!node){
-  node=document.createElement('p');node.id='nv-varios-resumen';
-  node.style.cssText='font:600 11px/1.5 system-ui;white-space:pre-wrap;color:#705021;background:#fff8eb;border:1px solid #ead5ab;border-radius:9px;padding:9px;margin:8px 0';
-  base.insertAdjacentElement('afterend',node);
- }
- node.hidden=false;
- let msg='AJUSTE POR IMPORTE (vista previa; NO enviado)\n';
- if(outcome.status==='preview'){
-  msg+='Diferencia: $'+(outcome.cents/100).toFixed(2)+'\nCódigo propuesto: '+outcome.line;
-  if(outcome.roundingCents)msg+='\nRedondeo: '+(outcome.roundingCents/100).toFixed(2)+' pesos';
-  msg+='\nLas cantidades originales permanecen iguales.';
- }else if(outcome.status==='discount')msg+='Una rebaja no puede representarse con cantidad positiva de PRODUCTOS VARIOS.';
- else if(outcome.status==='zero')msg+='Los ajustes se compensan: diferencia total $0.00.';
- else msg+='Importe fuera del rango permitido.';
- msg+='\nFalta validar el código 00000 con el bot actual.';
- if(node.textContent!==msg)node.textContent=msg;
-}
 function captureSending(e){
  const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
  if(!trigger||trigger.disabled)return;
@@ -351,16 +316,7 @@ function captureSending(e){
   const message='ATENCIÓN: '+changed.length+' producto(s) tienen precio modificado.\n'+details+
    (changed.length>3?'\nOtros '+(changed.length-3)+' productos con ajustes.':'')+
    '\n\nWhatsApp enviará solo CANTIDAD CÓDIGO. SIFO registrará el precio de su catálogo, NO el precio modificado. Si continúas, debes corregir los precios en SIFO manualmente.\n\n¿Continuar de todos modos?';
-  const proposal=calcularPropuestaVarios(snapshot);
-  let nota='';
-  if(proposal.status==='preview'){
-   nota='\n\nBorrador del ajuste: '+proposal.line+' por $'+(proposal.cents/100).toFixed(2)+
-    (proposal.roundingCents?' (redondeo '+(proposal.roundingCents/100).toFixed(2)+')':'')+
-    '\nEsta linea NO se añade todavía al mensaje. Falta verificar compatibilidad de PRODUCTOS VARIOS.';
-  }else if(proposal.status==='discount')nota='\n\nRebaja neta: no puede representarse con PRODUCTOS VARIOS positivo.';
-  else if(proposal.status==='zero')nota='\n\nLos ajustes se compensan en el total: diferencia $0.00.';
-  else nota='\n\nEl ajuste no puede representarse con el codigo 00000.';
-  if(!window.confirm(message+nota)){
+  if(!window.confirm(message)){
    e.preventDefault();e.stopImmediatePropagation();
    return; // No abrir WhatsApp ni programar limpieza del carrito.
   }
@@ -491,7 +447,6 @@ function init(){
  // Captura en document antes que los listeners del código original del carrito.
  document.addEventListener('click',captureQuantityClicks,true);
  document.addEventListener('click',captureSending,true);
- const orderDetails=el('order-verify');if(orderDetails)orderDetails.addEventListener('toggle',mostrarAjusteVarios);
  restoreUi();
  window.NAVARRO_CARRITO_SEGURO_ESTADO=Object.freeze({
   version:66,removeWholeSku:true,writeQuantity:true,editWithoutReload:true,doubleTapMilliseconds:DOUBLE_MS,
