@@ -305,6 +305,96 @@ function priceOverridesInOrder(cart){
  }
  return out;
 }
+/* NAVARRO VARIOS GUIADO V1: reproduce la solicitud real de PRODUCTOS VARIOS.
+   El modulo SIFO del bot exige $20 base, dos decimales y múltiplos de $0.20.
+   No se envía nunca "0.75 00000" como comando de WhatsApp.
+   No se presupone que WhatsApp haya enviado ningún mensaje. */
+function evaluarAjusteVarios(cart){
+ const changes=priceOverridesInOrder(cart);
+ if(!changes.length)return {status:'none',changes};
+ let cents=0;
+ for(const change of changes){
+  const units=Number(cart[change.id]||0);
+  if(!Number.isFinite(units)||units<=0)return {status:'invalid',reason:'Cantidad de producto incorrecta'};
+  cents+=Math.round((change.newPrice-change.old)*units);
+ }
+ if(!Number.isSafeInteger(cents))return {status:'invalid',reason:'Importe demasiado grande'};
+ if(cents===0)return {status:'zero',changes,reason:'Los precios editados se compensan; SIFO conservaría los precios originales'};
+ if(cents<0)return {status:'discount',changes,cents,reason:'PRODUCTOS VARIOS no admite un ajuste negativo'};
+ if(cents%20!==0)return {status:'fraction',changes,cents,reason:'PRODUCTOS VARIOS necesita un importe múltiplo de $0.20'};
+ if(cents>100000000)return {status:'invalid',changes,cents,reason:'Importe fuera de rango'};
+ const quantity=cents/2000;
+ if(quantity<=0||quantity>10000000)return {status:'invalid',changes,cents,reason:'Cantidad SIFO fuera de rango'};
+ return {status:'ready',changes,cents,quantitySifo:quantity.toFixed(2),amountText:'$'+(cents/100).toFixed(2)};
+}
+const NAV_VARIOS_STAGE='navarro360_varios_whatsapp_etapas_v1';
+const NAV_WA_DESTINO='525639129040'; // mismo WhatsApp comercial configurado en index.html
+function guiaVariosOpen(cart,plan){
+ let modal=el('nv-varios-guia');
+ if(modal)modal.remove();
+ const signature=JSON.stringify({cart,changes:plan.changes,cents:plan.cents});
+ let stage=0;
+ try{
+  const prev=JSON.parse(sessionStorage.getItem(NAV_VARIOS_STAGE)||'null');
+  if(prev?.signature===signature&&Date.now()-prev.at<7200000&&Number.isInteger(prev.stage)){
+   stage=Math.min(3,Math.max(0,prev.stage));
+  }
+ }catch(_){}
+ const persist=()=>{try{sessionStorage.setItem(NAV_VARIOS_STAGE,JSON.stringify({signature,stage,at:Date.now()}))}catch(_){}};
+ const fresh=()=>{
+  const now=readCart(),status=evaluarAjusteVarios(now);
+  return JSON.stringify({cart:now,changes:status.changes,cents:status.cents})===signature && status.status==='ready';
+ };
+ modal=document.createElement('div');modal.id='nv-varios-guia';
+ modal.style.cssText='position:fixed;inset:0;z-index:2147483100;background:#081b30bd;display:flex;justify-content:center;align-items:center;overflow-y:auto;padding:14px;box-sizing:border-box';
+ const panel=document.createElement('section');panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
+ panel.setAttribute('aria-label','Enviar ajuste por PRODUCTOS VARIOS');
+ panel.style.cssText='width:100%;max-width:445px;max-height:90vh;max-height:90dvh;overflow-y:auto;background:#fff;color:#152c22;border-radius:16px;padding:18px;box-sizing:border-box;box-shadow:0 20px 55px #0018;font:14px/1.45 system-ui';
+ const title=document.createElement('h3');title.textContent='Ajuste por PRODUCTOS VARIOS';
+ title.style.cssText='margin:0 0 7px;font:800 18px/1.35 system-ui';
+ const summary=document.createElement('p');
+ summary.textContent='Diferencia: '+plan.amountText+' · SIFO equivaldría a '+plan.quantitySifo+' de $20.00.\nLos productos mantienen sus cantidades originales.';
+ summary.style.cssText='white-space:pre-wrap;margin:0 0 12px;font-size:13px';
+ const note=document.createElement('p');
+ note.textContent='Envía cada mensaje desde WhatsApp y espera la respuesta del bot ANTES del paso siguiente. Abrir WhatsApp no envía el mensaje por sí mismo.';
+ note.style.cssText='font-size:12px;background:#fff5dd;color:#704d18;border-radius:9px;padding:10px;margin:0 0 12px';
+ const status=document.createElement('p');status.setAttribute('role','status');
+ status.style.cssText='margin:10px 0;color:#28603e;font-size:12px;font-weight:700';
+ const actions=document.createElement('div');actions.style.cssText='display:grid;gap:8px';
+ const buttons=[];
+ function addStep(label,run){
+  const b=document.createElement('button');b.type='button';b.textContent=label;
+  b.style.cssText='border:0;border-radius:10px;background:#21583a;color:white;padding:11px;text-align:left;font:750 13px/1.4 system-ui;min-height:45px';
+  b.addEventListener('click',()=>{
+   if(!fresh()){window.alert('El carrito o el precio cambió. Cierra esta guía y vuelve a empezar.');return}
+   try{run()}catch(err){window.alert('No se pudo abrir WhatsApp. Inténtalo de nuevo.');return}
+   stage=Math.max(stage,buttons.indexOf(b)+1);persist();refresh();
+  });
+  actions.appendChild(b);buttons.push(b);return b;
+ }
+ addStep('1. Enviar productos del carrito',()=>{
+  const native=el('send-whatsapp');
+  if(!native||typeof native.onclick!=='function')throw Error('Envio de productos no disponible');
+  native.onclick(); // invoca envío original, sin generar evento clic ni vaciar el carrito
+ });
+ function openText(message){
+  window.open('https://wa.me/'+NAV_WA_DESTINO+'?text='+encodeURIComponent(message),'_blank','noopener,noreferrer');
+ }
+ addStep('2. Enviar 00000',()=>openText('00000'));
+ addStep('3. Enviar '+plan.amountText,()=>openText(plan.amountText));
+ const finishText=document.createElement('p');
+ finishText.style.cssText='font-size:12px;line-height:1.5;margin:12px 0;color:#4c5b4f';
+ finishText.textContent='Cuando el bot confirme PRODUCTOS VARIOS por el importe indicado, responde OK en WhatsApp y sigue el pago y entrega normales. Si el bot no lo reconoce, NO confirmes la venta; conserva el carrito.';
+ const close=document.createElement('button');close.type='button';close.textContent='Cerrar y conservar carrito';
+ close.style.cssText='margin-top:8px;width:100%;min-height:42px;border-radius:10px;border:1px solid #bacfc0;background:#f4faf5;color:#275338;font:750 13px system-ui';
+ close.addEventListener('click',()=>modal.remove());
+ function refresh(){
+  buttons.forEach((b,i)=>{b.disabled=i>stage;b.style.opacity=b.disabled?'.4':'1'});
+  status.textContent=stage===0?'Comienza por el paso 1.':stage===1?'Abre WhatsApp, envía el pedido y espera el resumen antes del paso 2.':stage===2?'Espera que el bot pregunte el importe antes del paso 3.':'Espera confirmación del importe; después responde OK en WhatsApp.';
+ }
+ panel.append(title,summary,note,actions,status,finishText,close);modal.appendChild(panel);
+ document.body.appendChild(modal);refresh();close.focus();
+}
 function captureSending(e){
  const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
  if(!trigger||trigger.disabled)return;
@@ -312,17 +402,17 @@ function captureSending(e){
  if(!Object.keys(snapshot).length)return;
  const changed=priceOverridesInOrder(snapshot);
  if(changed.length){
-  const details=changed.slice(0,3).map(x=>x.id+': $'+(x.old/100).toFixed(2)+' a $'+(x.newPrice/100).toFixed(2)).join('\n');
-  const message='ATENCIÓN: '+changed.length+' producto(s) tienen precio modificado.\n'+details+
-   (changed.length>3?'\nOtros '+(changed.length-3)+' productos con ajustes.':'')+
-   '\n\nWhatsApp enviará solo CANTIDAD CÓDIGO. SIFO registrará el precio de su catálogo, NO el precio modificado. Si continúas, debes corregir los precios en SIFO manualmente.\n\n¿Continuar de todos modos?';
-  if(!window.confirm(message)){
-   e.preventDefault();e.stopImmediatePropagation();
-   return; // No abrir WhatsApp ni programar limpieza del carrito.
+  e.preventDefault();e.stopImmediatePropagation();
+  const plan=evaluarAjusteVarios(snapshot);
+  if(plan.status!=='ready'){
+   window.alert('No se envió el pedido.\n'+(plan.reason||'No se puede representar el importe')+
+    '\nLos cambios deben sumar un importe positivo, múltiplo de $0.20. Revisa los precios.');
+   return;
   }
+  guiaVariosOpen(snapshot,plan);
+  return;
  }
- // El onclick nativo abre https://wa.me/… con el formato exacto CANTIDAD CÓDIGO.
- // La limpieza ocurre después del onclick y permite recuperar el pedido anterior.
+ // Pedidos sin precios editados: se conservan el envío y la limpieza originales.
  const ticket={at:Date.now(),cart:snapshot};
  pendingSend=ticket;
  if(sendTimer)clearTimeout(sendTimer);
