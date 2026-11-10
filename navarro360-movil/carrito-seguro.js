@@ -305,6 +305,18 @@ function priceOverridesInOrder(cart){
  }
  return out;
 }
+function calcularPropuestaVarios(cart){
+ const rows=priceOverridesInOrder(cart);
+ if(!rows.length)return {status:'none'};
+ const cents=Math.round(rows.reduce((sum,r)=>sum+(r.newPrice-r.old)*(cart[r.id]||0),0));
+ if(cents<0)return {status:'discount',cents};
+ if(cents===0)return {status:'zero',cents};
+ const qty=Math.round((cents/2000)*1000)/1000;
+ if(qty<=0||qty>9999||!Number.isFinite(qty))return {status:'invalid',cents};
+ const represented=Math.round(qty*2000);
+ if(Math.abs(represented-cents)>1)return {status:'invalid',cents};
+ return {status:'preview',cents,line:String(Number(qty.toFixed(3)))+' 00000',roundingCents:represented-cents};
+}
 function captureSending(e){
  const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
  if(!trigger||trigger.disabled)return;
@@ -316,7 +328,16 @@ function captureSending(e){
   const message='ATENCIÓN: '+changed.length+' producto(s) tienen precio modificado.\n'+details+
    (changed.length>3?'\nOtros '+(changed.length-3)+' productos con ajustes.':'')+
    '\n\nWhatsApp enviará solo CANTIDAD CÓDIGO. SIFO registrará el precio de su catálogo, NO el precio modificado. Si continúas, debes corregir los precios en SIFO manualmente.\n\n¿Continuar de todos modos?';
-  if(!window.confirm(message)){
+  const proposal=calcularPropuestaVarios(snapshot);
+  let nota='';
+  if(proposal.status==='preview'){
+   nota='\n\nBorrador del ajuste: '+proposal.line+' por $'+(proposal.cents/100).toFixed(2)+
+    (proposal.roundingCents?' (redondeo '+(proposal.roundingCents/100).toFixed(2)+')':'')+
+    '\nEsta linea NO se añade todavía al mensaje. Falta verificar compatibilidad de PRODUCTOS VARIOS.';
+  }else if(proposal.status==='discount')nota='\n\nRebaja neta: no puede representarse con PRODUCTOS VARIOS positivo.';
+  else if(proposal.status==='zero')nota='\n\nLos ajustes se compensan en el total: diferencia $0.00.';
+  else nota='\n\nEl ajuste no puede representarse con el codigo 00000.';
+  if(!window.confirm(message+nota)){
    e.preventDefault();e.stopImmediatePropagation();
    return; // No abrir WhatsApp ni programar limpieza del carrito.
   }
