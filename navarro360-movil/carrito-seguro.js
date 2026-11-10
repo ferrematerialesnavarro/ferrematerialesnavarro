@@ -310,10 +310,10 @@ function priceOverridesInOrder(cart){
    Permite hasta 6 decimales para acercar el cálculo al centavo, sujeto a aceptación de bot/SIFO.
 */
 const NAVARRO_WA_ORIGINAL='525639129040';
-const NV_DECIMALES_PRECIO=6;
+const NV_DECIMALES_PRECIO=4; // bot 10/11: decimales codificados admitidos hasta 4 cifras
 function nvNumeroCantidad(n){
  if(!Number.isFinite(n)||n<=0||n>9999)return null;
- const rounded=Math.round(n*1000000)/1000000;
+ const rounded=Math.round(n*10000)/10000;
  if(!Number.isFinite(rounded)||rounded<=0||rounded>9999)return null;
  return String(Number(rounded.toFixed(NV_DECIMALES_PRECIO)));
 }
@@ -431,6 +431,7 @@ function captureQuantityClicks(e){
  if(!card)return;
  const id=card.getAttribute('data-card');
  if(!validId(id))return;
+ if(target.closest?.('[data-card="00000"]'))return;
  if(target.closest?.('button[data-dec]')){lastTap={code:'',at:0};return}
  // Botones de otras funciones dentro de las tarjetas no deben disparar edición.
  const button=target.closest?.('button');
