@@ -385,14 +385,20 @@ function guiaVariosOpen(cart,plan){
  const finishText=document.createElement('p');
  finishText.style.cssText='font-size:12px;line-height:1.5;margin:12px 0;color:#4c5b4f';
  finishText.textContent='Cuando el bot confirme PRODUCTOS VARIOS por el importe indicado, responde OK en WhatsApp y sigue el pago y entrega normales. Si el bot no lo reconoce, NO confirmes la venta; conserva el carrito.';
+ const reset=document.createElement('button');reset.type='button';reset.textContent='Reiniciar pasos si no se enviaron';
+ reset.style.cssText='margin-top:10px;width:100%;min-height:38px;border:1px solid #d5d9dd;background:#fafafa;color:#58615b;border-radius:9px;font:600 12px system-ui';
+ reset.addEventListener('click',()=>{
+  if(!window.confirm('Reinicia sólo si NO enviaste los mensajes anteriores o el bot rechazó la operación. Si los duplicas podría haber ventas repetidas. ¿Reiniciar?'))return;
+  stage=0;persist();refresh();
+ });
  const close=document.createElement('button');close.type='button';close.textContent='Cerrar y conservar carrito';
  close.style.cssText='margin-top:8px;width:100%;min-height:42px;border-radius:10px;border:1px solid #bacfc0;background:#f4faf5;color:#275338;font:750 13px system-ui';
  close.addEventListener('click',()=>modal.remove());
  function refresh(){
-  buttons.forEach((b,i)=>{b.disabled=i>stage;b.style.opacity=b.disabled?'.4':'1'});
+  buttons.forEach((b,i)=>{b.disabled=i!==stage||stage>=3;b.style.opacity=b.disabled?'.4':'1'});
   status.textContent=stage===0?'Comienza por el paso 1.':stage===1?'Abre WhatsApp, envía el pedido y espera el resumen antes del paso 2.':stage===2?'Espera que el bot pregunte el importe antes del paso 3.':'Espera confirmación del importe; después responde OK en WhatsApp.';
  }
- panel.append(title,summary,note,actions,status,finishText,close);modal.appendChild(panel);
+ panel.append(title,summary,note,actions,status,finishText,reset,close);modal.appendChild(panel);
  document.body.appendChild(modal);refresh();close.focus();
 }
 function captureSending(e){
