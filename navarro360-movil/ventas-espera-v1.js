@@ -87,31 +87,34 @@ async function pinDigest(pin,salt){
 function readStaff(){
  try{const p=JSON.parse(localStorage.getItem(STAFF_KEY)||'null');return p&&p.salt&&p.hash?p:null}catch{return null}
 }
-async function staffAllowed(){
- if(Date.now()<unlockedUntil)return true;
+async function setupStaffPin(){
+ if(readStaff())return true;
  if(!window.crypto?.subtle||!window.crypto?.getRandomValues){
-  window.alert('Este dispositivo no permite proteger el precio. Necesita navegador seguro (HTTPS).');return false;
+  window.alert('Este dispositivo no permite proteger precios. Necesitas HTTPS y un navegador actualizado.');return false;
  }
+ const first=window.prompt('Activar caja para vendedores en este dispositivo. Crea un PIN de 6 dígitos. No utilices tu NIP bancario:');
+ if(first===null)return false;
+ if(!/^\d{6}$/.test(first)){window.alert('El PIN debe tener exactamente 6 dígitos.');return false}
+ const again=window.prompt('Repite tu PIN de vendedor:');
+ if(again===null||again!==first){window.alert('Los PIN no coinciden. No se activó la edición.');return false}
+ try{
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const record={salt:hex(salt),hash:await pinDigest(first,salt),version:1};
+  if(!safeStore(STAFF_KEY,record)){window.alert('No se pudo registrar este dispositivo.');return false}
+  unlockedUntil=Date.now()+60000;return true;
+ }catch{window.alert('No se pudo configurar la clave de vendedor.');return false}
+}
+async function staffAllowed(){
  const current=readStaff();
- if(!current){
-  const first=window.prompt('Solo personal de caja. Configura un PIN de vendedor de 6 dígitos EN ESTE DISPOSITIVO. No uses tu NIP bancario.');
-  if(first===null)return false;
-  if(!/^\d{6}$/.test(first)){window.alert('El PIN debe tener 6 dígitos.');return false}
-  const again=window.prompt('Repite el nuevo PIN de vendedor:');
-  if(again===null||again!==first){window.alert('Los PIN no coincidieron. No se habilitó la edición.');return false}
-  try{
-   const salt=crypto.getRandomValues(new Uint8Array(16));
-   const record={salt:hex(salt),hash:await pinDigest(first,salt),version:1};
-   if(!safeStore(STAFF_KEY,record)){window.alert('No se pudo proteger este dispositivo.');return false}
-   unlockedUntil=Date.now()+60000;return true;
-  }catch{window.alert('No se pudo proteger la clave en este dispositivo.');return false}
- }
- const pin=window.prompt('PIN de vendedor para modificar el precio:');
+ if(!current)return false; // Teléfono público: precio fijo, sin edición.
+ if(Date.now()<unlockedUntil)return true;
+ if(!window.crypto?.subtle)return false;
+ const pin=window.prompt('PIN de vendedor para cambiar el precio:');
  if(pin===null)return false;
  if(!/^\d{6}$/.test(pin)){window.alert('PIN incorrecto.');return false}
  try{
   if((await pinDigest(pin,fromHex(current.salt)))!==current.hash){
-   window.alert('PIN incorrecto. El precio permanece sin cambios.');return false;
+   window.alert('PIN incorrecto. El precio no cambió.');return false;
   }
   unlockedUntil=Date.now()+60000;return true;
  }catch{window.alert('No se pudo verificar el PIN.');return false}
@@ -167,7 +170,7 @@ function addPriceEditors(){
   const shown=special>0?p.price:centsPrice/100;
   const txt=money(shown);
   if(button.textContent!==txt)button.textContent=txt;
-  button.disabled=special>0;
+  button.disabled=special>0||!readStaff();
   const sum=line.querySelector('.line-total');
   const lineTotal=special>0?money(special/100):money(centsPrice*cart[id]/100);
   if(sum&&sum.textContent!==lineTotal)sum.textContent=lineTotal;
@@ -363,6 +366,17 @@ function init(){
  window.addEventListener('storage',e=>{if(e.key===KEY)renderWaiting();if(e.key===PRICE_KEY){prices=readObj(PRICE_KEY);schedule()}});
  try{if(sessionStorage.getItem('navarro360_espera_reabrir_v1')==='1'){sessionStorage.removeItem('navarro360_espera_reabrir_v1');setTimeout(()=>$('cart-top')?.click(),150)}}catch{}
  refresh();
+ // La activación de vendedor se abre sólo desde el enlace de configuración
+ // de este mismo sitio. No se muestra un control de configuración en el carrito.
+ if(!readStaff() && /(?:^|[?&])activar_caja=1(?:&|$)/.test(window.location?.search||'')){
+   setupStaffPin().then(ok=>{
+     if(ok){
+       refresh();
+       try{window.history?.replaceState(null,'',window.location.pathname+window.location.hash)}catch{}
+       statusMsg('Acceso de vendedor preparado en este dispositivo.');
+     }
+   });
+ }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
