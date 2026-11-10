@@ -11,6 +11,7 @@ const CLAVO_KEY='navarro_clavos_importe_v1';
 const IMPORTE_KEY='navarro_importes_cents_v1';
 const MAX_DRAFTS=30;
 const STAFF_KEY='navarro360_caja_pin_local_v1';
+const SELLER_UNLOCK_MS=30*60*1000;
 let unlockedUntil=0,pinBusy=false;
 const $=id=>document.getElementById(id);
 const format=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
@@ -101,7 +102,7 @@ async function setupStaffPin(){
   const salt=crypto.getRandomValues(new Uint8Array(16));
   const record={salt:hex(salt),hash:await pinDigest(first,salt),version:1};
   if(!safeStore(STAFF_KEY,record)){window.alert('No se pudo registrar este dispositivo.');return false}
-  unlockedUntil=Date.now()+60000;return true;
+  unlockedUntil=Date.now()+SELLER_UNLOCK_MS;return true;
  }catch{window.alert('No se pudo configurar la clave de vendedor.');return false}
 }
 async function staffAllowed(){
@@ -116,7 +117,7 @@ async function staffAllowed(){
   if((await pinDigest(pin,fromHex(current.salt)))!==current.hash){
    window.alert('PIN incorrecto. El precio no cambió.');return false;
   }
-  unlockedUntil=Date.now()+60000;return true;
+  unlockedUntil=Date.now()+SELLER_UNLOCK_MS;return true;
  }catch{window.alert('No se pudo verificar el PIN.');return false}
 }
 async function askPrice(id){
@@ -354,28 +355,31 @@ function init(){
   e.preventDefault();e.stopPropagation();
   askPrice(target.dataset.nvPrice);
  });
- document.addEventListener('click',e=>{
-   if(e.target.closest('#cart-close,#overlay'))unlockedUntil=0;
- },true);
+ // La sesión de vendedor dura 30 minutos y no caduca al cerrar el carrito.
+ // Nunca enviamos el PIN al bot ni a SIFO.
  new MutationObserver(schedule).observe(lines,{childList:true,subtree:true});
  document.addEventListener('click',e=>{
   if(e.target.closest('#clear-cart,#send-whatsapp,#mobile-whatsapp')){
     setTimeout(()=>{if(Object.keys(freshCart()||{}).length===0){prices={};safeStore(PRICE_KEY,prices);schedule()}},550);
   }
  },true);
- window.addEventListener('storage',e=>{if(e.key===KEY)renderWaiting();if(e.key===PRICE_KEY){prices=readObj(PRICE_KEY);schedule()}});
+ window.addEventListener('storage',e=>{if(e.key===KEY)renderWaiting();if(e.key===PRICE_KEY){prices=readObj(PRICE_KEY);schedule()}if(e.key===STAFF_KEY){unlockedUntil=0;schedule()}});
  try{if(sessionStorage.getItem('navarro360_espera_reabrir_v1')==='1'){sessionStorage.removeItem('navarro360_espera_reabrir_v1');setTimeout(()=>$('cart-top')?.click(),150)}}catch{}
  refresh();
- // La activación de vendedor se abre sólo desde el enlace de configuración
- // de este mismo sitio. No se muestra un control de configuración en el carrito.
- if(!readStaff() && /(?:^|[?&])activar_caja=1(?:&|$)/.test(window.location?.search||'')){
-   setupStaffPin().then(ok=>{
-     if(ok){
-       refresh();
-       try{window.history?.replaceState(null,'',window.location.pathname+window.location.hash)}catch{}
-       statusMsg('Acceso de vendedor preparado en este dispositivo.');
-     }
-   });
+ // Enlace privado de activación del vendedor: registra este navegador o
+ // vuelve a abrir sesión con su PIN. No agrega controles a la vista pública.
+ if(/(?:^|[?&])activar_caja=1(?:&|$)/.test(window.location?.search||'')){
+   (async()=>{
+     const existing=!!readStaff();
+     const granted=existing?await staffAllowed():await setupStaffPin();
+     if(!granted)return;
+     refresh();
+     try{window.history?.replaceState(null,'',window.location.pathname+window.location.hash)}catch{}
+     statusMsg('Equipo vendedor activo en este navegador.');
+     window.alert(existing
+       ?'Acceso de vendedor activado por 30 minutos. Abre el carrito y toca el precio para editar.'
+       :'Esta computadora quedó registrada como equipo vendedor EN ESTE NAVEGADOR. Abre el carrito y toca el precio para editar. Se solicitará el PIN de nuevo al terminar la sesión.');
+   })().catch(()=>window.alert('No se pudo habilitar este navegador como vendedor.'));
  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
