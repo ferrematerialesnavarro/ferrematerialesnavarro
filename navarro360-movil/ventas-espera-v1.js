@@ -149,7 +149,7 @@ async function askPrice(id){
   }
   prices=cleanMap(confirmed,freshCart()||cart,100000000);
   refresh();
-  statusMsg('✓ Precio guardado: '+p.name+' '+money(n/100)+'.');
+  statusMsg('✓ Precio guardado en esta venta: '+p.name+' '+money(n/100)+'.');
   const priceView=Array.from(lines.querySelectorAll('.cart-line')).find(line=>line.querySelector('[data-dec]')?.dataset.dec===id)?.querySelector('.nv-caja-price');
   if(priceView && priceView.textContent!==money(n/100))priceView.textContent=money(n/100);
  }finally{pinBusy=false}
@@ -157,14 +157,10 @@ async function askPrice(id){
 function addPriceEditors(){
  const cart=freshCart();if(!cart)return;
  const cl=readObj(CLAVO_KEY),imp=readObj(IMPORTE_KEY);
- // Fuente de verdad: almacenamiento persistente, no el estado transitorio del dibujo.
- // El carrito puede redibujarse por búsqueda, fotos y cantidad.
+ // V8: NUNCA borrar precios persistidos al redibujar el carrito.
+ // Puede haber instantáneas transitorias mientras cambian los artículos.
  const savedPrices=readObj(PRICE_KEY);
- const filtered=cleanMap(savedPrices,cart,100000000);
- if(Object.keys(cart).length&&Object.keys(savedPrices).some(id=>!cart[id])){
-   if(safeStore(PRICE_KEY,filtered))prices=filtered;
-   else prices=savedPrices;
- }else prices=filtered;
+ prices=cleanMap(savedPrices,cart,100000000);
  for(const line of lines.querySelectorAll('.cart-line')){
   const id=line.querySelector('[data-dec]')?.dataset.dec;
   if(!id||!cart[id]||!catalog.has(id))continue;
@@ -189,6 +185,17 @@ function addPriceEditors(){
   const txt=money(shown);
   if(button.textContent!==txt)button.textContent=txt;
   button.disabled=special>0||!readStaff();
+  // Marca discreta cuando localStorage realmente contiene el nuevo precio.
+  const checked=Number(savedPrices[id])>0&&Number(savedPrices[id])!==Math.round(p.price*100);
+  let marker=small.querySelector('.nv-caja-guardado');
+  if(checked&&!special){
+   if(!marker){
+    marker=document.createElement('span');marker.className='nv-caja-guardado';
+    marker.style.cssText='display:inline-block;margin-left:4px;color:#217242;font-size:11px;font-weight:bold';
+    marker.textContent='✓';marker.title='Precio guardado en esta venta';
+    small.appendChild(marker);
+   }
+  }else if(marker)marker.remove();
   const sum=line.querySelector('.line-total');
   const lineTotal=special>0?money(special/100):money(centsPrice*cart[id]/100);
   if(sum&&sum.textContent!==lineTotal)sum.textContent=lineTotal;
@@ -384,6 +391,27 @@ function init(){
  window.addEventListener('pageshow',()=>{prices=cleanMap(readObj(PRICE_KEY),freshCart()||{},100000000);schedule()});
  try{if(sessionStorage.getItem('navarro360_espera_reabrir_v1')==='1'){sessionStorage.removeItem('navarro360_espera_reabrir_v1');setTimeout(()=>$('cart-top')?.click(),150)}}catch{}
  refresh();
+ // Diagnóstico bajo enlace explícito: no muestra claves ni datos de vendedor.
+ if(/(?:^|[?&])diagnostico_caja=1(?:&|$)/.test(window.location?.search||'')){
+   const button=makeButton('🔎 Comprobar guardado','nv-caja-secondary');
+   button.style.cssText='position:fixed;right:12px;bottom:10px;z-index:2147483000;background:#e6f2e9;color:#183c27;border:2px solid #3b8860;border-radius:12px;padding:10px 12px;font:700 13px system-ui';
+   button.addEventListener('click',()=>{
+     const current=freshCart()||{},stored=readObj(PRICE_KEY);
+     const records=Object.keys(current).slice(0,6).map(id=>{
+       const base=catalog.get(id)?.price;
+       const applied=Number(stored[id]||0);
+       return id+' · Base $'+(Number(base)||0).toFixed(2)+
+         ' · Guardado '+(applied>0?'$'+(applied/100).toFixed(2):'NO');
+     });
+     window.alert('Diagnóstico de caja V8\n'+
+       'Registro vendedor: '+(!!readStaff()?'SÍ':'NO')+
+       '\nArtículos activos: '+Object.keys(current).length+
+       '\nPrecios guardados: '+Object.keys(stored).length+
+       '\n'+(records.join('\n')||'Carrito vacío')+
+       '\n\nNo elimines los datos del navegador.');
+   });
+   document.body.appendChild(button);
+ }
  // El enlace de instalación sólo muestra este cuadro en el equipo que lo abra.
  // El PIN se solicita DESPUÉS del clic para que el navegador no bloquee los diálogos.
  if(/(?:^|[?&])activar_caja=1(?:&|$)/.test(window.location?.search||'')){
