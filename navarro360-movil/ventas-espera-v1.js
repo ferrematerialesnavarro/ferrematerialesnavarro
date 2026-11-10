@@ -26,7 +26,7 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const qtyValid=(id,q)=>catalog.has(id)&&typeof q==='number'&&Number.isFinite(q)&&q>0&&q<=9999&&Math.abs(q*1000-Math.round(q*1000))<1e-6&&(bridge()?.canFractional?.(id)||Number.isInteger(q));
 const cartValid=cart=>cart&&typeof cart==='object'&&!Array.isArray(cart)&&Object.keys(cart).length<=300&&Object.keys(cart).every(id=>qtyValid(id,cart[id]));
 const freshCart=()=>{try{const x=bridge()?.snapshot?.();return cartValid(x)?x:null}catch{return null}};
-const cents=s=>{const str=String(s).trim().replace(',','.');if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(str))return null;const [a,b='']=str.split('.');const n=Number(a)*100+Number((b+'00').slice(0,2));return Number.isSafeInteger(n)&&n>0&&n<=100000000?n:null};
+const cents=s=>{const str=String(s).trim().replace(/^\$\s*/,'').replace(/\s*(?:pesos?|mxn)\s*$/i,'').replace(/\s/g,'').replace(',','.');if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(str))return null;const [a,b='']=str.split('.');const n=Number(a)*100+Number((b+'00').slice(0,2));return Number.isSafeInteger(n)&&n>0&&n<=100000000?n:null};
 const safeStore=(key,val)=>{try{localStorage.setItem(key,JSON.stringify(val));return true}catch{return false}};
 const draftMoney=(snap)=>{
  const c=snap.cart||{},cl=snap.clavos||{},imp=snap.importes||{},prices=snap.prices||{};
@@ -131,23 +131,40 @@ async function askPrice(id){
  pinBusy=true;
  try{
   if(!(await staffAllowed()))return;
-  const before=Number(prices[id]||Math.round(p.price*100));
+  const current=readObj(PRICE_KEY);
+  const before=Number(current[id]||Math.round(p.price*100));
   const typed=window.prompt('Precio para '+p.name+' ($). Solo se aplica a esta venta:',(before/100).toFixed(2));
   if(typed===null)return;
   const n=cents(typed);
   if(n===null){window.alert('Precio inválido. Máximo dos decimales.');return}
-  const next={...prices};if(n===Math.round(p.price*100))delete next[id];else next[id]=n;
-  if(!safeStore(PRICE_KEY,next)){window.alert('No se pudo guardar este precio.');return}
-  prices=next;refresh();
+  // Guardar el precio por código antes de dibujarlo, y comprobar su lectura.
+  // Esto evita perderlo cuando el carrito vuelve a dibujarse o se abre otra venta.
+  const next={...readObj(PRICE_KEY)};
+  if(n===Math.round(p.price*100))delete next[id];else next[id]=n;
+  if(!safeStore(PRICE_KEY,next)){window.alert('No se pudo guardar el precio en este navegador. No se aplicó el cambio.');return}
+  const confirmed=readObj(PRICE_KEY);
+  if((confirmed[id]||0)!==(next[id]||0)){
+   window.alert('El navegador no conservó el precio. Revisa que no estés en modo privado.');
+   return;
+  }
+  prices=cleanMap(confirmed,freshCart()||cart,100000000);
+  refresh();
+  statusMsg('✓ Precio guardado: '+p.name+' '+money(n/100)+'.');
+  const priceView=Array.from(lines.querySelectorAll('.cart-line')).find(line=>line.querySelector('[data-dec]')?.dataset.dec===id)?.querySelector('.nv-caja-price');
+  if(priceView && priceView.textContent!==money(n/100))priceView.textContent=money(n/100);
  }finally{pinBusy=false}
 }
 function addPriceEditors(){
  const cart=freshCart();if(!cart)return;
  const cl=readObj(CLAVO_KEY),imp=readObj(IMPORTE_KEY);
- const activeCodes=new Set(Object.keys(cart));
- if(Object.keys(prices).some(id=>!activeCodes.has(id))){
-  prices=Object.fromEntries(Object.entries(prices).filter(([id])=>activeCodes.has(id)));safeStore(PRICE_KEY,prices);
- }
+ // Fuente de verdad: almacenamiento persistente, no el estado transitorio del dibujo.
+ // El carrito puede redibujarse por búsqueda, fotos y cantidad.
+ const savedPrices=readObj(PRICE_KEY);
+ const filtered=cleanMap(savedPrices,cart,100000000);
+ if(Object.keys(cart).length&&Object.keys(savedPrices).some(id=>!cart[id])){
+   if(safeStore(PRICE_KEY,filtered))prices=filtered;
+   else prices=savedPrices;
+ }else prices=filtered;
  for(const line of lines.querySelectorAll('.cart-line')){
   const id=line.querySelector('[data-dec]')?.dataset.dec;
   if(!id||!cart[id]||!catalog.has(id))continue;
@@ -232,7 +249,7 @@ function capture(){
  if(!cart||!Object.keys(cart).length)return null;
  const cl=cleanMap(readObj(CLAVO_KEY),cart,99999999);
  const imp=cleanMap(readObj(IMPORTE_KEY),cart,99999999);
- return {cart:clone(cart),clavos:cl,importes:imp,prices:cleanMap(prices,cart,100000000)};
+ return {cart:clone(cart),clavos:cl,importes:imp,prices:cleanMap(readObj(PRICE_KEY),cart,100000000)};
 }
 function saveWaiting(){
  const snap=capture();if(!snap){window.alert('El carrito está vacío o tiene una cantidad inválida.');return}
@@ -364,6 +381,7 @@ function init(){
   }
  },true);
  window.addEventListener('storage',e=>{if(e.key===KEY)renderWaiting();if(e.key===PRICE_KEY){prices=readObj(PRICE_KEY);schedule()}if(e.key===STAFF_KEY){unlockedUntil=0;schedule()}});
+ window.addEventListener('pageshow',()=>{prices=cleanMap(readObj(PRICE_KEY),freshCart()||{},100000000);schedule()});
  try{if(sessionStorage.getItem('navarro360_espera_reabrir_v1')==='1'){sessionStorage.removeItem('navarro360_espera_reabrir_v1');setTimeout(()=>$('cart-top')?.click(),150)}}catch{}
  refresh();
  // El enlace de instalación sólo muestra este cuadro en el equipo que lo abra.
