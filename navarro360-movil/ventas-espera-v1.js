@@ -366,20 +366,50 @@ function init(){
  window.addEventListener('storage',e=>{if(e.key===KEY)renderWaiting();if(e.key===PRICE_KEY){prices=readObj(PRICE_KEY);schedule()}if(e.key===STAFF_KEY){unlockedUntil=0;schedule()}});
  try{if(sessionStorage.getItem('navarro360_espera_reabrir_v1')==='1'){sessionStorage.removeItem('navarro360_espera_reabrir_v1');setTimeout(()=>$('cart-top')?.click(),150)}}catch{}
  refresh();
- // Enlace privado de activación del vendedor: registra este navegador o
- // vuelve a abrir sesión con su PIN. No agrega controles a la vista pública.
+ // El enlace de instalación sólo muestra este cuadro en el equipo que lo abra.
+ // El PIN se solicita DESPUÉS del clic para que el navegador no bloquee los diálogos.
  if(/(?:^|[?&])activar_caja=1(?:&|$)/.test(window.location?.search||'')){
-   (async()=>{
-     const existing=!!readStaff();
-     const granted=existing?await staffAllowed():await setupStaffPin();
-     if(!granted)return;
-     refresh();
-     try{window.history?.replaceState(null,'',window.location.pathname+window.location.hash)}catch{}
-     statusMsg('Equipo vendedor activo en este navegador.');
-     window.alert(existing
-       ?'Acceso de vendedor activado por 30 minutos. Abre el carrito y toca el precio para editar.'
-       :'Esta computadora quedó registrada como equipo vendedor EN ESTE NAVEGADOR. Abre el carrito y toca el precio para editar. Se solicitará el PIN de nuevo al terminar la sesión.');
-   })().catch(()=>window.alert('No se pudo habilitar este navegador como vendedor.'));
+   const card=document.createElement('section');card.id='navarro-activar-equipo-vendedor';
+   card.setAttribute('role','dialog');card.setAttribute('aria-label','Activación de equipo vendedor');
+   card.style.cssText='position:fixed;inset:0;background:#061a20b8;z-index:2147483400;display:grid;place-items:center;padding:16px;box-sizing:border-box';
+   const content=document.createElement('div');
+   content.style.cssText='max-width:390px;width:100%;box-sizing:border-box;background:white;color:#183a2a;border-radius:16px;padding:22px;box-shadow:0 16px 50px #031a23a0;font:14px/1.5 system-ui';
+   const title=document.createElement('h3');title.textContent='Equipo vendedor · NAVARRO 360';title.style.cssText='font:800 19px/1.3 system-ui;margin:0 0 10px';
+   const description=document.createElement('p');
+   const existing=!!readStaff();
+   description.textContent=existing?'Este navegador ya tiene PIN de vendedor. Ingresa tu PIN para habilitar los precios.':'Registra esta computadora en este navegador para poder modificar precios desde el carrito. Crea tu PIN de vendedor de seis dígitos.';
+   description.style.cssText='margin:0 0 16px;font:13px/1.5 system-ui';
+   const activate=document.createElement('button');activate.type='button';
+   activate.textContent=existing?'🔓 Entrar como vendedor':'🔐 Registrar esta computadora';
+   activate.style.cssText='background:#205a38;color:white;border:0;border-radius:10px;padding:12px;width:100%;min-height:46px;font:bold 14px system-ui;cursor:pointer';
+   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Continuar sin activar';
+   cancel.style.cssText='margin-top:9px;background:#edf3ef;color:#385740;border:0;border-radius:10px;padding:11px;width:100%;min-height:42px;font:600 13px system-ui;cursor:pointer';
+   const clearLink=()=>{try{window.history?.replaceState(null,'',window.location.pathname+window.location.hash)}catch{}};
+   cancel.addEventListener('click',()=>{clearLink();card.remove()});
+   activate.addEventListener('click',async()=>{
+     activate.disabled=true;
+     try{
+       const granted=existing?await staffAllowed():await setupStaffPin();
+       if(!granted){activate.disabled=false;return}
+       refresh();clearLink();
+       title.textContent='✓ Equipo vendedor activo';
+       description.textContent='Ya puedes abrir el carrito y tocar directamente el precio del artículo. El PIN volverá a solicitarse al terminar la sesión.';
+       activate.disabled=false;
+       // El clic original quedó registrado: sustituimos el botón para evitar
+       // volver a pedir registro al pulsar «Abrir carrito».
+       const open=document.createElement('button');open.type='button';
+       open.textContent='🛒 Abrir carrito';open.style.cssText=activate.style.cssText;
+       open.addEventListener('click',()=>{card.remove();$('cart-top')?.click()});
+       activate.replaceWith(open);
+       cancel.textContent='Cerrar';
+       statusMsg('Equipo vendedor habilitado en este navegador.');
+     }catch{
+       window.alert('No se pudo activar este navegador. Revisa que no estén bloqueadas las ventanas de diálogo.');
+       activate.disabled=false;
+     }
+   });
+   content.append(title,description,activate,cancel);card.appendChild(content);
+   document.body.appendChild(card);activate.focus();
  }
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
