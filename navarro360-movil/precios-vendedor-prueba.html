@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#112e23">
+<title>NAVARRO 360 · Prueba de precios para vendedor</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#1d3029;background:#edf2ef}
+*{box-sizing:border-box}body{margin:0}header{background:linear-gradient(125deg,#0f3528,#174e3a);color:#fff;padding:19px 16px}header small{display:block;opacity:.8;margin-top:4px}header strong{font-size:24px}
+main{max-width:700px;margin:auto;padding:14px 12px 56px}.panel{background:#fff;border:1px solid #d8e4dc;border-radius:17px;padding:17px;margin:12px 0;box-shadow:0 2px 10px #1135230b}
+h1,h2{font-size:19px;margin:0 0 12px}h2{font-size:17px}.muted{color:#587066;font-size:13px;line-height:1.5}
+.notice{background:#fff6dc;border:1px solid #f0d69b;padding:12px;border-radius:12px;font-size:13px;line-height:1.55}
+label{font-size:13px;font-weight:750;display:block;margin:12px 0 5px}
+input{width:100%;font:inherit;font-size:16px;border-radius:11px;border:1px solid #aebfb5;padding:13px;background:#fff;color:#183b2b}
+input:focus{outline:2px solid #90c6a3;border-color:#267947}
+button{cursor:pointer;border:0;border-radius:10px;background:#18613e;color:#fff;padding:12px 14px;font:inherit;font-weight:750;min-height:43px}
+button:disabled{opacity:.48;cursor:not-allowed}button.ghost{background:#e9f2eb;color:#234b32}button.danger{background:#fff0eb;color:#9b4033}
+.results{display:grid;gap:7px;max-height:300px;overflow:auto}.result{width:100%;text-align:left;background:#eff6f0;color:#1c3527;border:1px solid #d9e7dd;padding:12px}
+.result b,.result small{display:block}.result small{color:#53685a;margin-top:4px;font-weight:500}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.item{border-top:1px solid #e1eae4;padding:15px 0}.item:first-child{border-top:0}
+.itemhead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.itemhead b{font-size:14px;line-height:1.35}.itemhead small{display:block;color:#5c7264;margin-top:3px}
+.item input{font-size:17px;font-variant-numeric:tabular-nums}.amount{font-size:14px;font-weight:700;margin:10px 0 5px}.price-meta{font-size:12px;color:#627166}
+.pair{display:flex;align-items:center;justify-content:space-between;padding:7px 0;gap:10px;border-bottom:1px solid #edf2ec}
+.pair strong{font-variant-numeric:tabular-nums;text-align:right}.pair.total{font-size:19px;border:0;margin-top:5px}
+pre{white-space:pre-wrap;word-wrap:break-word;background:#edf4ef;border-radius:12px;padding:14px;line-height:1.8;font-size:15px}
+.actions{display:flex;gap:9px;flex-wrap:wrap}.actions button{flex:1}.foot{font-size:12px;color:#607064}
+a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button{padding:10px}}
+</style>
+</head>
+<body>
+<header><strong>FERREMATERIALES NAVARRO</strong><small>NAVARRO 360 · Laboratorio de precios · iPhone y computadora</small></header>
+<main>
+<section class="panel">
+<h1>Prueba de edición de precios</h1>
+<div class="notice"><b>Simulador, NO caja activa.</b> No registra ni envía pedidos a WhatsApp o SIFO, no cambia el precio oficial, no modifica el carrito de clientes ni valida permisos de empleado. La autorización real de vendedores necesitará verificarse en el bot o en un servidor.</div>
+<p class="muted">Puedes probar cómo editar el precio de cualquier artículo, incluso cemento por saco, y revisar la cantidad fraccionaria que se generaría para SIFO.</p>
+</section>
+<section class="panel">
+<h2>1. Buscar producto</h2>
+<label for="search">Código o nombre</label>
+<input id="search" type="search" placeholder="Ej. 7777001648 o cemento gris" autocomplete="off">
+<p class="muted" id="catalog-status" role="status">Cargando catálogo de NAVARRO 360…</p>
+<div class="results" id="results"></div>
+</section>
+<section class="panel">
+<h2>2. Carrito de prueba</h2>
+<div id="cart"><p class="muted">Añade un producto para comenzar.</p></div>
+<div class="actions"><button class="danger" type="button" id="clear" disabled>Vaciar prueba</button></div>
+</section>
+<section class="panel">
+<h2>3. Equivalencia para SIFO</h2>
+<div class="pair"><span>Total con precios editados</span><strong id="desired">$0.00</strong></div>
+<div class="pair"><span>Total estimado por fracciones</span><strong id="estimated">$0.00</strong></div>
+<div class="pair total"><span>Diferencia de redondeo</span><strong id="delta">$0.00</strong></div>
+<p class="muted">La cantidad se convierte a un máximo de 4 decimales. SIFO podría tener reglas adicionales por producto. Comprueba la venta real antes de habilitarlo.</p>
+<h2>Vista previa — CANTIDAD CÓDIGO</h2>
+<pre id="preview">Agrega productos para ver el mensaje.</pre>
+<div class="actions"><button type="button" id="copy" disabled>Copiar vista previa</button><button type="button" class="ghost" id="reset" disabled>Restaurar precios base</button></div>
+<p class="foot" id="message"></p>
+</section>
+<section class="panel"><a href="./index.html">Volver a la página normal de NAVARRO 360</a><p class="foot">Esta prueba usa una copia del catálogo publicada en la página; confirma los precios actualizados en SIFO antes de cualquier operación comercial.</p></section>
+</main>
+<script>
+(function () {
+'use strict';
+var STORE='navarro360_vendedor_simulador_v1';
+var db=new Map(), cart={};
+var $=function(id){return document.getElementById(id)};
+var mx=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
+var norm=function(t){return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim()};
+var escapeText=function(t){return String(t).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var cash=function(c){return mx.format(c/100)};
+function parseCents(input){
+ var s=String(input).trim().replace(',','.');
+ if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(s))return null;
+ var t=s.split('.'),n=Number(t[0])*100+Number(((t[1]||'')+'00').slice(0,2));
+ return Number.isSafeInteger(n)&&n>0&&n<=999999999?n:null;
+}
+function parseQty(input){
+ var s=String(input).trim().replace(',','.');
+ if(!/^\d{1,4}(?:\.\d{1,3})?$/.test(s))return null;
+ var n=Number(s);
+ return Number.isFinite(n)&&n>0&&n<=9999?n:null;
+}
+function loadSaved(){
+ try{var prev=JSON.parse(localStorage.getItem(STORE)||'{}');if(prev&&typeof prev==='object'&&!Array.isArray(prev))cart=prev}catch(_){cart={}}
+ for(var id of Object.keys(cart)){
+  var p=db.get(id),v=cart[id];
+  if(!p||!v||parseQty(v.qty)===null||!Number.isSafeInteger(v.cents)||v.cents<1)delete cart[id];
+ }
+}
+function save(){
+ try{localStorage.setItem(STORE,JSON.stringify(cart))}catch(e){$('message').textContent='Tu navegador no permite guardar este borrador.'}
+}
+function extractCatalog(html){
+ var marker='window.NAVARRO_DB=',at=html.indexOf(marker);
+ if(at<0)throw Error('No se encontró el catálogo');
+ var start=html.indexOf('[',at+marker.length),depth=0,inString=false,escaped=false,end=-1;
+ if(start<0)throw Error('Falta el inicio del catálogo');
+ for(var i=start;i<html.length;i++){
+  var c=html[i];
+  if(inString){
+   if(escaped){escaped=false;continue}
+   if(c==='\\'){escaped=true;continue}
+   if(c==='"'){inString=false}
+  }else{
+   if(c==='"'){inString=true;continue}
+   if(c==='[')depth++;
+   if(c===']'){depth--;if(depth===0){end=i+1;break}}
+  }
+ }
+ if(end<0)throw Error('Falta el cierre del catálogo');
+ return JSON.parse(html.slice(start,end));
+}
+function search(){
+ var s=norm($('search').value),host=$('results');
+ if(!s){host.innerHTML='';return}
+ var rows=[],parts=s.split(/\s+/),numeric=/^\d+$/.test(s);
+ if(numeric&&db.has(s)){rows=[db.get(s)]}
+ else if(!numeric && s.length>=2){
+  for(var p of db.values()){if(parts.every(function(w){return p.norm.includes(w)})){rows.push(p);if(rows.length>=15)break}}
+ }
+ host.innerHTML=rows.length?rows.map(function(p){
+  return '<button type="button" class="result" data-add="'+p.id+'"><b>'+escapeText(p.name)+'</b><small>Código '+p.id+' · Precio base '+cash(p.baseCents)+'</small></button>';
+ }).join(''):'<p class="muted">No se encontraron coincidencias. Prueba el código exacto o un nombre más preciso.</p>';
+}
+function add(id){var p=db.get(id);if(!p)return;if(!cart[id])cart[id]={qty:1,cents:p.baseCents};save();render();$('search').value='';$('results').innerHTML=''}
+function linesForCart(){
+ var lines=[],desired=0,estimated=0,invalid=false,warnings=0;
+ for(var id of Object.keys(cart)){
+  var p=db.get(id),v=cart[id];if(!p||!v)continue;
+  var qty=parseQty(v.qty),cents=v.cents;
+  if(qty===null||!Number.isSafeInteger(cents)||cents<=0||p.baseCents<=0){invalid=true;continue}
+  var target=Math.round(qty*cents);
+  var converted=Number(((qty*cents)/p.baseCents).toFixed(4));
+  if(!Number.isFinite(converted)||converted<=0||converted>9999){invalid=true;continue}
+  var projected=Math.round(converted*p.baseCents);
+  if(Math.abs(projected-target)>1)warnings++;
+  desired+=target;estimated+=projected;
+  lines.push(String(converted)+' '+id);
+ }
+ return {lines:lines,desired:desired,estimated:estimated,invalid:invalid,warnings:warnings};
+}
+function render(){
+ var ids=Object.keys(cart);
+ $('cart').innerHTML=ids.length?ids.map(function(id){
+  var p=db.get(id),v=cart[id];if(!p)return '';
+  var q=parseQty(v.qty)||1;
+  return '<div class="item"><div class="itemhead"><div><b>'+escapeText(p.name)+'</b><small>Código '+id+' · Base '+cash(p.baseCents)+'</small></div><button class="danger" type="button" data-del="'+id+'" aria-label="Quitar '+escapeText(p.name)+'">✕</button></div>'+
+    '<div class="grid"><div><label for="qty-'+id+'">Cantidad</label><input id="qty-'+id+'" type="text" inputmode="decimal" data-field="qty" data-id="'+id+'" value="'+escapeText(v.qty)+'"></div>'+
+    '<div><label for="price-'+id+'">Precio aplicado ($)</label><input id="price-'+id+'" type="text" inputmode="decimal" data-field="price" data-id="'+id+'" value="'+(v.cents/100).toFixed(2)+'"></div></div>'+
+    '<div class="amount">Importe solicitado: '+cash(Math.round(q*v.cents))+'</div><span class="price-meta">El precio original no se modifica.</span></div>';
+ }).join(''):'<p class="muted">Añade un producto para comenzar.</p>';
+ $('clear').disabled=!ids.length;$('reset').disabled=!ids.length;
+ updateSummary();
+}
+function updateSummary(){
+ var result=linesForCart(),ok=!result.invalid&&result.lines.length===Object.keys(cart).length&&result.lines.length>0;
+ $('desired').textContent=cash(result.desired);
+ $('estimated').textContent=cash(result.estimated);
+ var diff=result.estimated-result.desired;
+ $('delta').textContent=(diff>0?'+':'')+cash(diff);
+ $('preview').textContent=ok?result.lines.join('\n'):(result.invalid?'Corrige las cantidades o precios inválidos.':'Agrega productos para ver el mensaje.');
+ $('copy').disabled=!ok;
+ $('message').textContent=result.warnings?'ATENCIÓN: '+result.warnings+' producto(s) presentan una diferencia de más de $0.01 entre lo cobrado y la cantidad equivalente.':'';
+}
+$('search').addEventListener('input',search);
+$('results').addEventListener('click',function(e){var b=e.target.closest('[data-add]');if(b)add(b.dataset.add)});
+$('cart').addEventListener('change',function(e){
+ var input=e.target.closest('[data-field]');if(!input)return;
+ var v=cart[input.dataset.id];if(!v)return;
+ if(input.dataset.field==='qty'){
+  var q=parseQty(input.value);
+  if(q===null){alert('Cantidad inválida. Usa valores positivos con máximo 3 decimales.');render();return}
+  v.qty=q;
+ }else{
+  var c=parseCents(input.value);
+  if(c===null){alert('Precio inválido. Introduce pesos con hasta 2 decimales.');render();return}
+  v.cents=c;
+ }
+ save();render();
+});
+$('cart').addEventListener('click',function(e){var b=e.target.closest('[data-del]');if(!b)return;delete cart[b.dataset.del];save();render()});
+$('clear').addEventListener('click',function(){if(confirm('¿Vaciar sólo la lista de prueba?')){cart={};save();render()}});
+$('reset').addEventListener('click',function(){for(var id of Object.keys(cart))if(db.has(id))cart[id].cents=db.get(id).baseCents;save();render()});
+$('copy').addEventListener('click',async function(){
+ var res=linesForCart();
+ if(res.invalid||!res.lines.length)return;
+ try{await navigator.clipboard.writeText(res.lines.join('\n'));$('message').textContent='Vista previa copiada. NO es una venta: revisa antes de enviarla manualmente al bot.'}
+ catch(_){$('message').textContent='No se pudo copiar automáticamente; selecciona el texto de la vista previa.'}
+});
+fetch('./index.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.text()})
+ .then(function(html){
+  var raw=extractCatalog(html);
+  for(var x of raw){if(!Array.isArray(x)||x.length<3)continue;
+   var id=String(x[0]),baseCents=Math.round(Number(x[2])*100);
+   if(!/^\d{5,30}$/.test(id)||!Number.isSafeInteger(baseCents)||baseCents<1||!x[1])continue;
+   db.set(id,{id:id,name:String(x[1]),norm:norm(x[1]),baseCents:baseCents});
+  }
+  if(!db.size)throw Error('El catálogo está vacío');
+  $('catalog-status').textContent='Catálogo cargado: '+db.size.toLocaleString('es-MX')+' productos · Precios tomados de la web';
+  loadSaved();render();search();
+ }).catch(function(err){$('catalog-status').textContent='No se pudo cargar el catálogo: '+err.message+'. Abre esta página con conexión a internet.';render()});
+})();
+</script>
+</body></html>
