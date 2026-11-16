@@ -34,6 +34,34 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 .chip-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:11px 0}
 .chip-row button{padding:10px 4px;min-height:42px;background:#e8f3eb;color:#175c35;border:1px solid #c6dfcd;font-size:13px}
 .cash-value{font-size:25px!important;font-weight:800!important;letter-spacing:-.02em}
+
+.checkout-area{border-top:2px solid #e4efe7;padding-top:14px;margin-top:15px}
+.checkout-total{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-bottom:11px;font-size:14px;font-weight:750}
+.checkout-total strong{font-size:24px;font-variant-numeric:tabular-nums}
+.checkout-cta{display:grid;gap:9px}
+.checkout-cta button{width:100%;font-size:15px}
+.checkout-cta .sale-btn,.sale-btn{background:linear-gradient(110deg,#0e6a43,#168454);color:#fff}
+.checkout-cta .preview-btn{border:1px solid #a7d0b5;background:#edf6ef;color:#16543a}
+.checkout-tip{margin:9px 0 0;font-size:12px;color:#68756f;line-height:1.45}
+.checkout-overlay[hidden],.checkout-sticky[hidden],#demo-checkout[hidden],.payment-cash[hidden],#receipt[hidden],#checkout-form[hidden]{display:none!important}
+.checkout-overlay{position:fixed;inset:0;z-index:8000;background:#061910cc;display:flex;align-items:center;justify-content:center;padding:12px}
+.checkout-modal{background:#fff;color:#1b3027;border-radius:20px;padding:19px;width:min(100%,500px);max-height:calc(100dvh - 24px);overflow:auto;box-shadow:0 25px 50px #0006}
+.checkout-modal h2{margin:0 0 7px}.modal-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.modal-head button{width:40px;min-height:40px;padding:5px;background:#eef4ee;color:#16372b}
+.pay-methods{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pay-methods button{min-height:57px;background:#eff4ef;color:#23523a;border:1px solid #caddd0;padding:7px 4px;font-size:12px}
+.pay-methods button.active{border-color:#10734a;background:#def4e5;outline:1px solid #10734a}
+#pay-cash{font-size:24px;font-weight:750}
+.pay-status{margin:10px 0;padding:12px;background:#f4f8f4;border-radius:12px;font-size:13px;line-height:1.45}
+.pay-status.warning{background:#fff0e7;color:#a33f2a}.pay-status.good{background:#e8f6e8;color:#176238}
+.pay-actions{display:grid;gap:9px;margin-top:14px}
+.pay-actions button{width:100%}
+.receipt-title{font-size:22px;font-weight:850;color:#14613e;margin-bottom:12px}
+.receipt-note{margin-top:13px;font-size:12px}
+.checkout-sticky{display:none}
+@media(max-width:720px){main{padding-bottom:150px}.checkout-sticky:not([hidden]){position:fixed;z-index:4000;bottom:0;left:0;right:0;background:#fff;display:flex;gap:8px;align-items:center;justify-content:space-between;box-shadow:0 -5px 22px #06291a2a;border-top:1px solid #dce8dd;padding:10px 12px calc(11px + env(safe-area-inset-bottom));}
+.checkout-sticky .sticky-label{display:block;font-size:11px;color:#638074}.checkout-sticky strong{font-size:19px;font-variant-numeric:tabular-nums}
+.checkout-sticky button{font-size:13px;padding:11px 12px;min-width:132px}}
 </style>
 </head>
 <body>
@@ -54,6 +82,14 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <section class="panel">
 <h2>2. Carrito de prueba</h2>
 <div id="cart"><p class="muted">Añade un producto para comenzar.</p></div>
+<div id="demo-checkout" class="checkout-area" hidden>
+ <div class="checkout-total"><span>TOTAL A COBRAR</span><strong id="checkout-total">$0.00</strong></div>
+ <div class="checkout-cta">
+  <button class="sale-btn" id="sale-cart" type="button">💳 COBRAR VENTA · PRUEBA</button>
+  <button class="preview-btn" id="whatsapp-cart" type="button">💬 Pedido WhatsApp · Vista previa</button>
+ </div>
+ <p class="checkout-tip">El botón se integra aquí, al final del carrito. Son pruebas sin venta real ni envío automático.</p>
+</div>
 <div class="actions"><button class="danger" type="button" id="clear" disabled>Vaciar prueba</button></div>
 </section>
 <section class="panel">
@@ -78,6 +114,41 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 </section>
 <section class="panel"><a href="./index.html">Volver a la página normal de NAVARRO 360</a><p class="foot">Esta prueba usa una copia del catálogo publicada en la página; confirma los precios actualizados en SIFO antes de cualquier operación comercial.</p></section>
 </main>
+<div id="demo-sticky" class="checkout-sticky" hidden>
+ <div><span class="sticky-label">TOTAL DEL CARRITO · PRUEBA</span><strong id="sticky-total">$0.00</strong></div>
+ <button type="button" id="sale-sticky" class="sale-btn">💳 COBRAR VENTA</button>
+</div>
+<div class="checkout-overlay" id="checkout-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="checkout-title">
+ <div class="checkout-modal">
+  <div class="modal-head"><h2 id="checkout-title">Cobrar venta · Prueba</h2><button type="button" id="checkout-close" aria-label="Cerrar cobro">✕</button></div>
+  <div class="notice">DEMOSTRACIÓN. No recibe dinero, no registra pagos, no envía WhatsApp ni modifica SIFO.</div>
+  <div id="checkout-form">
+   <div class="pair total"><span>Total de la venta</span><strong id="pay-total">$0.00</strong></div>
+   <label>Forma de pago (simulada)</label>
+   <div class="pay-methods" role="group" aria-label="Elegir forma de pago">
+    <button type="button" data-pay="cash" class="active">💵 Efectivo</button>
+    <button type="button" data-pay="transfer">🏦 Transferencia</button>
+    <button type="button" data-pay="credit">🧾 Por cobrar</button>
+   </div>
+   <div class="payment-cash" id="pay-cash-fields">
+    <label for="pay-cash">Efectivo recibido ($)</label>
+    <input id="pay-cash" type="text" inputmode="decimal" placeholder="Ej. 200.00" autocomplete="off">
+    <div class="chip-row"><button type="button" data-paycash="100">$100</button><button type="button" data-paycash="200">$200</button><button type="button" data-paycash="500">$500</button><button type="button" data-paycash="1000">$1,000</button></div>
+    <div class="actions"><button type="button" class="ghost" id="pay-exact">Importe exacto</button></div>
+   </div>
+   <div id="pay-status" class="pay-status" aria-live="polite">Introduce el dinero recibido.</div>
+   <div class="pay-actions"><button type="button" id="pay-confirm" class="sale-btn" disabled>Finalizar cobro simulado</button><button type="button" class="ghost" id="pay-cancel">Volver al carrito</button></div>
+  </div>
+  <section id="receipt" hidden>
+   <div class="receipt-title">✓ Venta simulada correctamente</div>
+   <div class="pair"><span>Importe</span><strong id="receipt-total"></strong></div>
+   <div class="pair"><span>Estado simulado</span><strong id="receipt-status"></strong></div>
+   <div class="pair"><span>Cambio simulado</span><strong id="receipt-change"></strong></div>
+   <p class="muted receipt-note">Este resultado sólo se muestra en tu pantalla. No representa un pago recibido ni una venta guardada en SIFO.</p>
+   <div class="pay-actions"><button type="button" id="receipt-new">Nueva venta de prueba</button><button type="button" class="ghost" id="receipt-back">Revisar carrito</button></div>
+  </section>
+ </div>
+</div>
 <script>
 (function () {
 'use strict';
@@ -181,7 +252,19 @@ function updateSummary(){
  $('preview').textContent=ok?result.lines.join('\n'):(result.invalid?'Corrige las cantidades o precios inválidos.':'Agrega productos para ver el mensaje.');
  $('copy').disabled=!ok;
  updateCash(result);
+ updateCheckout(result,ok);
  $('message').textContent=result.warnings?'ATENCIÓN: '+result.warnings+' producto(s) presentan una diferencia de más de $0.01 entre lo cobrado y la cantidad equivalente.':'';
+}
+function updateCheckout(result,valid){
+ var hasItems=Object.keys(cart).length>0;
+ $('demo-checkout').hidden=!hasItems;
+ $('demo-sticky').hidden=!hasItems;
+ $('checkout-total').textContent=cash(result.desired);
+ $('sticky-total').textContent=cash(result.desired);
+ $('sale-cart').disabled=!valid;
+ $('sale-sticky').disabled=!valid;
+ $('whatsapp-cart').disabled=!valid;
+ if(!$('checkout-overlay').hidden && !$('checkout-form').hidden)updatePay();
 }
 function parseCash(input){
  var s=String(input).trim().replace(',','.');
@@ -211,6 +294,87 @@ $('cash-exact').addEventListener('click',function(){
  $('cash-received').value=(total.desired/100).toFixed(2);updateCash();
 });
 $('cash-clear').addEventListener('click',function(){$('cash-received').value='';updateCash()});
+var paymentMethod='cash',payOpen=false,lastFocused=null;
+function updatePay(){
+ if(!payOpen)return;
+ var result=linesForCart(),total=result.desired;
+ var valid=!result.invalid&&result.lines.length&&result.lines.length===Object.keys(cart).length;
+ $('pay-total').textContent=cash(total);
+ $('pay-cash-fields').hidden=paymentMethod!=='cash';
+ var paid=parseCash($('pay-cash').value),msg='',good=false,change=0;
+ var status=$('pay-status');status.classList.remove('warning','good');
+ if(!valid){msg='Hay un error en el carrito. Corrígelo antes de simular el cobro.';}
+ else if(paymentMethod==='cash'){
+  if($('pay-cash').value.trim()===''){msg='Introduce cuánto efectivo entregó el cliente.'}
+  else if(paid===null){msg='Cantidad de efectivo inválida. Usa pesos y centavos.'}
+  else if(paid<total){msg='Falta por recibir '+cash(total-paid)+'.';status.classList.add('warning')}
+  else{good=true;change=paid-total;msg='Cambio para entregar: '+cash(change);status.classList.add('good')}
+ } else if(paymentMethod==='transfer'){
+  good=true;msg='Transferencia de prueba. En la caja real deberá verificarse el pago antes de marcar PAGADO.';
+ } else {
+  good=true;msg='Pedido POR COBRAR de prueba. No significa dinero recibido.';
+ }
+ status.textContent=msg;
+ $('pay-confirm').disabled=!good;
+ $('pay-confirm').textContent=paymentMethod==='credit'?'Simular pedido POR COBRAR': 'Finalizar cobro simulado';
+ return {good:good,change:change,total:total,status:paymentMethod==='credit'?'POR COBRAR':'PAGADO (simulado)'};
+}
+function openPayment(){
+ var result=linesForCart();
+ if(!Object.keys(cart).length||result.invalid||result.lines.length!==Object.keys(cart).length)return;
+ lastFocused=document.activeElement;payOpen=true;paymentMethod='cash';
+ $('checkout-form').hidden=false;$('receipt').hidden=true;
+ $('pay-cash').value='';$('checkout-overlay').hidden=false;
+ document.body.style.overflow='hidden';
+ document.querySelectorAll('[data-pay]').forEach(function(b){b.classList.toggle('active',b.dataset.pay==='cash')});
+ updatePay();
+ $('pay-cash').focus();
+}
+function closePayment(){
+ payOpen=false;$('checkout-overlay').hidden=true;document.body.style.overflow='';
+ if(lastFocused&&typeof lastFocused.focus==='function')lastFocused.focus();
+}
+$('sale-cart').addEventListener('click',openPayment);
+$('sale-sticky').addEventListener('click',openPayment);
+$('checkout-close').addEventListener('click',closePayment);
+$('pay-cancel').addEventListener('click',closePayment);
+$('receipt-back').addEventListener('click',closePayment);
+$('checkout-overlay').addEventListener('click',function(e){if(e.target===$('checkout-overlay'))closePayment()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&payOpen)closePayment()});
+document.querySelectorAll('[data-pay]').forEach(function(b){
+ b.addEventListener('click',function(){
+  paymentMethod=b.dataset.pay;
+  document.querySelectorAll('[data-pay]').forEach(function(x){x.classList.toggle('active',x===b)});
+  updatePay();
+ });
+});
+$('pay-cash').addEventListener('input',updatePay);
+document.querySelectorAll('[data-paycash]').forEach(function(b){
+ b.addEventListener('click',function(){$('pay-cash').value=b.dataset.paycash;updatePay()});
+});
+$('pay-exact').addEventListener('click',function(){$('pay-cash').value=(linesForCart().desired/100).toFixed(2);updatePay()});
+$('pay-confirm').addEventListener('click',function(){
+ var done=updatePay();
+ if(!done||!done.good)return;
+ $('checkout-form').hidden=true;$('receipt').hidden=false;
+ $('receipt-total').textContent=cash(done.total);
+ $('receipt-status').textContent=done.status;
+ $('receipt-change').textContent=paymentMethod==='cash'?cash(done.change):'—';
+ $('checkout-title').textContent='Resultado de la simulación';
+ $('receipt-new').focus();
+});
+$('receipt-new').addEventListener('click',function(){
+ cart={};save();render();$('cash-received').value='';updateCash();
+ $('checkout-title').textContent='Cobrar venta · Prueba';
+ closePayment();$('search').focus();
+});
+$('whatsapp-cart').addEventListener('click',function(){
+ var preview=$('preview');
+ $('order-verify')?.setAttribute('open','');
+ preview.scrollIntoView({behavior:'smooth',block:'center'});
+ preview.setAttribute('tabindex','-1');preview.focus({preventScroll:true});
+ $('message').textContent='VISTA PREVIA: no se abrió WhatsApp ni se envió un pedido. Puedes usar Copiar vista previa.';
+});
 $('search').addEventListener('input',search);
 $('results').addEventListener('click',function(e){var b=e.target.closest('[data-add]');if(b)add(b.dataset.add)});
 $('cart').addEventListener('change',function(e){
