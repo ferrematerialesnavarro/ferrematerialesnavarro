@@ -25,13 +25,22 @@ button:disabled{opacity:.48;cursor:not-allowed}button.ghost{background:#e9f2eb;c
 pre{white-space:pre-wrap;word-wrap:break-word;background:#edf4ef;border-radius:12px;padding:14px;line-height:1.8;font-size:15px}
 .actions{display:flex;gap:9px;flex-wrap:wrap}.actions button{flex:1}.foot{font-size:12px;color:#607064}
 a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button{padding:10px}}
+
+.cash-screen{background:#f4f9f5;border-radius:13px;padding:14px;margin-top:12px}
+.cash-screen #cash-state{font-size:13px;color:#52745c;font-weight:700}
+.cash-screen #cash-result{display:block;font-size:29px;font-weight:850;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.cash-screen.short{background:#fff2ed}.cash-screen.short #cash-result{color:#ad4530}
+.cash-screen.good #cash-result{color:#176c43}
+.chip-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:11px 0}
+.chip-row button{padding:10px 4px;min-height:42px;background:#e8f3eb;color:#175c35;border:1px solid #c6dfcd;font-size:13px}
+.cash-value{font-size:25px!important;font-weight:800!important;letter-spacing:-.02em}
 </style>
 </head>
 <body>
 <header><strong>FERREMATERIALES NAVARRO</strong><small>NAVARRO 360 · Laboratorio de precios · iPhone y computadora</small></header>
 <main>
 <section class="panel">
-<h1>Prueba de edición de precios</h1>
+<h1>Prueba de edición de precios y cobranza</h1>
 <div class="notice"><b>Simulador, NO caja activa.</b> No registra ni envía pedidos a WhatsApp o SIFO, no cambia el precio oficial, no modifica el carrito de clientes ni valida permisos de empleado. La autorización real de vendedores necesitará verificarse en el bot o en un servidor.</div>
 <p class="muted">Puedes probar cómo editar el precio de cualquier artículo, incluso cemento por saco, y revisar la cantidad fraccionaria que se generaría para SIFO.</p>
 </section>
@@ -57,6 +66,15 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <pre id="preview">Agrega productos para ver el mensaje.</pre>
 <div class="actions"><button type="button" id="copy" disabled>Copiar vista previa</button><button type="button" class="ghost" id="reset" disabled>Restaurar precios base</button></div>
 <p class="foot" id="message"></p>
+</section>
+<section class="panel" id="cash-panel">
+<h2>4. Cobranza rápida (simulación)</h2>
+<p class="muted">Calcula el cambio usando el total editado del carrito. No guarda pagos ni marca pedidos como PAGADOS en SIFO.</p>
+<div class="pair total"><span>Total a cobrar</span><strong id="cash-total">$0.00</strong></div>
+<label for="cash-received">Efectivo recibido ($)</label><input id="cash-received" class="cash-value" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 200.00">
+<div class="chip-row"><button type="button" data-cash="100">100</button><button type="button" data-cash="200">200</button><button type="button" data-cash="500">500</button><button type="button" data-cash="1000">1,000</button></div>
+<div class="actions"><button type="button" class="ghost" id="cash-exact">Importe exacto</button><button type="button" class="ghost" id="cash-clear">Borrar recibido</button></div>
+<div class="cash-screen" id="cash-box" aria-live="polite" role="status"><span id="cash-state">Escribe el dinero recibido</span><strong id="cash-result">—</strong></div>
 </section>
 <section class="panel"><a href="./index.html">Volver a la página normal de NAVARRO 360</a><p class="foot">Esta prueba usa una copia del catálogo publicada en la página; confirma los precios actualizados en SIFO antes de cualquier operación comercial.</p></section>
 </main>
@@ -162,8 +180,37 @@ function updateSummary(){
  $('delta').textContent=(diff>0?'+':'')+cash(diff);
  $('preview').textContent=ok?result.lines.join('\n'):(result.invalid?'Corrige las cantidades o precios inválidos.':'Agrega productos para ver el mensaje.');
  $('copy').disabled=!ok;
+ updateCash(result);
  $('message').textContent=result.warnings?'ATENCIÓN: '+result.warnings+' producto(s) presentan una diferencia de más de $0.01 entre lo cobrado y la cantidad equivalente.':'';
 }
+function parseCash(input){
+ var s=String(input).trim().replace(',','.');
+ if(!/^\\d{1,7}(?:\\.\\d{1,2})?$/.test(s))return null;
+ var bits=s.split('.'),n=Number(bits[0])*100+Number(((bits[1]||'')+'00').slice(0,2));
+ return Number.isSafeInteger(n)&&n>=0&&n<=999999999?n:null;
+}
+function updateCash(summary){
+ if(!$('cash-received'))return;
+ var cashBox=$('cash-box'),v=$('cash-received').value.trim(),total=summary||linesForCart();
+ $('cash-total').textContent=cash(total.desired);
+ cashBox.classList.remove('short','good');
+ if(!Object.keys(cart).length){$('cash-state').textContent='Agrega artículos a la prueba';$('cash-result').textContent='—';return}
+ if(total.invalid){$('cash-state').textContent='Corrige el carrito antes del cobro';$('cash-result').textContent='—';return}
+ if(v===''){$('cash-state').textContent='Escribe el efectivo recibido';$('cash-result').textContent='—';return}
+ var paid=parseCash(v);
+ if(paid===null){$('cash-state').textContent='Importe inválido (máximo 2 decimales)';$('cash-result').textContent='—';return}
+ if(paid>=total.desired){cashBox.classList.add('good');$('cash-state').textContent='Cambio para entregar';$('cash-result').textContent=cash(paid-total.desired)}
+ else{cashBox.classList.add('short');$('cash-state').textContent='Falta por recibir';$('cash-result').textContent=cash(total.desired-paid)}
+}
+$('cash-received').addEventListener('input',function(){updateCash()});
+document.querySelectorAll('[data-cash]').forEach(function(btn){btn.addEventListener('click',function(){
+ $('cash-received').value=btn.dataset.cash;updateCash();
+})});
+$('cash-exact').addEventListener('click',function(){
+ var total=linesForCart();if(!Object.keys(cart).length||total.invalid)return;
+ $('cash-received').value=(total.desired/100).toFixed(2);updateCash();
+});
+$('cash-clear').addEventListener('click',function(){$('cash-received').value='';updateCash()});
 $('search').addEventListener('input',search);
 $('results').addEventListener('click',function(e){var b=e.target.closest('[data-add]');if(b)add(b.dataset.add)});
 $('cart').addEventListener('change',function(e){
