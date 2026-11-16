@@ -323,6 +323,7 @@ function openPayment(){
  var result=linesForCart();
  if(!Object.keys(cart).length||result.invalid||result.lines.length!==Object.keys(cart).length)return;
  lastFocused=document.activeElement;payOpen=true;paymentMethod='cash';
+ $('checkout-title').textContent='Cobrar venta · Prueba';
  $('checkout-form').hidden=false;$('receipt').hidden=true;
  $('pay-cash').value='';$('checkout-overlay').hidden=false;
  document.body.style.overflow='hidden';
