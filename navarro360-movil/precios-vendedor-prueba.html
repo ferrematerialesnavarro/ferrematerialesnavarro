@@ -185,7 +185,7 @@ function updateSummary(){
 }
 function parseCash(input){
  var s=String(input).trim().replace(',','.');
- if(!/^\\d{1,7}(?:\\.\\d{1,2})?$/.test(s))return null;
+ if(!/^\d{1,7}(?:\.\d{1,2})?$/.test(s))return null;
  var bits=s.split('.'),n=Number(bits[0])*100+Number(((bits[1]||'')+'00').slice(0,2));
  return Number.isSafeInteger(n)&&n>=0&&n<=999999999?n:null;
 }
