@@ -62,6 +62,11 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 @media(max-width:720px){main{padding-bottom:150px}.checkout-sticky:not([hidden]){position:fixed;z-index:4000;bottom:0;left:0;right:0;background:#fff;display:flex;gap:8px;align-items:center;justify-content:space-between;box-shadow:0 -5px 22px #06291a2a;border-top:1px solid #dce8dd;padding:10px 12px calc(11px + env(safe-area-inset-bottom));}
 .checkout-sticky .sticky-label{display:block;font-size:11px;color:#638074}.checkout-sticky strong{font-size:19px;font-variant-numeric:tabular-nums}
 .checkout-sticky button{font-size:13px;padding:11px 12px;min-width:132px}}
+.varios-quick{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#fff8e5;border:1px solid #e6d19c;border-radius:14px;padding:11px;margin-top:12px}
+.varios-quick p{font-size:12px;color:#796338;margin:4px 0 0}.varios-quick button{min-width:116px;background:#96681f}
+.varios-row{border:1px solid #efdbad;border-radius:12px;background:#fffbf1;padding:12px;margin:8px 0}
+.varios-row .itemhead{margin-bottom:8px}.varios-row input{max-width:250px}.whatsapp-btn{background:#148451}
+.bot-warning{margin-top:9px;background:#fff6e5;border:1px solid #f0d5a5;padding:10px;border-radius:10px;font-size:12px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -69,7 +74,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <main>
 <section class="panel">
 <h1>Prueba de edición de precios y cobranza</h1>
-<div class="notice"><b>Simulador, NO caja activa.</b> No registra ni envía pedidos a WhatsApp o SIFO, no cambia el precio oficial, no modifica el carrito de clientes ni valida permisos de empleado. La autorización real de vendedores necesitará verificarse en el bot o en un servidor.</div>
+<div class="notice"><b>Simulador, NO caja activa.</b> La cobranza es una simulación; el botón WhatsApp prepara un mensaje que tú puedes enviar, y ese envío podría activar el bot y SIFO. PRODUCTOS VARIOS se manda solo para revisión manual. No cambia precios oficiales ni valida permisos de empleado. La autorización real de vendedores necesitará verificarse en el bot o en un servidor.</div>
 <p class="muted">Puedes probar cómo editar el precio de cualquier artículo, incluso cemento por saco, y revisar la cantidad fraccionaria que se generaría para SIFO.</p>
 </section>
 <section class="panel">
@@ -78,6 +83,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <input id="search" type="search" placeholder="Ej. 7777001648 o cemento gris" autocomplete="off">
 <p class="muted" id="catalog-status" role="status">Cargando catálogo de NAVARRO 360…</p>
 <div class="results" id="results"></div>
+<div class="varios-quick"><div><b>🧾 PRODUCTOS VARIOS</b><p>Agrega un importe libre; no requiere cantidad ni precio unitario.</p></div><button type="button" id="add-varios">+ Agregar</button></div>
 </section>
 <section class="panel">
 <h2>2. Carrito de prueba</h2>
@@ -86,9 +92,9 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
  <div class="checkout-total"><span>TOTAL A COBRAR</span><strong id="checkout-total">$0.00</strong></div>
  <div class="checkout-cta">
   <button class="sale-btn" id="sale-cart" type="button">💳 COBRAR VENTA · PRUEBA</button>
-  <button class="preview-btn" id="whatsapp-cart" type="button">💬 Pedido WhatsApp · Vista previa</button>
+  <button class="whatsapp-btn" id="whatsapp-cart" type="button">💬 Enviar pedido a WhatsApp</button><button class="preview-btn" id="preview-cart" type="button">🔎 Revisar mensaje</button>
  </div>
- <p class="checkout-tip">El botón se integra aquí, al final del carrito. Son pruebas sin venta real ni envío automático.</p>
+ <p class="checkout-tip">El botón se integra aquí, al final del carrito. La cobranza sigue siendo de prueba. WhatsApp abrirá el mensaje para que tú lo envíes; no se envía automáticamente.</p>
 </div>
 <div class="actions"><button class="danger" type="button" id="clear" disabled>Vaciar prueba</button></div>
 </section>
@@ -98,7 +104,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <div class="pair"><span>Total estimado por fracciones</span><strong id="estimated">$0.00</strong></div>
 <div class="pair total"><span>Diferencia de redondeo</span><strong id="delta">$0.00</strong></div>
 <p class="muted">La cantidad se convierte a un máximo de 4 decimales. SIFO podría tener reglas adicionales por producto. Comprueba la venta real antes de habilitarlo.</p>
-<h2>Vista previa — CANTIDAD CÓDIGO</h2>
+<h2>Vista previa del mensaje</h2><div id="special-warning" class="bot-warning" hidden>⚠️ PRODUCTOS VARIOS no se admite en el pedido numérico automático del bot. Si se incluye, WhatsApp recibirá un resumen para revisión manual y no una venta automática en SIFO.</div>
 <pre id="preview">Agrega productos para ver el mensaje.</pre>
 <div class="actions"><button type="button" id="copy" disabled>Copiar vista previa</button><button type="button" class="ghost" id="reset" disabled>Restaurar precios base</button></div>
 <p class="foot" id="message"></p>
@@ -112,7 +118,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 <div class="actions"><button type="button" class="ghost" id="cash-exact">Importe exacto</button><button type="button" class="ghost" id="cash-clear">Borrar recibido</button></div>
 <div class="cash-screen" id="cash-box" aria-live="polite" role="status"><span id="cash-state">Escribe el dinero recibido</span><strong id="cash-result">—</strong></div>
 </section>
-<section class="panel"><a href="./index.html">Volver a la página normal de NAVARRO 360</a><p class="foot">Esta prueba usa una copia del catálogo publicada en la página; confirma los precios actualizados en SIFO antes de cualquier operación comercial.</p></section>
+<section class="panel"><a href="./index.html">Volver a la página normal de NAVARRO 360</a><p class="foot">Los pedidos normales pueden activar SIFO cuando tú los envías por WhatsApp. PRODUCTOS VARIOS requiere revisión manual; no está autorizado como código de pedido numérico mixto.</p></section>
 </main>
 <div id="demo-sticky" class="checkout-sticky" hidden>
  <div><span class="sticky-label">TOTAL DEL CARRITO · PRUEBA</span><strong id="sticky-total">$0.00</strong></div>
@@ -154,6 +160,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 'use strict';
 var STORE='navarro360_vendedor_simulador_v1';
 var db=new Map(), cart={};
+var VARIOS='00000',PHONE='525639129040';
 var $=function(id){return document.getElementById(id)};
 var mx=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
 var norm=function(t){return String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim()};
@@ -175,7 +182,7 @@ function loadSaved(){
  try{var prev=JSON.parse(localStorage.getItem(STORE)||'{}');if(prev&&typeof prev==='object'&&!Array.isArray(prev))cart=prev}catch(_){cart={}}
  for(var id of Object.keys(cart)){
   var p=db.get(id),v=cart[id];
-  if(!p||!v||parseQty(v.qty)===null||!Number.isSafeInteger(v.cents)||v.cents<1)delete cart[id];
+  if(!p||!v||(id!==VARIOS&&parseQty(v.qty)===null)||!Number.isSafeInteger(v.cents)||v.cents<1)delete cart[id];
  }
 }
 function save(){
@@ -215,41 +222,63 @@ function search(){
 }
 function add(id){var p=db.get(id);if(!p)return;if(!cart[id])cart[id]={qty:1,cents:p.baseCents};save();render();$('search').value='';$('results').innerHTML=''}
 function linesForCart(){
- var lines=[],desired=0,estimated=0,invalid=false,warnings=0;
+ var lines=[],desired=0,estimated=0,invalid=false,warnings=0,specialCents=0,handled=0;
  for(var id of Object.keys(cart)){
-  var p=db.get(id),v=cart[id];if(!p||!v)continue;
+  var p=db.get(id),v=cart[id];
+  if(!p||!v){invalid=true;continue;}
+  if(id===VARIOS){
+   if(!Number.isSafeInteger(v.cents)||v.cents<=0){invalid=true;continue;}
+   specialCents+=v.cents;desired+=v.cents;estimated+=v.cents;handled++;continue;
+  }
   var qty=parseQty(v.qty),cents=v.cents;
-  if(qty===null||!Number.isSafeInteger(cents)||cents<=0||p.baseCents<=0){invalid=true;continue}
-  var target=Math.round(qty*cents);
-  var converted=Number(((qty*cents)/p.baseCents).toFixed(4));
-  if(!Number.isFinite(converted)||converted<=0||converted>9999){invalid=true;continue}
+  if(qty===null||!Number.isSafeInteger(cents)||cents<=0||p.baseCents<=0){invalid=true;continue;}
+  var target=Math.round(qty*cents),converted=Number(((qty*cents)/p.baseCents).toFixed(4));
+  if(!Number.isFinite(converted)||converted<=0||converted>9999){invalid=true;continue;}
   var projected=Math.round(converted*p.baseCents);
   if(Math.abs(projected-target)>1)warnings++;
-  desired+=target;estimated+=projected;
+  desired+=target;estimated+=projected;handled++;
   lines.push(String(converted)+' '+id);
  }
- return {lines:lines,desired:desired,estimated:estimated,invalid:invalid,warnings:warnings};
+ return {lines:lines,desired:desired,estimated:estimated,invalid:invalid,warnings:warnings,
+  hasSpecial:specialCents>0,specialCents:specialCents,valid:!invalid&&handled>0&&handled===Object.keys(cart).length};
+}
+function whatsappMessage(r){
+ if(!r.hasSpecial)return r.lines.join('\n');
+ var out=['*PEDIDO NAVARRO 360 — REVISIÓN MANUAL*',''];
+ for(var id of Object.keys(cart)){
+  var p=db.get(id),v=cart[id];if(!p||!v)continue;
+  if(id===VARIOS){out.push('PRODUCTOS VARIOS: '+cash(v.cents));continue;}
+  out.push(String(v.qty)+' '+id+' | '+p.name+' | '+cash(Math.round(v.qty*v.cents)));
+ }
+ out.push('','TOTAL: '+cash(r.desired),'Pedido para revisión MANUAL. No procesar este resumen como pedido automático SIFO.');
+ return out.join('\n');
 }
 function render(){
  var ids=Object.keys(cart);
  $('cart').innerHTML=ids.length?ids.map(function(id){
-  var p=db.get(id),v=cart[id];if(!p)return '';
+  var p=db.get(id),v=cart[id];if(!p||!v)return '';
+  if(id===VARIOS){
+   return '<div class="varios-row"><div class="itemhead"><div><b>🧾 PRODUCTOS VARIOS</b><small>Importe libre · código 00000</small></div><button class="danger" type="button" data-del="00000">✕</button></div>'+
+    '<label for="varios-amount">Importe total ($)</label><input id="varios-amount" type="text" inputmode="decimal" data-field="varios" data-id="00000" value="'+(v.cents/100).toFixed(2)+'">'+
+    '<div class="amount">TOTAL PRODUCTOS VARIOS: '+cash(v.cents)+'</div><span class="price-meta">Sin cantidad ni precio unitario. Captura automática en bot aún no validada.</span></div>';
+  }
   var q=parseQty(v.qty)||1;
   return '<div class="item"><div class="itemhead"><div><b>'+escapeText(p.name)+'</b><small>Código '+id+' · Base '+cash(p.baseCents)+'</small></div><button class="danger" type="button" data-del="'+id+'" aria-label="Quitar '+escapeText(p.name)+'">✕</button></div>'+
-    '<div class="grid"><div><label for="qty-'+id+'">Cantidad</label><input id="qty-'+id+'" type="text" inputmode="decimal" data-field="qty" data-id="'+id+'" value="'+escapeText(v.qty)+'"></div>'+
-    '<div><label for="price-'+id+'">Precio aplicado ($)</label><input id="price-'+id+'" type="text" inputmode="decimal" data-field="price" data-id="'+id+'" value="'+(v.cents/100).toFixed(2)+'"></div></div>'+
-    '<div class="amount">Importe solicitado: '+cash(Math.round(q*v.cents))+'</div><span class="price-meta">El precio original no se modifica.</span></div>';
+  '<div class="grid"><div><label for="qty-'+id+'">Cantidad</label><input id="qty-'+id+'" type="text" inputmode="decimal" data-field="qty" data-id="'+id+'" value="'+escapeText(v.qty)+'"></div>'+
+  '<div><label for="price-'+id+'">Precio aplicado ($)</label><input id="price-'+id+'" type="text" inputmode="decimal" data-field="price" data-id="'+id+'" value="'+(v.cents/100).toFixed(2)+'"></div></div>'+
+  '<div class="amount">Importe solicitado: '+cash(Math.round(q*v.cents))+'</div><span class="price-meta">El precio original no se modifica.</span></div>';
  }).join(''):'<p class="muted">Añade un producto para comenzar.</p>';
  $('clear').disabled=!ids.length;$('reset').disabled=!ids.length;
  updateSummary();
 }
 function updateSummary(){
- var result=linesForCart(),ok=!result.invalid&&result.lines.length===Object.keys(cart).length&&result.lines.length>0;
+ var result=linesForCart(),ok=result.valid;
  $('desired').textContent=cash(result.desired);
  $('estimated').textContent=cash(result.estimated);
  var diff=result.estimated-result.desired;
  $('delta').textContent=(diff>0?'+':'')+cash(diff);
- $('preview').textContent=ok?result.lines.join('\n'):(result.invalid?'Corrige las cantidades o precios inválidos.':'Agrega productos para ver el mensaje.');
+ $('preview').textContent=ok?whatsappMessage(result):(result.invalid?'Corrige los datos del carrito.':'Agrega productos para ver el mensaje.');
+ $('special-warning').hidden=!result.hasSpecial;
  $('copy').disabled=!ok;
  updateCash(result);
  updateCheckout(result,ok);
@@ -298,7 +327,7 @@ var paymentMethod='cash',payOpen=false,lastFocused=null;
 function updatePay(){
  if(!payOpen)return;
  var result=linesForCart(),total=result.desired;
- var valid=!result.invalid&&result.lines.length&&result.lines.length===Object.keys(cart).length;
+ var valid=result.valid;
  $('pay-total').textContent=cash(total);
  $('pay-cash-fields').hidden=paymentMethod!=='cash';
  var paid=parseCash($('pay-cash').value),msg='',good=false,change=0;
@@ -321,7 +350,7 @@ function updatePay(){
 }
 function openPayment(){
  var result=linesForCart();
- if(!Object.keys(cart).length||result.invalid||result.lines.length!==Object.keys(cart).length)return;
+ if(!result.valid)return;
  lastFocused=document.activeElement;payOpen=true;paymentMethod='cash';
  $('checkout-title').textContent='Cobrar venta · Prueba';
  $('checkout-form').hidden=false;$('receipt').hidden=true;
@@ -369,19 +398,34 @@ $('receipt-new').addEventListener('click',function(){
  $('checkout-title').textContent='Cobrar venta · Prueba';
  closePayment();$('search').focus();
 });
+$('preview-cart').addEventListener('click',function(){
+ $('preview').scrollIntoView({behavior:'smooth',block:'center'});
+});
 $('whatsapp-cart').addEventListener('click',function(){
- var preview=$('preview');
- $('order-verify')?.setAttribute('open','');
- preview.scrollIntoView({behavior:'smooth',block:'center'});
- preview.setAttribute('tabindex','-1');preview.focus({preventScroll:true});
- $('message').textContent='VISTA PREVIA: no se abrió WhatsApp ni se envió un pedido. Puedes usar Copiar vista previa.';
+ var result=linesForCart();if(!result.valid)return;
+ var text=whatsappMessage(result);
+ if(result.hasSpecial){
+  if(!confirm('Este pedido incluye PRODUCTOS VARIOS. Se enviará un resumen para REVISIÓN MANUAL, no un pedido automático del bot. ¿Abrir WhatsApp?'))return;
+ }else{
+  if(!confirm('WhatsApp abrirá el pedido para que lo envíes. El bot podría procesarlo como una venta REAL y mandarlo a SIFO. ¿Continuar?'))return;
+ }
+ // La página jamás puede confirmar si se pulsó Enviar en WhatsApp, por eso conserva el carrito.
+ location.href='https://wa.me/'+PHONE+'?text='+encodeURIComponent(text);
+});
+$('add-varios').addEventListener('click',function(){
+ if(!cart[VARIOS])cart[VARIOS]={qty:1,cents:2000};
+ save();render();$('varios-amount')?.focus();
 });
 $('search').addEventListener('input',search);
 $('results').addEventListener('click',function(e){var b=e.target.closest('[data-add]');if(b)add(b.dataset.add)});
 $('cart').addEventListener('change',function(e){
  var input=e.target.closest('[data-field]');if(!input)return;
  var v=cart[input.dataset.id];if(!v)return;
- if(input.dataset.field==='qty'){
+ if(input.dataset.field==='varios'){
+  var amount=parseCents(input.value);
+  if(amount===null){alert('Importe inválido. Escribe pesos y centavos, mayor a $0.00.');render();return}
+  v.qty=1;v.cents=amount;
+ }else if(input.dataset.field==='qty'){
   var q=parseQty(input.value);
   if(q===null){alert('Cantidad inválida. Usa valores positivos con máximo 3 decimales.');render();return}
   v.qty=q;
@@ -397,8 +441,8 @@ $('clear').addEventListener('click',function(){if(confirm('¿Vaciar sólo la lis
 $('reset').addEventListener('click',function(){for(var id of Object.keys(cart))if(db.has(id))cart[id].cents=db.get(id).baseCents;save();render()});
 $('copy').addEventListener('click',async function(){
  var res=linesForCart();
- if(res.invalid||!res.lines.length)return;
- try{await navigator.clipboard.writeText(res.lines.join('\n'));$('message').textContent='Vista previa copiada. NO es una venta: revisa antes de enviarla manualmente al bot.'}
+ if(!res.valid)return;
+ try{await navigator.clipboard.writeText(whatsappMessage(res));$('message').textContent=res.hasSpecial?'Resumen copiado para revisión manual (NO es pedido automático SIFO).':'Mensaje numérico copiado. Si lo envías, el bot podría crear una venta real.'}
  catch(_){$('message').textContent='No se pudo copiar automáticamente; selecciona el texto de la vista previa.'}
 });
 fetch('./index.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.text()})
@@ -410,6 +454,7 @@ fetch('./index.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('
    db.set(id,{id:id,name:String(x[1]),norm:norm(x[1]),baseCents:baseCents});
   }
   if(!db.size)throw Error('El catálogo está vacío');
+  db.set(VARIOS,{id:VARIOS,name:'PRODUCTOS VARIOS',norm:'PRODUCTOS VARIOS',baseCents:2000});
   $('catalog-status').textContent='Catálogo cargado: '+db.size.toLocaleString('es-MX')+' productos · Precios tomados de la web';
   loadSaved();render();search();
  }).catch(function(err){$('catalog-status').textContent='No se pudo cargar el catálogo: '+err.message+'. Abre esta página con conexión a internet.';render()});
