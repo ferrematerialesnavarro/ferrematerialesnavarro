@@ -100,7 +100,7 @@ function scaffold(){
  '<div id="nv-pro-scan-video" class="nv-pro-scan-video"></div>'+
  '<div id="nv-pro-scan-status" class="nv-pro-scan-status" role="status">Cámara sin iniciar.</div>'+
  '<div class="nv-pro-scan-actions"><button id="nv-pro-scan-start">Iniciar cámara</button><button id="nv-pro-scan-stop" class="nv-pro-quiet">Pausar</button><button id="nv-pro-scan-photo" class="nv-pro-quiet">📸 Leer foto</button></div>'+
- '<input id="nv-pro-file" type="file" accept="image/*" capture="environment" hidden><div id="nv-pro-photo-reader" hidden></div>'+
+ '<input id="nv-pro-file" type="file" accept="image/*" capture="environment" hidden><div id="nv-pro-photo-reader" style="position:absolute;left:-9999px;top:0;width:320px;height:240px;overflow:hidden" aria-hidden="true"></div>'+
  '<label for="nv-pro-manual">Lectura manual o escáner físico</label>'+
  '<div class="nv-pro-input-row"><input id="nv-pro-manual" type="text" inputmode="numeric" placeholder="Código de barras" autocomplete="off"><button id="nv-pro-manual-add">Agregar</button></div>'+
  '<p class="nv-pro-bottom-info">En iPhone es necesario autorizar la cámara. Si el lector no reconoce el código, puedes escribirlo o usar un lector Bluetooth. Se evitarán repeticiones de la misma lectura por unos segundos.</p></div>';
