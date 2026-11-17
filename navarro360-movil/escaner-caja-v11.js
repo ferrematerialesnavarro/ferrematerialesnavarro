@@ -18,7 +18,9 @@ function getCalibratedZoom(){
 }
 function rememberZoom(source){
  if(!activeTrack||!zoomCaps?.zoom)return false;
- const z=Number(activeTrack.getSettings?.().zoom);
+ const trackZoom=Number(activeTrack.getSettings?.().zoom);
+ const sliderZoom=Number(overlay?.querySelector('#nav-scan-zoom')?.value);
+ const z=Number.isFinite(trackZoom)&&trackZoom>0?trackZoom:sliderZoom;
  if(!Number.isFinite(z)||z<zoomCaps.zoom.min||z>zoomCaps.zoom.max)return false;
  try{
   localStorage.setItem(ZOOM_KEY,JSON.stringify({zoom:z,source:source,at:Date.now()}));
@@ -394,7 +396,7 @@ async function recoverReader(){
   if(track&&caps){
    const current=Number(track.getSettings?.().zoom);
    const base=boundedZoom(caps,Number.isFinite(current)?current:(getCalibratedZoom()||caps.min+.7));
-   const nudge=boundedZoom(caps,base+(base+.12<=caps.max?.1:-.12));
+   const nudge=boundedZoom(caps,base+(base+0.12<=caps.max?0.1:-0.12));
    if(nudge!==null&&Math.abs(nudge-base)>.01){
     await track.applyConstraints({advanced:[{zoom:nudge}]});
     await pause(280);
