@@ -390,6 +390,18 @@ $('pay-confirm').addEventListener('click',function(){
  $('receipt-total').textContent=cash(done.total);
  $('receipt-status').textContent=done.status;
  $('receipt-change').textContent=paymentMethod==='cash'?cash(done.change):'—';
+ if(window.NAVARRO_CAJA_MODULO&&typeof window.NAVARRO_CAJA_MODULO.registrarVenta==='function'){
+  window.NAVARRO_CAJA_MODULO.registrarVenta({
+   totalCents:done.total,estimatedCents:linesForCart().estimated,
+   method:paymentMethod, status:done.status, changeCents:done.change,
+   receivedCents:paymentMethod==='cash'?parseCash($('pay-cash').value):null,
+   items:Object.entries(cart).map(function(pair){
+    var p=db.get(pair[0]),v=pair[1];
+    return {code:pair[0],name:p?.name||pair[0],quantity:v.qty,
+     unitPriceCents:v.cents,amountCents:pair[0]===VARIOS?v.cents:Math.round(Number(v.qty)*v.cents)};
+   })
+  });
+ }
  $('checkout-title').textContent='Resultado de la simulación';
  $('receipt-new').focus();
 });
@@ -445,6 +457,25 @@ $('copy').addEventListener('click',async function(){
  try{await navigator.clipboard.writeText(whatsappMessage(res));$('message').textContent=res.hasSpecial?'Resumen copiado para revisión manual (NO es pedido automático SIFO).':'Mensaje numérico copiado. Si lo envías, el bot podría crear una venta real.'}
  catch(_){$('message').textContent='No se pudo copiar automáticamente; selecciona el texto de la vista previa.'}
 });
+window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
+ getItems:function(){return Object.entries(cart).map(function(pair){var p=db.get(pair[0]);return {
+  code:pair[0],name:p?.name||pair[0],baseCents:p?.baseCents||0,
+  qty:Number(pair[1].qty),priceCents:Number(pair[1].cents),special:pair[0]===VARIOS};});},
+ getSummary:linesForCart,
+ addCode:function(code){code=String(code);if(!db.has(code))return false;add(code);return true;},
+ getProduct:function(code){return db.get(String(code))||null;},
+ replace:function(next){
+  if(!next||typeof next!=='object'||Array.isArray(next))return false;
+  var out={};
+  for(var id of Object.keys(next)){
+   var p=db.get(id),v=next[id];
+   if(!p||!v||!Number.isSafeInteger(v.cents)||v.cents<1)return false;
+   var qty=Number(v.qty);if(id!==VARIOS&&parseQty(qty)===null)return false;
+   out[id]={qty:id===VARIOS?1:qty,cents:v.cents};
+  }
+  cart=out;save();render();return true;
+ }
+});
 fetch('./index.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);return r.text()})
  .then(function(html){
   var raw=extractCatalog(html);
@@ -456,8 +487,9 @@ fetch('./index.html',{cache:'no-store'}).then(function(r){if(!r.ok)throw Error('
   if(!db.size)throw Error('El catálogo está vacío');
   db.set(VARIOS,{id:VARIOS,name:'PRODUCTOS VARIOS',norm:'PRODUCTOS VARIOS',baseCents:2000});
   $('catalog-status').textContent='Catálogo cargado: '+db.size.toLocaleString('es-MX')+' productos · Precios tomados de la web';
-  loadSaved();render();search();
+  loadSaved();render();search();document.dispatchEvent(new Event('navarro-caja-ready'));
  }).catch(function(err){$('catalog-status').textContent='No se pudo cargar el catálogo: '+err.message+'. Abre esta página con conexión a internet.';render()});
 })();
 </script>
+<script defer src="./caja-profesional-v1.js?v=1"></script>
 </body></html>
