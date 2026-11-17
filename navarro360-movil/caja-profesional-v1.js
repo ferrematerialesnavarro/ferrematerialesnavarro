@@ -99,7 +99,8 @@ function scaffold(){
  '<p class="muted">Escanea productos consecutivamente para agregarlos al carrito, sin duplicar las líneas. La cámara no realiza cobros.</p>'+
  '<div id="nv-pro-scan-video" class="nv-pro-scan-video"></div>'+
  '<div id="nv-pro-scan-status" class="nv-pro-scan-status" role="status">Cámara sin iniciar.</div>'+
- '<div class="nv-pro-scan-actions"><button id="nv-pro-scan-start">Iniciar cámara</button><button id="nv-pro-scan-stop" class="nv-pro-quiet">Pausar</button></div>'+
+ '<div class="nv-pro-scan-actions"><button id="nv-pro-scan-start">Iniciar cámara</button><button id="nv-pro-scan-stop" class="nv-pro-quiet">Pausar</button><button id="nv-pro-scan-photo" class="nv-pro-quiet">📸 Leer foto</button></div>'+
+ '<input id="nv-pro-file" type="file" accept="image/*" capture="environment" hidden><div id="nv-pro-photo-reader" hidden></div>'+
  '<label for="nv-pro-manual">Lectura manual o escáner físico</label>'+
  '<div class="nv-pro-input-row"><input id="nv-pro-manual" type="text" inputmode="numeric" placeholder="Código de barras" autocomplete="off"><button id="nv-pro-manual-add">Agregar</button></div>'+
  '<p class="nv-pro-bottom-info">En iPhone es necesario autorizar la cámara. Si el lector no reconoce el código, puedes escribirlo o usar un lector Bluetooth. Se evitarán repeticiones de la misma lectura por unos segundos.</p></div>';
@@ -116,6 +117,8 @@ function scaffold(){
  $('nv-pro-scan-close').addEventListener('click',closeScanner);
  $('nv-pro-scan-start').addEventListener('click',startScanner);
  $('nv-pro-scan-stop').addEventListener('click',stopScanner);
+ $('nv-pro-scan-photo').addEventListener('click',function(){$('nv-pro-file').click()});
+ $('nv-pro-file').addEventListener('change',function(e){readPhoto(e.target.files&&e.target.files[0])});
  $('nv-pro-manual-add').addEventListener('click',manualScan);
  $('nv-pro-manual').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();manualScan()}});
  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!$('nv-pro-scan').hidden)closeScanner()});
@@ -292,6 +295,20 @@ async function openScanner(){
  $('nv-pro-scan').hidden=false;document.body.style.overflow='hidden';scannerStatus('Pulsa Iniciar cámara. También puedes capturar un código manualmente.');
  $('nv-pro-manual').value='';
 }
+async function readPhoto(file){
+ if(!file)return;
+ scannerStatus('Analizando foto del código de barras…');
+ try{
+  await stopScanner();
+  await scriptLoader();
+  var photoReader=new window.Html5Qrcode('nv-pro-photo-reader',{verbose:false,useBarCodeDetectorIfSupported:false});
+  try{
+   var result=await photoReader.scanFile(file,false);
+   acceptCode(result,true);
+  }finally{try{await photoReader.clear()}catch(_){}}
+ }catch(e){scannerStatus('No se reconoció el código en la foto. Prueba acercándote o escribe el número manualmente.')}
+ finally{$('nv-pro-file').value=''}
+}
 async function startScanner(){
  if(scanStarting||videoReader)return;
  if(!window.isSecureContext||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
@@ -314,7 +331,12 @@ async function startScanner(){
   await reader.start({facingMode:'environment'},{
    fps:11,aspectRatio:1.777778
   },function(code){if(scannerOpen)acceptCode(code,false)},function(){});
-  if(!scannerOpen||session!==scannerSession){await stopScanner();return}
+  if(!scannerOpen||session!==scannerSession){
+   try{await reader.stop()}catch(_){}
+   try{await reader.clear()}catch(_){}
+   if(videoReader===reader)videoReader=null;
+   return;
+  }
   scannerStatus('📷 Cámara activa. Escanea códigos de uno en uno; seguirá abierta para el siguiente.');
  }catch(e){
   scannerStatus('No se pudo iniciar el lector: '+String(e&&e.message||e)+'. Comprueba permisos de cámara o captura el código manualmente.');
