@@ -301,7 +301,9 @@ async function readPhoto(file){
  try{
   await stopScanner();
   await scriptLoader();
-  var photoReader=new window.Html5Qrcode('nv-pro-photo-reader',{verbose:false,useBarCodeDetectorIfSupported:false});
+  var F=window.Html5QrcodeSupportedFormats||{};
+  var photoFormats=[F.CODE_128,F.EAN_13,F.EAN_8,F.UPC_A,F.UPC_E,F.CODE_39,F.ITF].filter(Number.isInteger);
+  var photoReader=new window.Html5Qrcode('nv-pro-photo-reader',{formatsToSupport:photoFormats.length?photoFormats:undefined,verbose:false,useBarCodeDetectorIfSupported:false});
   try{
    var result=await photoReader.scanFile(file,false);
    acceptCode(result,true);
