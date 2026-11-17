@@ -291,6 +291,10 @@ function manualScan(){
  if(acceptCode(code,true)){el.value='';el.focus();}
 }
 async function openScanner(){
+ if(typeof window.NAVARRO_CAJA_ESCANER_ABRIR_V9==='function'){
+  // El lector V9 abre la cámara al tocar Escanear y usa dos motores de códigos de barras.
+  return window.NAVARRO_CAJA_ESCANER_ABRIR_V9();
+ }
  scaffold();scannerOpen=true;scanCount=0;scanLastCode='';scanLastAt=0;
  $('nv-pro-scan').hidden=false;document.body.style.overflow='hidden';scannerStatus('Pulsa Iniciar cámara. También puedes capturar un código manualmente.');
  $('nv-pro-manual').value='';
