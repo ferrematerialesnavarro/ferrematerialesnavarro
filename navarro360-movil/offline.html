@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#102b54"><title>Sin conexión · NAVARRO 360</title>
+<style>:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#1b3650;background:#f4f7f6}*{box-sizing:border-box}body{min-height:100dvh;display:grid;place-items:center;margin:0;padding:22px}.card{max-width:460px;width:100%;border-radius:24px;background:white;border:1px solid #d9e5e4;box-shadow:0 8px 40px #09262212;padding:30px 24px;text-align:center}.icon{font-size:50px}h1{font-size:26px;line-height:1.15;color:#102b54}p{font-size:15px;line-height:1.55;color:#526b75}.notice{background:#fff7e5;border-radius:12px;padding:12px;color:#6e5321;font-size:13px;text-align:left}button{display:block;width:100%;margin:20px 0 12px;border:0;border-radius:14px;background:#102b54;color:white;padding:15px;font-size:16px;font-weight:800;min-height:50px}a{font-size:13px;color:#0a5f40;text-decoration:underline}small{display:block;margin-top:16px;color:#75878f}</style></head>
+<body><main class="card"><div class="icon" aria-hidden="true">📶</div><h1>No hay conexión a Internet</h1>
+<p>NAVARRO 360 necesita conectarse para verificar que estés viendo el catálogo y los precios vigentes.</p>
+<p class="notice"><b>Tu carrito no se elimina por este aviso.</b> Por seguridad, no confirmes un pedido ni una venta mientras no se recuperen los datos actuales.</p>
+<button type="button" id="retry">↻ Volver a intentar</button>
+<a href="./index.html">Abrir catálogo cuando regrese la conexión</a>
+<small>Ferremateriales Navarro · Estado de conexión</small></main>
+<script>document.getElementById('retry').addEventListener('click',function(){location.href='./index.html?reintentar='+Date.now()});window.addEventListener('online',function(){location.href='./index.html?reconexion='+Date.now()});</script></body></html>
