@@ -486,7 +486,7 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
    .replace(/\b(UN CUARTO|CUARTO DE PULGADA)\b/g,'1/4')
    .replace(/\b(UNA MEDIA|DE MEDIA|DE MEDIO|MEDIA PULGADA|MEDIO PULGADA)\b/g,'1/2')
    .replace(/\b(UNO Y MEDIO|UNA Y MEDIA)\b/g,'1 1/2')
-   .replace(/\b(CEMENTOS|CEMENTO GRIS)\b/g,'CEMENTO')
+   .replace(/\b(CEMENTOS)\b/g,'CEMENTO')
    .replace(/\b(CLAVOS)\b/g,'CLAVO')
    .replace(/\b(PEGAS|PEGANTE)\b/g,'PEGAMENTO')
    .replace(/\b(PLASTICO HIDRAULICO|HIDRAULICA)\b/g,'HIDRAULICO');
@@ -519,7 +519,7 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
   for(var p of db.values()){
    if(words.every(function(w){return matchWord(p.norm,w)}))push(p,false);
   }
-  if(items.length<max&&words.some(function(w){return w.length>=4})){
+  if(items.length<Math.min(3,max)&&words.some(function(w){return w.length>=4})){
    // Solo cuando faltan resultados: encuentra palabras cercanas por un error.
    // Evita buscar si hay artículos exactos suficientes.
    var vocab=new Set();
@@ -536,7 +536,7 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
       row[j]=Math.min(row[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
       best=Math.min(best,row[j]);
      }
-     if(best>limit)return 3;
+     if(best>limit&&i>1)return 3;
      prev=row;
     }
     return prev[b.length]<=limit?prev[b.length]:3;
