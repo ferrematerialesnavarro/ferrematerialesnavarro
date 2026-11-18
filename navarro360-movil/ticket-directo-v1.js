@@ -1,4 +1,4 @@
-/* NAVARRO 360 — Ticket directo local V5 · AirPrint directo sin vista previa propia
+/* NAVARRO 360 — Ticket directo local V6 · entrega, teléfono y flete en ticket
    Imprime desde el navegador. No usa WhatsApp, SIFO, ni envía datos.
    Lee el carrito existente y sus mismos ajustes monetarios.
 */
@@ -83,8 +83,10 @@ function preview(){
  const client=String($('nv-ticket-client').value||'').trim().slice(0,100);
  const state=$('nv-ticket-status').value;
  const label=state==='pagado'?'PAGADO':state==='cobrar'?'POR COBRAR':'SIN ESPECIFICAR';
- const flete=$('nv-ticket-flete').checked&&!data.hasFreight?5000:0;
- const address=String($('nv70-address')?.value||'').trim().slice(0,260);
+ const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
+ const flete=data.hasFreight?0:(info?info.flete:($('nv-ticket-flete').checked?5000:0));
+ const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
+ const phone=String(info?.phone||'').trim().slice(0,30);
  const stamp=createdAt||new Date();
  const items=data.rows.map(p=>{
   const price=p.special?'Por importe':qtyFormat.format(p.qty)+' × '+money(p.unit);
@@ -99,6 +101,7 @@ function preview(){
   '<div class="nv-ticket-center"><b>TICKET DE VENTA LOCAL</b></div>'+
   '<div class="nv-ticket-meta">Fecha: '+escapeHTML(dateFormat.format(stamp))+'</div>'+
   (client?'<div class="nv-ticket-meta">Cliente: '+escapeHTML(client)+'</div>':'')+
+  (phone?'<div class="nv-ticket-meta">Tel. cliente: '+escapeHTML(phone)+'</div>':'')+
   (state!=='none'?'<div class="nv-ticket-meta">Estado: <b>'+label+'</b></div>':'')+
   '<div class="nv-ticket-rule"></div>'+
   '<div class="nv-ticket-items">'+items+'</div>'+
@@ -223,7 +226,7 @@ function mount(){
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();restoreAfterPrint()}
  },true);
  window.addEventListener('afterprint',restoreAfterPrint);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:5,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:6,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
