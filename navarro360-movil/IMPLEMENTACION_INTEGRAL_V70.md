@@ -3,7 +3,7 @@
 Fecha: 18 de noviembre de 2026.
 
 ## Incorporado a la tienda pública
-1. **Navegación rápida de materiales**: accesos con colores para CPVC, PVC, hidráulico, galvanizado, cobre, PPR, electricidad, tornillería, pinturas y jardinería. Cada acceso utiliza la búsqueda actual y NO selecciona una medida por el cliente.
+1. **Navegación rápida de materiales**: accesos con colores para CPVC, PVC, hidráulico, galvanizado, cobre, PPR, electricidad, tornillería, pinturas y jardinería. Para materiales de plomería, filtros opcionales por tipo de conexión y diámetro (pulgadas); el cliente debe escoger la variante específica.
 2. **Carrito más rápido**: el módulo `carrito-seguro.js` reutiliza mapas de nombres y precios del catálogo en lugar de recorrer los productos de nuevo cada vez.
 3. **Fotografías más ligeras**: las primeras tarjetas reciben prioridad de carga; imágenes posteriores usan decodificación asíncrona y carga diferida.
 4. **Entrega a domicilio**: vista estimada del subtotal, flete de referencia ($50 si no alcanza $1,000; gratis a partir de $1,000), progreso para llegar a gratis y campo opcional de dirección para copiar a WhatsApp cuando el bot la solicite. **No añade flete automáticamente ni cambia mensajes del bot**.
