@@ -2,7 +2,7 @@
    Pedidos, precios y SIFO NO se autorizan ni se alteran desde este worker. */
 'use strict';
 const PREFIX='navarro360-fullstore-';
-const VERSION=PREFIX+'v69-conexion-segura';
+const VERSION=PREFIX+'v70-carga-y-frescura';
 const OFFLINE='./offline.html';
 const SHELL=[OFFLINE,'./icon.svg','./manifest.webmanifest'];
 const MAX_CACHE_ENTRIES=85;
@@ -76,7 +76,11 @@ self.addEventListener('fetch',event=>{
  // Archivos de JS y CSS nunca deben recibir index.html como respuesta por error.
  event.respondWith((async()=>{
   try{
-   const response=await fetch(request);
+   // Scripts críticos y sus precios deben pedir siempre una versión nueva;
+   // si no hay red, podrán usar la última copia EXACTA del mismo URL.
+   const critical=/\/(?:carrito-seguro|buscador-completo|ventas-espera-v1|experiencia-integral-v70|auditoria-fotos-v70)\.js$/.test(url.pathname);
+   const live=critical?new Request(request,{cache:'reload'}):request;
+   const response=await fetch(live);
    if(isStaticAsset(url)&&response.ok){
     const clone=response.clone();
     event.waitUntil(storeSmall(request,clone).catch(()=>{}));
