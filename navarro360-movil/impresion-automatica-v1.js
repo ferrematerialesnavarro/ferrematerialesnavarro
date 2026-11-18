@@ -1,4 +1,4 @@
-/* NAVARRO 360 — impresión automática con puente Windows autorizado V1
+/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V3
  * Un toque -> POS-58-Series por HTTPS, sin AirPrint, sin WhatsApp, sin SIFO.
  * Solo se activa si este navegador está vinculado por un enlace privado.
  * No borra el carrito; la respuesta confirma cola Windows, no salida física.
@@ -10,7 +10,7 @@ window.NAVARRO_PRINT_BRIDGE_V1=true;
 const STORAGE='navarro360_print_bridge_pair_v1';
 const $=id=>document.getElementById(id);
 const read=key=>{try{const x=JSON.parse(localStorage.getItem(key)||'{}');return x&&typeof x==='object'&&!Array.isArray(x)?x:{}}catch(_){return {}}};
-const validPair=p=>!!(p&&typeof p.url==='string'&&/^https:\/\/[a-z0-9-]+\.trycloudflare\.com\/?$/.test(p.url)&&/^[0-9a-f]{64}$/.test(p.token||''));
+const validPair=p=>!!(p&&typeof p.url==='string'&&/^https:\/\/[a-z0-9-]+\.ngrok-free\.(?:dev|app)\/?$/.test(p.url)&&/^[0-9a-f]{64}$/.test(p.token||''));
 let pair=null,busy=false;
 try{const p=JSON.parse(localStorage.getItem(STORAGE)||'null');if(validPair(p))pair=p}catch(_){}
 let alertTimer;
@@ -78,7 +78,7 @@ async function autoPrint(event){
  try{
   const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
-   headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token},
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
    body:JSON.stringify(job),signal:ctrl.signal
   });
   let result={};try{result=await response.json()}catch(_){}
