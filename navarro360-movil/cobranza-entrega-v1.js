@@ -17,12 +17,19 @@ function saveAddress(address){
  const old=$('nv70-address');
  if(old&&old.value!==address){old.value=address;old.dispatchEvent(new Event('input',{bubbles:true}))}
 }
+let cachedCatalog=null,cachedMap=null;
+function pricesMap(){
+ const raw=window.NAVARRO_DB;
+ if(raw===cachedCatalog&&cachedMap)return cachedMap;
+ cachedCatalog=raw;
+ cachedMap=new Map((Array.isArray(raw)?raw:[]).filter(Array.isArray).map(p=>[String(p[0]),Number(p[2])]));
+ if(!cachedMap.has('00000'))cachedMap.set('00000',20);
+ return cachedMap;
+}
 function quote(){
  const cart=getObject('navarro_cart_v1'),clavos=getObject('navarro_clavos_importe_v1');
  const amounts=getObject('navarro_importes_cents_v1'),prices=getObject('navarro360_precio_caja_activa_v1');
- const raw=window.NAVARRO_DB;
- const map=new Map((Array.isArray(raw)?raw:[]).filter(Array.isArray).map(p=>[String(p[0]),Number(p[2])]));
- if(!map.has('00000'))map.set('00000',20);
+ const map=pricesMap();
  let subtotal=0,subtotalProductos=0,valid=true,hasFreight=false,hasItems=false;
  for(const [id,q] of Object.entries(cart)){
   const qty=Number(q),base=map.get(id);hasItems=true;
