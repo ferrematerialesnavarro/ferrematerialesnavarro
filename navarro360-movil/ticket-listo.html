@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Imprimir ticket · Ferremateriales Navarro</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#163c29;background:#edf2ee}
+*{box-sizing:border-box}body{margin:0;padding:14px 12px 32px}
+main{max-width:510px;margin:auto}
+.toolbar{padding:15px;border-radius:16px;background:#fff;border:1px solid #d5dfd8;margin-bottom:13px;box-shadow:0 3px 9px #123a2512}
+.toolbar h1{font-size:20px;margin:0 0 7px}.toolbar p{font-size:13px;line-height:1.5;margin:7px 0}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+button,a.action{min-width:0;min-height:47px;border:0;border-radius:11px;padding:9px 10px;font-size:13px;font-weight:800;text-align:center;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none}
+.primary{background:#1f673c;color:white}.secondary{background:#e6f0e9;color:#20543a}
+.tip{font-size:12px;color:#596d61;line-height:1.5}
+#warn{font-size:12px;color:#965f1d;background:#fff8e3;border:1px solid #d7b665;padding:11px;border-radius:9px}
+#warn[hidden]{display:none}
+.receipt{width:50mm;max-width:100%;margin:0 auto;padding:2mm;background:white;color:black;box-shadow:0 6px 18px #0002;font:12.5px/1.28 Arial,Helvetica,sans-serif;overflow-wrap:anywhere}
+.receipt[data-size="80"]{width:74mm;padding:3mm;font-size:13px}
+.brand{text-align:center;font-size:18px;font-weight:900;line-height:1.1;letter-spacing:.15px}
+.brand b{font-size:22px}
+.contact{text-align:center;font-weight:600;font-size:10.4px;line-height:1.3;margin-top:5px}
+.rule{border-top:1px dashed #000;margin:7px 0}
+.center{text-align:center}.subhead{font-size:13px;font-weight:900;margin:5px 0}
+.meta{font-size:11px;margin:3px 0}
+.item{padding:5px 0;break-inside:avoid}
+.item-name{font-size:12.5px;font-weight:900;line-height:1.24}
+.item-id{font-size:10px;color:#333}
+.line{display:flex;justify-content:space-between;gap:6px;font-size:11.5px;margin:3px 0}
+.line strong{white-space:nowrap;font-size:12.5px}
+.total{display:flex;justify-content:space-between;gap:5px;border-top:2px solid black;margin-top:7px;padding:6px 0;font-size:17px;font-weight:900}
+.total b{white-space:nowrap}
+.address{border:1px dashed #666;font-size:10px;padding:6px;overflow-wrap:anywhere}
+.address p{margin:3px 0 0}
+.thanks{font-size:11.5px;line-height:1.3;font-weight:800;margin-top:6px}
+.qr{text-align:center;margin:5px auto 3px;line-height:0}
+.qr svg{display:inline-block;width:28mm;height:28mm}
+.small{font-size:9.5px;color:#333}
+#loading{color:#7d2929;font-size:14px;line-height:1.4;background:#fff;padding:18px;border-radius:12px}
+.receipt[data-size="58"] .brand{font-size:17px}
+.receipt[data-size="58"] .brand b{font-size:21px}
+@page{margin:0}
+@media print{
+ html,body{margin:0!important;padding:0!important;width:auto!important;height:auto!important;min-height:0!important;background:#fff!important;overflow:visible!important}
+ main{max-width:none!important;width:auto!important;margin:0!important;padding:0!important}
+ .toolbar,#warn,#loading{display:none!important}
+ .receipt{width:50mm!important;max-width:50mm!important;box-shadow:none!important;padding:1mm!important;margin:0!important;border:0!important}
+ .receipt[data-size="80"]{width:74mm!important;max-width:74mm!important;padding:2mm!important}
+ .item{break-inside:avoid}
+ .qr svg{width:27mm;height:27mm}
+}
+</style>
+<style id="paper-length"></style>
+</head>
+<body>
+<main>
+ <section class="toolbar">
+  <h1>🖨 Ticket listo para imprimir</h1>
+  <p>Contiene <b>solamente el comprobante de la venta</b>, sin la página del catálogo. No envía nada a WhatsApp ni SIFO.</p>
+  <div class="actions">
+   <button id="print" class="primary" type="button">🖨 Imprimir ticket</button>
+   <button id="copy" class="secondary" type="button">🔗 Copiar enlace</button>
+   <a class="action secondary" href="./index.html">Volver a NAVARRO 360</a>
+   <button id="again" class="secondary" type="button">↻ Actualizar tamaño</button>
+  </div>
+  <p class="tip"><b>iPhone:</b> si «Imprimir ticket» no abre el menú, usa el menú del navegador y elige <b>Abrir en Safari</b>. Luego toca Compartir → Imprimir. Si no aparece Safari, copia el enlace y pégalo en Safari.</p>
+  <p class="tip">El enlace copiado contiene los datos de este ticket; úsalo solo en tus dispositivos. La venta original permanece en el carrito.</p>
+  <p class="tip"><b>POS-58:</b> utiliza papel 58 mm, escala 100 %, márgenes ninguno. Si el controlador obliga a imprimir una hoja larga, hay que ajustar el tamaño del papel en Windows.</p>
+  <p id="warn" hidden></p>
+ </section>
+ <div id="loading" hidden>No se encontró un ticket válido. Regresa al carrito y vuelve a tocar imprimir.</div>
+ <article id="receipt" class="receipt" data-size="58" aria-label="Comprobante de venta"></article>
+</main>
+<script>
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const qrBits='AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP4oX8u/gEE6JjgQQC63H/LLoBddk5aV0Aus97Q66AQWomXhBAP6qqqq/gABXF9UAAC+FsLlPgB2mR6l3cAF7Hu+JgAbh6b3MZAI92yv2GgBbm0gvcwDi4sucQgBIThKYGoAD1vBf9aAckEd195APdEqhgMAGr/BJiWABCeLcUBwB4sE6V/cAIsSkmAwAePzH2H5ALYMymQDgFo9LJS+wAOuS524QAIsQcB6oAZvNCd0aAVMU2T/TAJOONERyAEz5DkT6ACGh1Dl+wAAaD63xMA/ifM8a4AQWf35cbALqonCL6AF1bHYWrAC6ly42egBBOeIF9oA/rsi7RoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==';
+ const money=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
+ const date=new Intl.DateTimeFormat('es-MX',{dateStyle:'short',timeStyle:'short'});
+ const quantity=new Intl.NumberFormat('es-MX',{maximumFractionDigits:3});
+ const safe=t=>String(t===undefined||t===null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const amount=n=>money.format(n/100);
+ function decode(){
+  const m=(location.hash||'').match(/^#t=([A-Za-z0-9_-]{20,240000})$/);
+  if(!m)return null;
+  try{
+   const b=m[1].replace(/-/g,'+').replace(/_/g,'/');
+   const raw=atob(b.padEnd(Math.ceil(b.length/4)*4,'='));
+   const bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));
+   const v=JSON.parse(new TextDecoder().decode(bytes));
+   if(!v||v.v!==1||!Array.isArray(v.rows)||!v.rows.length||v.rows.length>300)return null;
+   if(!Number.isSafeInteger(v.subtotal)||v.subtotal<1)return null;
+   if(!Number.isSafeInteger(v.flete)||v.flete<0||v.flete>10000000)return null;
+   let sum=0;
+   for(const row of v.rows){
+    if(!row||!(/^\d{5,30}$/.test(String(row.id)))||!Number.isFinite(row.qty)||row.qty<=0||!Number.isSafeInteger(row.total)||row.total<1||!Number.isSafeInteger(row.unit)||row.unit<1)return null;
+    sum+=row.total;
+   }
+   if(sum!==v.subtotal)return null;
+   return v;
+  }catch(e){return null}
+ }
+ function qr(){
+  const bytes=atob(qrBits),d=[];
+  for(let y=0;y<49;y++)for(let x=0;x<49;x++){
+   const n=y*49+x;
+   if(bytes.charCodeAt(n>>3)&(128>>(n&7)))d.push('M'+x+' '+y+'h1v1h-1z');
+  }
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 49 49" role="img" aria-label="QR de NAVARRO 360"><path d="'+d.join('')+'" fill="#000"/></svg>';
+ }
+ const data=decode(),paper=$('receipt');
+ if(!data){paper.hidden=true;$('loading').hidden=false;return}
+ paper.dataset.size=data.size==='80'?'80':'58';
+ const purchaseDate=new Date(data.at);
+ const formattedDate=Number.isFinite(purchaseDate.valueOf())?date.format(purchaseDate):'';
+ const client=String(data.client||'').slice(0,100);
+ const address=String(data.address||'').slice(0,260);
+ const payment=data.state==='pagado'?'PAGADO':data.state==='cobrar'?'POR COBRAR':'';
+ paper.innerHTML=
+  '<header class="brand">FERREMATERIALES<br><b>NAVARRO</b></header>'+
+  '<div class="contact">María Guadalupe Martínez de Hernández Loza 3386<br>WhatsApp: +52 56 3912 9040</div>'+
+  '<div class="rule"></div><div class="center subhead">TICKET DE VENTA LOCAL</div>'+
+  '<div class="meta">Fecha: '+safe(formattedDate)+'</div>'+
+  (client?'<div class="meta">Cliente: '+safe(client)+'</div>':'')+
+  (payment?'<div class="meta">Estado: <b>'+payment+'</b></div>':'')+
+  '<div class="rule"></div>'+
+  data.rows.map(p=>'<div class="item"><div class="item-name">'+safe(String(p.name||'PRODUCTO').slice(0,140))+'</div>'+
+   '<div class="item-id">'+safe(p.id)+'</div>'+
+   '<div class="line"><span>'+(p.special?'Por importe':quantity.format(p.qty)+' × '+amount(p.unit))+'</span><strong>'+amount(p.total)+'</strong></div></div>').join('')+
+  '<div class="rule"></div>'+
+  '<div class="line"><span>Subtotal</span><strong>'+amount(data.subtotal)+'</strong></div>'+
+  (data.flete?'<div class="line"><span>Envío</span><strong>'+amount(data.flete)+'</strong></div>':'')+
+  '<div class="total"><span>TOTAL</span><b>'+amount(data.subtotal+data.flete)+'</b></div>'+
+  (address?'<div class="address"><b>Dirección de entrega</b><p>'+safe(address)+'</p></div>':'')+
+  '<div class="rule"></div>'+
+  '<div class="center thanks">¡Gracias por su compra!<br>Haz tu pedido escaneando este QR.</div>'+
+  '<div class="qr">'+qr()+'</div>'+
+  '<div class="center small">NAVARRO 360 · Catálogo digital</div>'+
+  '<div class="center small">Comprobante local no fiscal. No es factura.</div>';
+ function measure(){
+  const rect=paper.getBoundingClientRect();
+  const px=paper.scrollHeight||rect.height;
+  // Página de altura real; sin residuos largos de A4/Carta.
+  const actualMm=Math.ceil(px*25.4/96);
+  const width=paper.dataset.size==='80'?80:58;
+  const height=Math.min(2000,Math.max(75,actualMm+9));
+  $('paper-length').textContent='@page{size:'+width+'mm '+height+'mm;margin:0}';
+ }
+ measure();
+ document.fonts?.ready?.then(measure).catch(()=>{});
+ $('again').onclick=()=>{measure();$('warn').textContent='Tamaño actualizado para el contenido del ticket.';$('warn').hidden=false};
+ $('print').addEventListener('click',()=>{
+  try{
+   window.print();
+  }catch(e){
+   $('warn').textContent='Este navegador no admite impresión directa. Abre este enlace en Safari y selecciona Compartir → Imprimir.';
+   $('warn').hidden=false;
+  }
+ });
+ $('copy').addEventListener('click',async()=>{
+  try{
+   await navigator.clipboard.writeText(location.href);
+   $('copy').textContent='✓ Enlace copiado';
+  }catch(e){
+   const field=document.createElement('textarea');field.value=location.href;field.style.cssText='position:fixed;left:10px;top:10px;z-index:100;max-width:90vw';
+   document.body.appendChild(field);field.focus();field.select();
+   $('warn').hidden=false;$('warn').textContent='Selecciona y copia el enlace; ábrelo en Safari.';
+  }
+ });
+ window.addEventListener('beforeprint',measure);
+})();
+</script>
+</body>
+</html>
