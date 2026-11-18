@@ -20,7 +20,7 @@ function isStaticAsset(url){
 async function storeSmall(request,response){
  if(!response||!response.ok||response.type!=='basic'||!isStaticAsset(new URL(request.url)))return;
  const declared=Number(response.headers.get('content-length'));
- if(declared>MAX_ASSET_BYTES)return;
+ if(!Number.isFinite(declared)||declared<=0||declared>MAX_ASSET_BYTES)return;
  const cache=await caches.open(VERSION);
  // Consultas distintas (?v=N) son versiones distintas: nunca servir otra versión por error.
  await cache.put(request,response.clone());
@@ -66,7 +66,7 @@ self.addEventListener('fetch',event=>{
     return response;
    }catch(_){
     const cache=await caches.open(VERSION);
-    return await cache.match(new URL(OFFLINE,self.location.href))||
+    return await cache.match(new URL(OFFLINE,self.location.href).href)||
      new Response('<h1>Sin conexión</h1><p>Reconecta Internet para consultar precios actuales.</p>',
       {status:503,headers:{'content-type':'text/html; charset=utf-8'}});
    }
