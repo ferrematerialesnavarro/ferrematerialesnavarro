@@ -123,7 +123,7 @@ function encodePortableTicket(data){
  for(let i=0;i<bytes.length;i+=8192){
   binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
  }
- return btoa(binary).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+ return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function printTicket(){
  // Navegamos desde el toque del usuario a un documento que contiene SOLO
