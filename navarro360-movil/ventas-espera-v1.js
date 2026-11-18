@@ -324,13 +324,26 @@ function init(){
   scrollRegion.id='nv-drawer-scroll';
   drawer.insertBefore(scrollRegion,lines);
  }
- scrollRegion.append(lines,bottom);
+ scrollRegion.append(lines);
+ // El panel de entrega puede cargarse ANTES que este módulo (ambos scripts son async).
+ // Entonces se crea fuera del scroll; moverlo junto al carrito evita que bloquee
+ // el acceso a subtotal, WhatsApp e impresión en Safari iPhone.
+ const deliveryPanel=$('nv70-delivery');
+ if(deliveryPanel)scrollRegion.append(deliveryPanel);
+ scrollRegion.append(bottom);
+ // Defensa ante cualquier inserción posterior fuera del área desplazable.
+ const placeDelivery=()=>{
+  const current=$('nv70-delivery');
+  if(current&&current.parentElement!==scrollRegion)scrollRegion.insertBefore(current,bottom);
+ };
+ new MutationObserver(placeDelivery).observe(drawer,{childList:true});
+ placeDelivery();
  window.NAVARRO_VENTAS_ESPERA_V1=true;
  const css=document.createElement('style');css.id='navarro360-ventas-espera-style-v2';
  css.textContent=
   '#drawer.drawer{height:100vh;height:100dvh;max-height:100dvh;bottom:auto;overflow:hidden;display:flex;flex-direction:column}'+
   '#drawer .drawer-head{position:relative;flex:0 0 auto}'+
-  '#nv-drawer-scroll{flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}'+
+  '#nv-drawer-scroll{display:block;flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}'+
   '#drawer #nv-drawer-scroll .cart-items{flex:none;min-height:0;overflow:visible}'+
   '#drawer #nv-drawer-scroll .drawer-bottom{flex:none;max-height:none;min-height:0;overflow:visible;overscroll-behavior:auto}'+
   '#nv-caja-bar{box-sizing:border-box;display:flex;gap:8px;flex:none;padding:9px 14px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #dbe5dc;box-shadow:0 -4px 14px #172a1912;z-index:6}'+
