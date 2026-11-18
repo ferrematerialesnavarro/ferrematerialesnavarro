@@ -465,28 +465,100 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
  addCode:function(code){code=String(code);if(!db.has(code))return false;add(code);return true;},
  getProduct:function(code){return db.get(String(code))||null;},
  searchCatalog:function(query,limit){
-  var text=norm(query),max=Math.max(1,Math.min(15,Number(limit)||10)),numeric=/^\d+$/.test(text);
-  if(!text)return [];
-  if(numeric&&db.has(text)){var exact=db.get(text);return [{code:exact.id,name:exact.name,baseCents:exact.baseCents}];}
-  if(!numeric&&text.length<2)return [];
-  if(numeric&&text.length<3)return [];
-  var words=text.split(/\s+/).filter(Boolean),scored=[];
-  var brand=/\b(TRUPER|PRETUL|FOSET|HERMEX|VOLTECK|FIERO|KLINTEK|ULTRACRAFT|EXPERT)\b/;
-  for(var p of db.values()){
-   if(p.id===VARIOS&&text!=='PRODUCTOS VARIOS'&&text!=='VARIOS')continue;
-   if(numeric&&!p.id.startsWith(text))continue;
-   if(!numeric&&!words.every(function(w){return p.norm.includes(w)}))continue;
-   var rank=0;
-   if(!numeric){
-    var pos=p.norm.indexOf(text);
-    rank+=(p.norm===text?200:0)+(p.norm.startsWith(text)?80:0)+(pos>=0?35:0);
-    rank-=Math.min(30,p.norm.length/7);
-    if(brand.test(p.norm)&&!brand.test(text))rank-=48;
-   }
-   scored.push({code:p.id,name:p.name,baseCents:p.baseCents,rank:rank});
+  // V16 - Búsqueda adaptativa: código exacto, variantes de medidas, sinónimos
+  // y correcciones leves de escritura. Siempre devuelve CÓDIGOS REALES de db.
+  var original=norm(query).replace(/\s+/g,' ').trim();
+  var max=Math.max(1,Math.min(20,Number(limit)||10));
+  if(!original)return [];
+  var numeric=/^\d+$/.test(original);
+  if(numeric&&db.has(original)){
+   var exact=db.get(original);return [{code:exact.id,name:exact.name,baseCents:exact.baseCents}];
   }
-  scored.sort(function(a,b){return b.rank-a.rank||a.name.localeCompare(b.name,'es')});
-  return scored.slice(0,max).map(function(p){return {code:p.code,name:p.name,baseCents:p.baseCents}});
+  if(numeric){
+   if(original.length<3)return [];
+   var matches=[];
+   for(var p of db.values())if(p.id.startsWith(original))matches.push({code:p.id,name:p.name,baseCents:p.baseCents});
+   return matches.slice(0,max);
+  }
+  if(original.length<2)return [];
+  var normalized=original
+   .replace(/\b(TRES CUARTOS|3 CUARTOS|TRES CUARTO)\b/g,'3/4')
+   .replace(/\b(UN CUARTO|CUARTO DE PULGADA)\b/g,'1/4')
+   .replace(/\b(UNA MEDIA|DE MEDIA|DE MEDIO|MEDIA PULGADA|MEDIO PULGADA)\b/g,'1/2')
+   .replace(/\b(UNO Y MEDIO|UNA Y MEDIA)\b/g,'1 1/2')
+   .replace(/\b(CEMENTOS|CEMENTO GRIS)\b/g,'CEMENTO')
+   .replace(/\b(CLAVOS)\b/g,'CLAVO')
+   .replace(/\b(PEGAS|PEGANTE)\b/g,'PEGAMENTO')
+   .replace(/\b(PLASTICO HIDRAULICO|HIDRAULICA)\b/g,'HIDRAULICO');
+  var ignores=/^(DE|DEL|LA|EL|LOS|LAS|PARA|POR|UNA|UN|EN|CON|TAMAÑO|MEDIDA)$/;
+  var words=normalized.split(/\s+/).filter(function(w){return w&&!ignores.test(w)});
+  if(!words.length)return [];
+  var brand=/\b(TRUPER|PRETUL|FOSET|HERMEX|VOLTECK|FIERO|KLINTEK|ULTRACRAFT|EXPERT)\b/;
+  var explicitBrand=brand.test(original),items=[],used=new Set();
+  function matchWord(content,w){
+   if(content.includes(w))return true;
+   if(w==='1/2')return content.includes('1/2')||content.includes('MEDIA');
+   if(w==='3/4')return content.includes('3/4')||content.includes('TRES CUARTOS');
+   if(w==='PVC')return /\bPVC\b/.test(content);
+   if(w==='CPVC')return /\bCPVC\b/.test(content);
+   if(w==='HIDRAULICO')return content.includes('HIDRAUL')||content.includes('HIDRAULICO');
+   if(w==='CODO')return /\bCODO(S)?\b/.test(content);
+   if(w.length>3&&w.endsWith('S'))return content.includes(w.slice(0,-1));
+   return false;
+  }
+  function push(p,fuzzy){
+   if(used.has(p.id)||(p.id===VARIOS&&!/VARIOS|PRODUCTOS VARIOS/.test(original)))return;
+   var label=p.norm;
+   var score=(label===original?500:0)+(label.startsWith(original)?150:0)+(label.includes(original)?80:0);
+   score+=words.reduce(function(n,w){return n+(label.includes(w)?40:12)},0);
+   score-=Math.min(40,label.length/6);
+   if(brand.test(label)&&!explicitBrand)score-=95;
+   if(fuzzy)score-=70;
+   used.add(p.id);items.push({code:p.id,name:p.name,baseCents:p.baseCents,rank:score});
+  }
+  for(var p of db.values()){
+   if(words.every(function(w){return matchWord(p.norm,w)}))push(p,false);
+  }
+  if(items.length<max&&words.some(function(w){return w.length>=4})){
+   // Solo cuando faltan resultados: encuentra palabras cercanas por un error.
+   // Evita buscar si hay artículos exactos suficientes.
+   var vocab=new Set();
+   for(var p of db.values()){
+    var terms=p.norm.split(/[^A-Z0-9\/]+/);
+    for(var term of terms)if(term.length>=4&&term.length<=24)vocab.add(term);
+   }
+   function distance(a,b){
+    if(a===b)return 0;if(Math.abs(a.length-b.length)>2)return 3;
+    var limit=a.length<=5?1:2,prev=Array.from({length:b.length+1},function(_,i){return i});
+    for(var i=1;i<=a.length;i++){
+     var row=[i],best=i;
+     for(var j=1;j<=b.length;j++){
+      row[j]=Math.min(row[j-1]+1,prev[j]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+      best=Math.min(best,row[j]);
+     }
+     if(best>limit)return 3;
+     prev=row;
+    }
+    return prev[b.length]<=limit?prev[b.length]:3;
+   }
+   var alternates=[];
+   for(var word of words){
+    if(word.length<4){alternates.push([word]);continue}
+    var choices=[];
+    for(var candidate of vocab){
+     var d=distance(word,candidate);
+     if(d<3)choices.push({word:candidate,d:d});
+    }
+    choices.sort(function(a,b){return a.d-b.d||a.word.length-b.word.length});
+    alternates.push([word].concat(choices.slice(0,3).map(function(c){return c.word})));
+   }
+   for(var p of db.values()){
+    if(items.length>=max*12)break;
+    if(alternates.every(function(group){return group.some(function(w){return matchWord(p.norm,w)})}))push(p,true);
+   }
+  }
+  items.sort(function(a,b){return b.rank-a.rank||a.name.localeCompare(b.name,'es')});
+  return items.slice(0,max).map(function(p){return {code:p.code,name:p.name,baseCents:p.baseCents}});
  },
  replace:function(next){
   if(!next||typeof next!=='object'||Array.isArray(next))return false;
