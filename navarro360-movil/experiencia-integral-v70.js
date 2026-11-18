@@ -15,6 +15,10 @@ const chips=[
  ['Pinturas','PINTURA','#e9c0e6'],['Jardinería','MANGUERA','#aad8a7']
 ];
 let map=null,source=null,deliveryTimer=0,photoPending=false,photoListening=false,cartListening=false;
+let selectedMaterial='',selectedDiameter='',selectedType='';
+const DIAMETERS=['1/2','3/4','1','1 1/4','1 1/2','2','2 1/2','3','4'];
+const TYPES=['CODO','TEE','COPLE','REDUCCION','TUBO','TAPON','CONECTOR','VALVULA'];
+const PLUMBING=new Set(['CPVC','PVC','HIDRAULICO','GALVANIZADO','COBRE','PPR']);
 function css(){
  if($('nv70-style'))return;
  const s=document.createElement('style');s.id='nv70-style';
@@ -24,6 +28,7 @@ function css(){
  '.nv70-scroll{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 8px;scrollbar-width:thin}',
  '.nv70-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;min-height:45px;padding:8px 12px;border:1px solid #d2e0d5;background:#fff;border-radius:11px;font:750 12px system-ui;color:#1d4733;flex-shrink:0}',
  '.nv70-dot{width:16px;height:16px;border:1px solid #8f9c9455;border-radius:5px;display:inline-block}',
+ '.nv70-facets{border-top:1px solid #dce9df;padding-top:9px;margin-top:6px}.nv70-facets[hidden]{display:none!important}.nv70-facets b{display:block;font:800 12px system-ui;margin:7px 0;color:#335a43}.nv70-facets .nv70-scroll button{min-height:35px;padding:7px 9px;font-size:11px;background:#fff;color:#264d34;border:1px solid #bed5c7;border-radius:9px;flex-shrink:0}.nv70-facets .nv70-scroll button[aria-pressed=true]{background:#207348;color:white;border-color:#207348}',
  '#nv70-delivery{margin:11px 0;background:#fff;border:1px solid #d4e5da;border-radius:15px;padding:13px;color:#1d4733;font:13px/1.45 system-ui}',
  '#nv70-delivery h3{margin:0 0 8px;color:#1b4931;font-size:15px}',
  '.nv70-pair{display:flex;justify-content:space-between;gap:12px;margin:7px 0}',
@@ -52,22 +57,62 @@ function searchMaterial(query){
  try{input.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}
  try{input.focus({preventScroll:true})}catch(_){input.focus()}
 }
+function facetQuery(){
+ return [selectedType,selectedMaterial,selectedDiameter].filter(Boolean).join(' ');
+}
+function setFacetOptions(){
+ const panel=$('nv70-facets');
+ if(!panel)return;
+ panel.hidden=!PLUMBING.has(selectedMaterial);
+ if(panel.hidden)return;
+ for(const b of panel.querySelectorAll('button[data-size]'))
+  b.setAttribute('aria-pressed',String(b.dataset.size===selectedDiameter));
+ for(const b of panel.querySelectorAll('button[data-type]'))
+  b.setAttribute('aria-pressed',String(b.dataset.type===selectedType));
+}
 function nav(){
  if($('nv70-materials'))return true;
  const target=$('filters')||$('products');
  if(!target)return false;
  const box=document.createElement('section');box.id='nv70-materials';
- box.setAttribute('aria-label','Accesos rápidos por material');
+ box.setAttribute('aria-label','Accesos rápidos por material y medida');
  const h=document.createElement('h3');h.textContent='🎨 Encuentra rápido tu material';
  const row=document.createElement('div');row.className='nv70-scroll';
  chips.forEach(([name,query,color])=>{
   const btn=document.createElement('button');btn.type='button';btn.className='nv70-chip';btn.dataset.query=query;
   const dot=document.createElement('span');dot.className='nv70-dot';dot.style.background=color;
-  const title=document.createElement('span');title.textContent=name;
-  btn.append(dot,title);row.appendChild(btn);
+  const title=document.createElement('span');title.textContent=name;btn.append(dot,title);row.appendChild(btn);
  });
- box.append(h,row);target.insertAdjacentElement('beforebegin',box);
- box.addEventListener('click',e=>{const b=e.target.closest('button[data-query]');if(b)searchMaterial(b.dataset.query)});
+ const facets=document.createElement('div');facets.id='nv70-facets';facets.className='nv70-facets';facets.hidden=true;
+ function rowFor(title,choices,key){
+  const caption=document.createElement('b');caption.textContent=title;
+  const strip=document.createElement('div');strip.className='nv70-scroll';
+  for(const val of choices){
+   const button=document.createElement('button');button.type='button';
+   button.dataset[key]=val;button.setAttribute('aria-pressed','false');button.textContent=val;
+   strip.appendChild(button);
+  }
+  facets.append(caption,strip);
+ }
+ rowFor('Filtrar por conexión o artículo',TYPES,'type');
+ rowFor('Filtrar por diámetro (pulgadas)',DIAMETERS,'size');
+ const clear=document.createElement('button');clear.type='button';clear.textContent='↻ Mostrar todas las medidas';clear.dataset.clear='1';
+ facets.appendChild(clear);
+ box.append(h,row,facets);target.insertAdjacentElement('beforebegin',box);
+ box.addEventListener('click',e=>{
+  const button=e.target.closest('button');if(!button)return;
+  if(button.dataset.query){
+   selectedMaterial=button.dataset.query;selectedDiameter='';selectedType='';
+  }else if(button.dataset.size){
+   selectedDiameter=selectedDiameter===button.dataset.size?'':button.dataset.size;
+  }else if(button.dataset.type){
+   selectedType=selectedType===button.dataset.type?'':button.dataset.type;
+  }else if(button.dataset.clear==='1'){
+   selectedDiameter='';selectedType='';
+  }else return;
+  setFacetOptions();
+  searchMaterial(facetQuery());
+ });
  return true;
 }
 function products(){
