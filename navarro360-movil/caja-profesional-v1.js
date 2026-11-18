@@ -364,7 +364,34 @@ async function closeScanner(){
  await stopScanner();
 }
 window.NAVARRO_CAJA_MODULO=Object.freeze({
- version:1,registrarVenta:registrarVenta,
+ version:2,registrarVenta:registrarVenta,
+ guardarEnEspera:function(label){
+  const items=B()?.getItems()||[];
+  if(!ready||!items.length)return {ok:false,reason:!ready?'Catálogo cargando':'Carrito vacío'};
+  const name=$('nv-pro-hold-label');if(name)name.value=capText(label)||'Mostrador';
+  const oldCount=stored(HOLD).length;
+  saveHold();
+  const count=stored(HOLD).length;
+  return {ok:count>oldCount&&(B()?.getItems()||[]).length===0,count:count};
+ },
+ ventasEnEspera:function(){
+  return stored(HOLD).slice(0,MAX_HOLD).map(function(v){
+   return {id:v.id,label:v.label||'Mostrador',at:v.at,items:Array.isArray(v.items)?v.items.length:0,
+    totalCents:Number(v.totalCents)||0};
+  });
+ },
+ recuperarEnEspera:function(id){
+  if(typeof id!=='string')return {ok:false,reason:'Falta referencia'};
+  if(!stored(HOLD).some(function(v){return v.id===id}))return {ok:false,reason:'Venta no encontrada'};
+  handleHold({target:{closest:function(){return {dataset:{holdAction:'restore',id:id}}}}});
+  return {ok:!stored(HOLD).some(function(v){return v.id===id})};
+ },
+ eliminarEnEspera:function(id){
+  if(typeof id!=='string')return {ok:false,reason:'Falta referencia'};
+  if(!stored(HOLD).some(function(v){return v.id===id}))return {ok:false,reason:'Venta no encontrada'};
+  handleHold({target:{closest:function(){return {dataset:{holdAction:'delete',id:id}}}}});
+  return {ok:!stored(HOLD).some(function(v){return v.id===id})};
+ },
  scanCode:function(code){return acceptCode(code,true)},
  diagnostics:function(){return {ready:ready,holds:stored(HOLD).length,simulations:stored(HISTORY).length,cameraActive:!!videoReader}}
 });
