@@ -159,7 +159,7 @@ a{color:#1b6b4b}@media(max-width:400px){.panel{padding:13px}.grid{gap:8px}button
 (function () {
 'use strict';
 var STORE='navarro360_vendedor_simulador_v1';
-var db=new Map(), cart={};
+var db=new Map(), cart={},fuzzyVocabCache=null,fuzzyVocabSize=0;
 var VARIOS='00000',PHONE='525639129040';
 var $=function(id){return document.getElementById(id)};
 var mx=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
@@ -209,16 +209,12 @@ function extractCatalog(html){
  return JSON.parse(html.slice(start,end));
 }
 function search(){
- var s=norm($('search').value),host=$('results');
- if(!s){host.innerHTML='';return}
- var rows=[],parts=s.split(/\s+/),numeric=/^\d+$/.test(s);
- if(numeric&&db.has(s)){rows=[db.get(s)]}
- else if(!numeric && s.length>=2){
-  for(var p of db.values()){if(parts.every(function(w){return p.norm.includes(w)})){rows.push(p);if(rows.length>=15)break}}
- }
+ var text=$('search').value,host=$('results');
+ if(!String(text).trim()){host.innerHTML='';return}
+ var bridge=window.NAVARRO_CAJA_TEST_BRIDGE,rows=bridge?.searchCatalog?bridge.searchCatalog(text,15):[];
  host.innerHTML=rows.length?rows.map(function(p){
-  return '<button type="button" class="result" data-add="'+p.id+'"><b>'+escapeText(p.name)+'</b><small>Código '+p.id+' · Precio base '+cash(p.baseCents)+'</small></button>';
- }).join(''):'<p class="muted">No se encontraron coincidencias. Prueba el código exacto o un nombre más preciso.</p>';
+  return '<button type="button" class="result" data-add="'+escapeText(p.code)+'"><b>'+escapeText(p.name)+'</b><small>Código '+escapeText(p.code)+' · Precio base '+cash(p.baseCents)+'</small></button>';
+ }).join(''):'<p class="muted">No se encontraron coincidencias. Prueba otro nombre, medida o código.</p>';
 }
 function add(id){var p=db.get(id);if(!p)return;if(!cart[id])cart[id]={qty:1,cents:p.baseCents};save();render();$('search').value='';$('results').innerHTML=''}
 function linesForCart(){
@@ -522,10 +518,14 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
   if(items.length<Math.min(3,max)&&words.some(function(w){return w.length>=4})){
    // Solo cuando faltan resultados: encuentra palabras cercanas por un error.
    // Evita buscar si hay artículos exactos suficientes.
-   var vocab=new Set();
-   for(var p of db.values()){
-    var terms=p.norm.split(/[^A-Z0-9\/]+/);
-    for(var term of terms)if(term.length>=4&&term.length<=24)vocab.add(term);
+   var vocab=fuzzyVocabCache;
+   if(!vocab||fuzzyVocabSize!==db.size){
+    vocab=new Set();
+    for(var p of db.values()){
+     var terms=p.norm.split(/[^A-Z0-9\/]+/);
+     for(var term of terms)if(term.length>=4&&term.length<=24)vocab.add(term);
+    }
+    fuzzyVocabCache=vocab;fuzzyVocabSize=db.size;
    }
    function distance(a,b){
     if(a===b)return 0;if(Math.abs(a.length-b.length)>2)return 3;
