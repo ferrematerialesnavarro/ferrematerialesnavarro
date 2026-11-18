@@ -23,7 +23,7 @@ function quote(){
  const raw=window.NAVARRO_DB;
  const map=new Map((Array.isArray(raw)?raw:[]).filter(Array.isArray).map(p=>[String(p[0]),Number(p[2])]));
  if(!map.has('00000'))map.set('00000',20);
- let subtotal=0,valid=true,hasFreight=false,hasItems=false;
+ let subtotal=0,subtotalProductos=0,valid=true,hasFreight=false,hasItems=false;
  for(const [id,q] of Object.entries(cart)){
   const qty=Number(q),base=map.get(id);hasItems=true;
   if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(base)||base<=0){valid=false;continue}
@@ -32,10 +32,11 @@ function quote(){
   const unit=Number.isSafeInteger(override)&&override>0?override:Math.round(base*100);
   const itemTotal=special||Math.round(qty*unit);
   if(!Number.isSafeInteger(itemTotal)||itemTotal<=0){valid=false;continue}
+  subtotal+=itemTotal;
   if(id==='7777000010')hasFreight=true;
-  else subtotal+=itemTotal;
+  else subtotalProductos+=itemTotal;
  }
- return {subtotal,valid,hasFreight,hasItems};
+ return {subtotal,subtotalProductos,valid,hasFreight,hasItems};
 }
 let mounted=false;
 let manualOverride=null;
@@ -49,7 +50,7 @@ function update(){
  const fee=$('nv-cobro-flete'),msg=$('nv-cobro-flete-info'),total=$('nv-cobro-total');
  if(!fee||!address||!delivery||!total)return;
  const q=quote(),needsDelivery=delivery.checked||!!address.value.trim();
- const auto=needsDelivery&&q.subtotal<100000;
+ const auto=needsDelivery&&q.subtotalProductos<100000;
  if(q.hasFreight){
   fee.checked=false;fee.disabled=true;
   if(msg)msg.textContent='Flete incluido como producto del carrito; no se cobra dos veces.';
@@ -73,7 +74,7 @@ function snapshot(){
  const address=String($('nv-cobro-address')?.value||$('nv70-address')?.value||'').trim().slice(0,260);
  const phone=String($('nv-cobro-phone')?.value||'').trim().slice(0,30);
  const flete=q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
- return {address,phone,flete,delivery:!!$('nv-cobro-domicilio')?.checked||!!address,subTotalSinFlete:q.subtotal,hasFreight:q.hasFreight};
+ return {address,phone,flete,delivery:!!$('nv-cobro-domicilio')?.checked||!!address,subTotalSinFlete:q.subtotalProductos,hasFreight:q.hasFreight};
 }
 function reset(){
  manualOverride=null;
