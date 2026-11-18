@@ -214,13 +214,13 @@ function mount(){
   '<div class="nv-ticket-actions"><button id="nv-ticket-close" type="button">Volver al carrito</button>'+
   '<button id="nv-ticket-print" type="button">🖨 Imprimir</button></div></div>';
  document.body.appendChild(screen);
- $('nv-ticket-close').addEventListener('click',closeTicket);
+ $('nv-ticket-close').addEventListener('click',restoreAfterPrint);
  $('nv-ticket-print').addEventListener('click',printTicket);
- screen.addEventListener('click',e=>{if(e.target===screen)closeTicket()});
+ screen.addEventListener('click',e=>{if(e.target===screen)restoreAfterPrint()});
  ['nv-ticket-client','nv-ticket-status','nv-ticket-paper-size','nv-ticket-flete'].forEach(id=>
   $(id).addEventListener('input',preview));
  document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();closeTicket()}
+  if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();restoreAfterPrint()}
  },true);
  window.addEventListener('afterprint',restoreAfterPrint);
  window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:5,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
