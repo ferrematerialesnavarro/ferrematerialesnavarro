@@ -581,7 +581,7 @@ else init();
 (function(){
  if(window.NAVARRO_ESPERA_LOADER_V1)return;
  window.NAVARRO_ESPERA_LOADER_V1=true;
- var s=document.createElement('script');s.src='./ventas-espera-v1.js?v=9-scroll-unico';s.async=true;
+ var s=document.createElement('script');s.src='./ventas-espera-v1.js?v=11-orden-entrega';s.async=true;
  s.onerror=function(){console.warn('NAVARRO 360: módulo de ventas en espera no disponible; carrito original intacto');};
  document.head.appendChild(s);
 })();
@@ -592,7 +592,7 @@ else init();
  window.NAVARRO_EXPERIENCIA_LOADER_V70=true;
  let root;
  try{root=new URL('./',document.currentScript?.src||location.href)}catch(_){return}
- const modules=['experiencia-integral-v70.js?v=72'];
+ const modules=['experiencia-integral-v70.js?v=74-entrega-compacta'];
  try{if(new URL(location.href).searchParams.get('auditoria')==='1')modules.push('auditoria-fotos-v70.js?v=70')}catch(_){}
  for(const file of modules){
   const tag=document.createElement('script');tag.async=true;tag.src=new URL(file,root).href;
