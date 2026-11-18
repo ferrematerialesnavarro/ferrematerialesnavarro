@@ -29,8 +29,9 @@ function css(){
  '.nv70-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;min-height:45px;padding:8px 12px;border:1px solid #d2e0d5;background:#fff;border-radius:11px;font:750 12px system-ui;color:#1d4733;flex-shrink:0}',
  '.nv70-dot{width:16px;height:16px;border:1px solid #8f9c9455;border-radius:5px;display:inline-block}',
  '.nv70-facets{border-top:1px solid #dce9df;padding-top:9px;margin-top:6px}.nv70-facets[hidden]{display:none!important}.nv70-facets b{display:block;font:800 12px system-ui;margin:7px 0;color:#335a43}.nv70-facets .nv70-scroll button{min-height:35px;padding:7px 9px;font-size:11px;background:#fff;color:#264d34;border:1px solid #bed5c7;border-radius:9px;flex-shrink:0}.nv70-facets .nv70-scroll button[aria-pressed=true]{background:#207348;color:white;border-color:#207348}',
- '#nv70-delivery{margin:11px 0;background:#fff;border:1px solid #d4e5da;border-radius:15px;padding:13px;color:#1d4733;font:13px/1.45 system-ui}',
+ '#nv70-delivery{margin:10px 14px 12px;background:#fff;border:1px solid #d4e5da;border-radius:15px;padding:13px;color:#1d4733;font:13px/1.45 system-ui;box-shadow:0 2px 8px #1028170a}',
  '#nv70-delivery h3{margin:0 0 8px;color:#1b4931;font-size:15px}',
+  '.nv70-extra{margin-top:10px;border-top:1px solid #dae9de;padding-top:7px}.nv70-extra summary{list-style:none;display:flex;align-items:center;min-height:44px;cursor:pointer;color:#1f6945;font:800 12.5px system-ui;touch-action:manipulation}.nv70-extra summary::-webkit-details-marker{display:none}.nv70-extra summary:after{content:"▾";margin-left:auto;font-size:16px}.nv70-extra[open] summary:after{content:"▴"}.nv70-extra-content{padding-top:7px}.nv70-shipping-remaining{margin:5px 0;color:#557361;font-weight:600}',
  '.nv70-pair{display:flex;justify-content:space-between;gap:12px;margin:7px 0}',
  '.nv70-pair strong{font-variant-numeric:tabular-nums;text-align:right}',
  '.nv70-track{height:8px;background:#e2eee6;border-radius:8px;overflow:hidden;margin:9px 0}',
@@ -166,22 +167,38 @@ function line(host,tag,text){
  const el=document.createElement(tag);el.textContent=text;host.appendChild(el);return el;
 }
 function renderDelivery(){
- deliveryTimer=0;const host=$('nv70-delivery');if(!host)return;
- const quote=estimation();host.replaceChildren();
- line(host,'h3','🚚 Entrega y estado del pedido');
- if(!quote.units){const p=line(host,'p','Agrega productos para ver la estimación de envío.');p.className='nv70-info';return}
- pair(host,'Productos diferentes',String(quote.units));
- pair(host,'Subtotal estimado',mx.format(quote.subtotal/100));
- pair(host,'Envío a domicilio',quote.hasFreight?'Flete ya incluido en el carrito':quote.eligible?'Gratis':mx.format(50));
- if(!quote.hasFreight)pair(host,'Total aproximado con envío',mx.format((quote.subtotal+quote.shipping)/100));
- if(!quote.eligible&&!quote.hasFreight){
-  const p=line(host,'p','Faltan '+mx.format(quote.freeRemaining/100)+' en productos para obtener envío gratis (desde $1,000).');
-  p.className='nv70-info';
+ deliveryTimer=0;
+ const host=$('nv70-delivery');if(!host)return;
+ const expanded=!!host.querySelector('details.nv70-extra')?.open;
+ // Conservar la dirección aunque el carrito vuelva a dibujarse.
+ const inProgress=$('nv70-address')?.value;
+ if(typeof inProgress==='string'){try{sessionStorage.setItem('nv70-address',inProgress.slice(0,260))}catch(_){}}
+ const quote=estimation();
+ host.replaceChildren();
+ line(host,'h3','🚚 Entrega a domicilio');
+ if(!quote.units){
+  const p=line(host,'p','Agrega productos para calcular el envío.');
+  p.className='nv70-info';return;
  }
- const track=document.createElement('div');track.className='nv70-track';const fill=document.createElement('span');
- fill.style.width=Math.max(0,Math.min(100,quote.subtotal/1000))+'%';track.appendChild(fill);host.appendChild(track);
+ pair(host,'Subtotal de productos',mx.format(quote.subtotal/100));
+ pair(host,'Envío estimado',quote.hasFreight?'Incluido en carrito':quote.eligible?'Gratis':mx.format(50));
+ if(!quote.hasFreight)pair(host,'Total estimado con envío',mx.format((quote.subtotal+quote.shipping)/100));
+ if(!quote.eligible&&!quote.hasFreight){
+  const p=line(host,'p','Te faltan '+mx.format(quote.freeRemaining/100)+' para envío gratis.');
+  p.className='nv70-info nv70-shipping-remaining';
+ }
+ const extra=document.createElement('details');extra.className='nv70-extra';
+ extra.open=expanded;
+ const summary=document.createElement('summary');
+ summary.textContent='📍 Dirección, progreso y detalles del envío';
+ extra.appendChild(summary);
+ const content=document.createElement('div');content.className='nv70-extra-content';
+ pair(content,'Productos diferentes',String(quote.units));
+ const track=document.createElement('div');track.className='nv70-track';
+ const fill=document.createElement('span');fill.style.width=Math.max(0,Math.min(100,quote.subtotal/1000))+'%';
+ track.appendChild(fill);content.appendChild(track);
  if(quote.unknown){
-  const warn=line(host,'p','Hay '+quote.unknown+' código(s) sin precio comprobable. No utilices este total como definitivo.');
+  const warn=line(content,'p','Existen '+quote.unknown+' artículos sin precio verificado. No consideres definitivo este importe.');
   warn.className='nv70-warning';
  }
  let sent=null;try{sent=JSON.parse(sessionStorage.getItem('nv70-wa-intento')||'null')}catch(_){}
@@ -189,31 +206,37 @@ function renderDelivery(){
  const steps=document.createElement('div');steps.className='nv70-steps';
  [['Carrito',true],['WhatsApp',!!attempted],['Bot confirma',false],['Guardada en SIFO',false]]
  .forEach(([name,done])=>{const el=document.createElement('span');el.textContent=name;el.className=done?'active':'';steps.appendChild(el)});
- host.appendChild(steps);
- if(attempted){const p=line(host,'p','Se intentó abrir WhatsApp. No podemos comprobar que el mensaje se envió ni que SIFO guardó una venta.');p.className='nv70-warning'}
+ content.appendChild(steps);
+ if(attempted){
+  const p=line(content,'p','Intentamos abrir WhatsApp; todavía no hay confirmación de pedido.');
+  p.className='nv70-warning';
+ }
  const address=document.createElement('section');address.className='nv70-address';
- const label=document.createElement('label');label.htmlFor='nv70-address';label.textContent='📍 Dirección para domicilio (opcional)';
+ const label=document.createElement('label');label.htmlFor='nv70-address';
+ label.textContent='Dirección para domicilio (opcional)';
  const input=document.createElement('textarea');input.id='nv70-address';input.maxLength=260;
  input.placeholder='Calle, número, colonia y referencias';
  try{input.value=sessionStorage.getItem('nv70-address')||''}catch(_){}
  input.addEventListener('input',()=>{try{sessionStorage.setItem('nv70-address',input.value.slice(0,260))}catch(_){}});
- const copy=document.createElement('button');copy.type='button';copy.textContent='📋 Copiar dirección para WhatsApp';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='📋 Copiar dirección';
  copy.addEventListener('click',async()=>{
-  const text=input.value.trim();
-  if(text.length<8){input.focus();return}
-  try{await navigator.clipboard.writeText(text);copy.textContent='✓ Dirección copiada'}
-  catch(_){input.focus();copy.textContent='Selecciona y copia el texto manualmente'}
+  const value=input.value.trim();if(value.length<8){input.focus();return}
+  try{await navigator.clipboard.writeText(value);copy.textContent='✓ Dirección copiada'}
+  catch(_){input.focus();copy.textContent='Selecciona y copia la dirección'}
  });
- const hint=document.createElement('p');hint.className='nv70-info';
- hint.textContent='Se conserva sólo en esta pestaña. NO se envía automáticamente con los códigos; pégala en WhatsApp cuando el bot la solicite.';
- address.append(label,input,copy,hint);host.appendChild(address);
- const note=line(host,'p','Estimación informativa. El flete NO se añade a este carrito. El bot confirmará dirección, importe y condiciones al recibir el pedido.');
+ address.append(label,input,copy);
+ const note=line(address,'p','El envío mostrado es estimado: no se agrega automáticamente al carrito o al ticket.');
  note.className='nv70-info';
+ content.appendChild(address);
+ extra.appendChild(content);
+ host.appendChild(extra);
 }
 function queueDelivery(){if(!deliveryTimer)deliveryTimer=setTimeout(renderDelivery,100)}
 function delivery(){
- if($('nv70-delivery'))return true;
  const cart=$('cart-items');if(!cart)return false;
+ const existing=$('nv70-delivery');
+ // La sección siempre pertenece al mismo área desplazable que los productos.
+ if(existing){if(existing.parentElement!==cart.parentElement)cart.insertAdjacentElement('afterend',existing);return true}
  const panel=document.createElement('section');panel.id='nv70-delivery';
  panel.setAttribute('aria-label','Información de entrega, envío y estado del pedido');
  cart.insertAdjacentElement('afterend',panel);
