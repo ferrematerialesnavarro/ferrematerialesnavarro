@@ -80,7 +80,7 @@ function ui(){
   try{
    await close();
    const original=document.getElementById('sale-cart');
-   if(original&&!original.disabled)original.click();
+   if(original&&!original.disabled){try{original.focus({preventScroll:true})}catch(_){}original.click()}
   }finally{button.disabled=false;}
  });
  $('n12-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();manual()}});
@@ -191,10 +191,10 @@ function onCartButton(e){
  const button=e.target.closest('button[data-n15-act]');if(!button)return;
  const code=button.dataset.n15Code,action=button.dataset.n15Act,cart=currentMap(),p=cart[code];
  if(!p)return;
- if(action==='remove'){delete cart[code];if(updateCart(cart,'el producto'))status('Producto eliminado del carrito.');return}
+ if(action==='remove'){delete cart[code];if(updateCart(cart,'el producto')){if(lastCode===code)lastCode='';status('Producto eliminado del carrito.')}return}
  if(code==='00000')return;
  const qty=Number(p.qty),next=action==='plus'?qty+1:qty-1;
- if(next<=0){delete cart[code];if(updateCart(cart,'la cantidad'))status('Producto eliminado del carrito.');return}
+ if(next<=0){delete cart[code];if(updateCart(cart,'la cantidad')){if(lastCode===code)lastCode='';status('Producto eliminado del carrito.')}return}
  if(next>9999){status('Cantidad máxima de 9,999 unidades.');return}
  p.qty=Math.round(next*1000)/1000;
  if(updateCart(cart,'la cantidad'))status('Cantidad actualizada.');
@@ -505,6 +505,7 @@ async function open(){
  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){alert('Abre la página mediante HTTPS en Safari y permite la cámara.');return}
  ui();prepareSound();active=true;opening=true;const token=++seq;scannerCycle++;
  for(const panel of ['n15-cartpanel','n15-variospanel','n15-holdpanel'])$(panel).hidden=true;
+ const focused=document.activeElement;if(focused&&overlay?.contains(focused)&&typeof focused.blur==='function')focused.blur();
  const input=$('n14-query');if(input){input.value='';renderMatches([])}
  lastCode='';lastItem=null;scanned=0;skus=new Set();busy=false;minNext=0;focusStage=0;lastRead=0;altCode='';altAt=0;altHits=0;counts={zxing:0,html5:0,quagga:0,native:0};problems=[];
  $('n12-repeat').hidden=true;const success=$('n13-success');if(success){success.hidden=true;clearTimeout(successTimer)}
