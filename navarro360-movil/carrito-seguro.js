@@ -27,9 +27,14 @@ const validId=id=>/^\d{5,}$/.test(String(id||''));
 // V66: conservar cantidades fraccionarias ya registradas, sin convertirlas a enteros.
 const validQty=n=>Number.isFinite(n)&&n>0&&n<=MAX;
 const roundQty=n=>Math.round((n+Number.EPSILON)*1000000)/1000000;
+let nav70NameRef=null,nav70NameIndex=null;
 const nameFor=id=>{
- const row=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB.find(x=>String(x?.[0])===id):null;
- return String(row?.[1]||'Producto '+id);
+ const data=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
+ if(nav70NameRef!==data){
+  nav70NameRef=data;
+  nav70NameIndex=new Map(data.filter(Array.isArray).map(r=>[String(r[0]),String(r[1]||'')]));
+ }
+ return nav70NameIndex.get(String(id))||'Producto '+id;
 };
 function readCart(){
  try{
@@ -306,9 +311,7 @@ function priceOverridesInOrder(cart){
   importes=JSON.parse(localStorage.getItem('navarro_importes_cents_v1')||'{}');
  }catch{return []}
  if(!overrides||typeof overrides!=='object'||Array.isArray(overrides))return [];
- const ids=new Set(Object.keys(cart)),bases=new Map();
- for(const row of Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[])
-  if(Array.isArray(row)&&ids.has(String(row[0])))bases.set(String(row[0]),Number(row[2]));
+ const bases=nvPrecioCatalogo();
  const out=[];
  for(const [id,q] of Object.entries(cart)){
   if(!Number.isFinite(q)||q<=0||Number(clavos?.[id]||importes?.[id]||0)>0)continue;
@@ -330,10 +333,15 @@ function nvNumeroCantidad(n){
  if(!Number.isFinite(rounded)||rounded<=0||rounded>9999)return null;
  return String(Number(rounded.toFixed(NV_DECIMALES_PRECIO)));
 }
+let nav70PriceRef=null,nav70Prices=null;
 function nvPrecioCatalogo(){
- return new Map((Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[])
-  .filter(r=>Array.isArray(r)&&r.length>=3)
-  .map(r=>[String(r[0]),Number(r[2])]));
+ const data=Array.isArray(window.NAVARRO_DB)?window.NAVARRO_DB:[];
+ if(nav70PriceRef!==data){
+  nav70PriceRef=data;
+  nav70Prices=new Map(data.filter(r=>Array.isArray(r)&&r.length>=3)
+   .map(r=>[String(r[0]),Number(r[2])]));
+ }
+ return nav70Prices;
 }
 function nvCalcularMensaje(snapshot){
  const original=readCart();
@@ -576,4 +584,19 @@ else init();
  var s=document.createElement('script');s.src='./ventas-espera-v1.js?v=8';s.async=true;
  s.onerror=function(){console.warn('NAVARRO 360: módulo de ventas en espera no disponible; carrito original intacto');};
  document.head.appendChild(s);
+})();
+
+/* NAVARRO 360 V70 — cargar mejoras sin bloquear el carrito ni el cobro. */
+;(function(){
+ if(window.NAVARRO_EXPERIENCIA_LOADER_V70)return;
+ window.NAVARRO_EXPERIENCIA_LOADER_V70=true;
+ let root;
+ try{root=new URL('./',document.currentScript?.src||location.href)}catch(_){return}
+ const modules=['experiencia-integral-v70.js?v=70'];
+ try{if(new URL(location.href).searchParams.get('auditoria')==='1')modules.push('auditoria-fotos-v70.js?v=70')}catch(_){}
+ for(const file of modules){
+  const tag=document.createElement('script');tag.async=true;tag.src=new URL(file,root).href;
+  tag.onerror=()=>console.warn('NAVARRO 360: mejora opcional no disponible:',file);
+  document.head.appendChild(tag);
+ }
 })();
