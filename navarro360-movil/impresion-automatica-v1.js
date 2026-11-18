@@ -75,7 +75,11 @@ function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(
 function resetPrintedSale(job,version){
  // Solo vaciar una venta si sus productos, importes y datos NO cambiaron
  // mientras Windows confirmaba la cola. Evita borrar una venta nueva.
- const current=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
+ let current=null;
+ try{current=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null}catch(_){
+  status('✓ Ticket enviado. Se conservó el carrito porque sus datos cambiaron.',false);
+  return;
+ }
  if(version!==saleVersion()||
    (current&&(current.address!==job.address||current.phone!==job.phone||current.flete!==job.flete))){
   status('✓ Ticket recibido. El carrito cambió durante la impresión y se conservó.',false);
@@ -86,7 +90,10 @@ function resetPrintedSale(job,version){
   status('✓ Ticket recibido, pero no se pudo vaciar el carrito. Usa Vaciar carrito.',true);
   return;
  }
- clear.click(); // Método oficial: sincroniza carrito, buscador y precio en memoria.
+ try{clear.click()}catch(_){
+  status('✓ Ticket recibido, pero no se pudo vaciar el carrito. Usa Vaciar carrito.',true);return;
+ }
+ // Método oficial: sincroniza carrito, buscador y precio en memoria.
  if(Object.keys(read('navarro_cart_v1')).length){
   status('✓ Ticket recibido, pero el carrito no se vació. Revísalo antes de la siguiente venta.',true);
   return;
