@@ -464,6 +464,30 @@ window.NAVARRO_CAJA_TEST_BRIDGE=Object.freeze({
  getSummary:linesForCart,
  addCode:function(code){code=String(code);if(!db.has(code))return false;add(code);return true;},
  getProduct:function(code){return db.get(String(code))||null;},
+ searchCatalog:function(query,limit){
+  var text=norm(query),max=Math.max(1,Math.min(15,Number(limit)||10)),numeric=/^\d+$/.test(text);
+  if(!text)return [];
+  if(numeric&&db.has(text)){var exact=db.get(text);return [{code:exact.id,name:exact.name,baseCents:exact.baseCents}];}
+  if(!numeric&&text.length<2)return [];
+  if(numeric&&text.length<3)return [];
+  var words=text.split(/\s+/).filter(Boolean),scored=[];
+  var brand=/\b(TRUPER|PRETUL|FOSET|HERMEX|VOLTECK|FIERO|KLINTEK|ULTRACRAFT|EXPERT)\b/;
+  for(var p of db.values()){
+   if(p.id===VARIOS&&text!=='PRODUCTOS VARIOS'&&text!=='VARIOS')continue;
+   if(numeric&&!p.id.startsWith(text))continue;
+   if(!numeric&&!words.every(function(w){return p.norm.includes(w)}))continue;
+   var rank=0;
+   if(!numeric){
+    var pos=p.norm.indexOf(text);
+    rank+=(p.norm===text?200:0)+(p.norm.startsWith(text)?80:0)+(pos>=0?35:0);
+    rank-=Math.min(30,p.norm.length/7);
+    if(brand.test(p.norm)&&!brand.test(text))rank-=48;
+   }
+   scored.push({code:p.id,name:p.name,baseCents:p.baseCents,rank:rank});
+  }
+  scored.sort(function(a,b){return b.rank-a.rank||a.name.localeCompare(b.name,'es')});
+  return scored.slice(0,max).map(function(p){return {code:p.code,name:p.name,baseCents:p.baseCents}});
+ },
  replace:function(next){
   if(!next||typeof next!=='object'||Array.isArray(next))return false;
   var out={};
