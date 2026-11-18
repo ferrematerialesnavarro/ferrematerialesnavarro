@@ -178,14 +178,22 @@ function attach(){
    if(previous>0&&Number.isFinite(next))auditPrice(el.dataset.n15Code,previous,next);
   });
  }
- const success=$('n13-success');
- if(success){
-  observer=new MutationObserver(()=>{
-   if(!success.hidden&&success.textContent!==prevSuccess){
-    prevSuccess=success.textContent;noticeCartChange();
-   }
+ const progress=$('n12-progress');
+ if(progress){
+  observer=new MutationObserver(()=>noticeCartChange());
+  observer.observe(progress,{childList:true,subtree:true,characterData:true});
+ }
+ const searchInput=$('n14-query');
+ if(searchInput){
+  searchInput.addEventListener('keydown',async function(e){
+   if(e.key!=='Enter')return;
+   const code=String(this.value||'').trim();
+   if(!/^\d{5,30}$/.test(code)||!B()?.getProduct(code)||code==='00000')return;
+   e.preventDefault();e.stopPropagation();
+   const scan=window.NAVARRO_CAJA_ESCANER_PROBAR_V16;
+   const ok=typeof scan==='function'?await scan(code):false;
+   if(ok){this.value='';this.dispatchEvent(new Event('input',{bubbles:true}));this.blur()}
   });
-  observer.observe(success,{childList:true,subtree:true,attributes:true,attributeFilter:['hidden']});
  }
  lastCart=fingerprint();renderQuick();refreshAudit();
 }
