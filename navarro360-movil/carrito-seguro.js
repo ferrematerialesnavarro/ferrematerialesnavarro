@@ -592,7 +592,7 @@ else init();
  window.NAVARRO_EXPERIENCIA_LOADER_V70=true;
  let root;
  try{root=new URL('./',document.currentScript?.src||location.href)}catch(_){return}
- const modules=['experiencia-integral-v70.js?v=70'];
+ const modules=['experiencia-integral-v70.js?v=71'];
  try{if(new URL(location.href).searchParams.get('auditoria')==='1')modules.push('auditoria-fotos-v70.js?v=70')}catch(_){}
  for(const file of modules){
   const tag=document.createElement('script');tag.async=true;tag.src=new URL(file,root).href;
