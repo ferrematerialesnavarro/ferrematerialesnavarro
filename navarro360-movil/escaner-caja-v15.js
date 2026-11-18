@@ -58,6 +58,9 @@ function ui(){
   if(!btn||!active)return;
   const item=BRIDGE()?.getProduct(btn.dataset.n14Code);
   if(!item)return;
+  if(item.id==='00000'){
+   $('n14-query').value='';renderMatches([]);toggleTool('n15-variospanel');return;
+  }
   const ok=await add({code:item.id,name:item.name},'search');
   if(ok){$('n14-query').value='';renderMatches([]);$('n14-query').blur();}
  });
