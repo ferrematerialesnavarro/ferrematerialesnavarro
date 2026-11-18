@@ -1,4 +1,4 @@
-/* NAVARRO 360 — Ticket directo local V2 · impresión POS-58 por iPhone
+/* NAVARRO 360 — Ticket directo local V3 · revertir impresión dinámica que bloquea Safari
    Imprime desde el navegador. No usa WhatsApp, SIFO, ni envía datos.
    Lee el carrito existente y sus mismos ajustes monetarios.
 */
@@ -114,31 +114,17 @@ function preview(){
   '<div class="nv-ticket-center nv-ticket-small">Comprobante local no fiscal. No es factura.</div>';
  const paperChoice=$('nv-ticket-paper-size').value;
  paper.dataset.paper=paperChoice==='80'?'80':'58';
- preparePageLength();
  return true;
 }
-function preparePageLength(){
- const paper=$('nv-ticket-paper');
- const size=$('nv-ticket-paper-size')?.value==='80'?80:58;
- if(!paper)return;
- // Medida física del ticket, no el tamaño Carta/A4. Un margen pequeño
- // permite variaciones del controlador sin cortar la última línea.
- const cssPixelsPerMm=96/25.4;
- const measuredMm=Math.ceil((paper.scrollHeight||paper.offsetHeight)/cssPixelsPerMm);
- const heightMm=Math.max(85,Math.min(2400,measuredMm+14));
- let page=$('nv-ticket-print-page-size');
- if(!page){page=document.createElement('style');page.id='nv-ticket-print-page-size';document.head.appendChild(page)}
- // Safari admite tamaños de página definidos; el controlador AirPrint
- // puede reemplazarlos, por eso también hay que configurar Windows a 58mm.
- page.textContent='@media print{@page{size:'+size+'mm '+heightMm+'mm;margin:0}}';
-}
 function printTicket(){
- if(!preview())return;
- preparePageLength();
+ // Acción directa del toque: nada de mediciones ni tamaños dinámicos
+ // que Safari pudiera bloquear al abrir AirPrint.
  try{
+  if(!preview())return;
+  if(typeof window.print!=='function')throw Error('Impresión no disponible');
   window.print();
- }catch(_){
-  window.alert('Tu navegador no pudo abrir la impresión. Abre el enlace en Safari y utiliza Compartir > Imprimir.');
+ }catch(err){
+  window.alert('No se pudo abrir la impresión. Abre NAVARRO 360 directamente en Safari y prueba Imprimir ahora. Si sigue igual, toma una captura del mensaje.');
  }
 }
 function closeTicket(){
@@ -147,10 +133,17 @@ function closeTicket(){
 }
 function openTicket(){
  createdAt=new Date();
- if(!preview())return;
  const screen=$('nv-ticket-screen');
+ if(!screen){window.alert('No se pudo abrir la vista previa del ticket. Recarga la página.');return}
+ // Mostrar primero, para evitar medir un recibo oculto en Safari.
  screen.hidden=false;screen.setAttribute('aria-hidden','false');
- $('nv-ticket-print').focus();
+ try{
+  if(!preview()){closeTicket();return}
+  $('nv-ticket-print').focus();
+ }catch(err){
+  closeTicket();
+  window.alert('No se pudo preparar el ticket. Recarga NAVARRO 360 e inténtalo otra vez.');
+ }
 }
 function mount(){
  const drawer=$('drawer'),send=$('send-whatsapp'),bottom=send?.parentElement;
@@ -227,7 +220,7 @@ function mount(){
  document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();closeTicket()}
  },true);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:2,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:3,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
