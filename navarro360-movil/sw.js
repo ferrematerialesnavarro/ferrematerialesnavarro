@@ -1,16 +1,94 @@
-const VERSION='navarro360-fullstore-v68-caja-precios';
-const ASSETS=['./','./index.html','./manifest.webmanifest','./icon.svg','./electricidad-nav.js?v=7','./buscador-completo.js?v=3','./buscador-completo.js?v=4','./electricidad.css?v=6','./fotos-recuperadas.js?v=22','./fotos-recuperadas.js?v=9','./carrito-seguro.js?v=68','./ventas-espera-v1.js?v=8','./fotos-plomeria-carrito-v47.js?v=47','./truper-fotos-catalogo-v53.js?v=53','./truper-fotos-integracion-v48.js?v=52','./carrito-fotos-v44.js?v=52','./buscar-foto-v57.js?v=57','./fotos-centradas-v58.css?v=58','./tarjetas-movil-v59.css?v=59','./tarjetas-boceto-v60.css?v=60','./fotos-centradas-v58.js?v=58','./materiales-fotos-1.js?v=1','./materiales-fotos-2.js?v=1','./materiales-fotos-3.js?v=1','./materiales-destacados-v2.js?v=3','./banos-nav.js?v=1','./herrajes-nav.js?v=1','./jardineria-nav.js?v=1','./tornilleria-nav.js?v=1','./escaner-barras.js?v=2','./escaner-barras.js?v=3','./escaner-barras.js?v=4','./escaner-barras.js?v=5','./escaner-barras.js?v=41','./lector-usb-v42.js?v=43','./escaner-barras.js?v=7','./pinturas-nav.js?v=1'];
-self.addEventListener('install',event=>event.waitUntil(caches.open(VERSION).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==VERSION).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+/* NAVARRO 360 — SW V69, tolerancia a fallos y control de espacio en iPhone.
+   Pedidos, precios y SIFO NO se autorizan ni se alteran desde este worker. */
+'use strict';
+const PREFIX='navarro360-fullstore-';
+const VERSION=PREFIX+'v69-conexion-segura';
+const OFFLINE='./offline.html';
+const SHELL=[OFFLINE,'./icon.svg','./manifest.webmanifest'];
+const MAX_CACHE_ENTRIES=85;
+const MAX_ASSET_BYTES=380000;
+const SCOPE_PATH=new URL('./',self.location.href).pathname;
+function withinScope(url){
+ return url.origin===self.location.origin&&url.pathname.startsWith(SCOPE_PATH);
+}
+function isStaticAsset(url){
+ if(!/\.(?:css|js|svg|png|jpg|jpeg|webp|ico)$/i.test(url.pathname))return false;
+ // Evitar almacenar los índices de fotografía, modelos y mapas grandes.
+ if(/(?:truper-fotos-catalogo|buscar-foto-indice|\.tflite|\.wasm|\.gz)(?:\.|$)/i.test(url.pathname))return false;
+ return true;
+}
+async function storeSmall(request,response){
+ if(!response||!response.ok||response.type!=='basic'||!isStaticAsset(new URL(request.url)))return;
+ const declared=Number(response.headers.get('content-length'));
+ if(declared>MAX_ASSET_BYTES)return;
+ const cache=await caches.open(VERSION);
+ // Consultas distintas (?v=N) son versiones distintas: nunca servir otra versión por error.
+ await cache.put(request,response.clone());
+ const keys=await cache.keys();
+ if(keys.length>MAX_CACHE_ENTRIES){
+  const removable=keys.filter(req=>!SHELL.some(s=>new URL(s,self.location.href).pathname===new URL(req.url).pathname));
+  for(const key of removable.slice(0,Math.max(0,keys.length-MAX_CACHE_ENTRIES)))await cache.delete(key);
+ }
+}
+self.addEventListener('install',event=>{
+ event.waitUntil((async()=>{
+  const cache=await caches.open(VERSION);
+  // Precargar sólo la pantalla de desconexión y recursos muy pequeños;
+  // fallar en una imagen NO debe dejar sin instalar el servicio.
+  await Promise.allSettled(SHELL.map(async asset=>{
+   const request=new Request(new URL(asset,self.location.href),{cache:'reload'});
+   const response=await fetch(request);
+   if(response.ok)await cache.put(request,response);
+  }));
+  await self.skipWaiting();
+ })());
+});
+self.addEventListener('activate',event=>{
+ event.waitUntil((async()=>{
+  const keys=await caches.keys();
+  // No eliminar cachés de otras aplicaciones alojadas en el mismo origen.
+  await Promise.all(keys.filter(k=>k.startsWith(PREFIX)&&k!==VERSION).map(k=>caches.delete(k)));
+  await self.clients.claim();
+ })());
+});
 self.addEventListener('fetch',event=>{
- const req=event.request;
- if(req.method!=='GET')return;
- const url=new URL(req.url);
- if(url.origin!==self.location.origin || !url.pathname.includes('/navarro360-movil/'))return;
- // El buscador siempre consulta el archivo vigente, incluso si el HTML usa ?v=3.
- const liveReq=/\/(?:buscador-completo|carrito-seguro|ventas-espera-v1)\.js$/.test(url.pathname)?new Request(req,{cache:'reload'}):req;
- event.respondWith(fetch(liveReq).then(res=>{
-   if(res.ok){const copy=res.clone();event.waitUntil(caches.open(VERSION).then(cache=>cache.put(req,copy)));}
-   return res;
- }).catch(()=>caches.match(req).then(hit=>hit||caches.match('./index.html'))));
+ const request=event.request;
+ if(request.method!=='GET')return;
+ const url=new URL(request.url);
+ if(!withinScope(url))return;
+ if(request.mode==='navigate'){
+  // Catálogo y precios: la navegación siempre intenta la red; no usar copias antiguas.
+  event.respondWith((async()=>{
+   try{
+    const response=await fetch(new Request(request,{cache:'reload'}));
+    if(response.ok)return response;
+    // Las respuestas del servidor se respetan (404, 500, etc.).
+    return response;
+   }catch(_){
+    const cache=await caches.open(VERSION);
+    return await cache.match(new URL(OFFLINE,self.location.href))||
+     new Response('<h1>Sin conexión</h1><p>Reconecta Internet para consultar precios actuales.</p>',
+      {status:503,headers:{'content-type':'text/html; charset=utf-8'}});
+   }
+  })());
+  return;
+ }
+ // Archivos de JS y CSS nunca deben recibir index.html como respuesta por error.
+ event.respondWith((async()=>{
+  try{
+   const response=await fetch(request);
+   if(isStaticAsset(url)&&response.ok){
+    const clone=response.clone();
+    event.waitUntil(storeSmall(request,clone).catch(()=>{}));
+   }
+   return response;
+  }catch(_){
+   if(isStaticAsset(url)){
+    const cache=await caches.open(VERSION);
+    const cached=await cache.match(request);
+    if(cached)return cached;
+   }
+   return Response.error();
+  }
+ })());
 });
