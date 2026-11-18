@@ -1,4 +1,4 @@
-/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V3
+/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V4
  * Un toque -> POS-58-Series por HTTPS, sin AirPrint, sin WhatsApp, sin SIFO.
  * Solo se activa si este navegador está vinculado por un enlace privado.
  * No borra el carrito; la respuesta confirma cola Windows, no salida física.
@@ -61,11 +61,43 @@ function buildTicket(){
  if(rows.length>100)throw Error('Máximo 100 productos por ticket');
  const state=$('nv-ticket-status')?.value||'none';
  const payment=['pagado','cobrar'].includes(state)?state:'none';
- const address=String($('nv70-address')?.value||'').trim().slice(0,260);
+ const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
+ const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
+ const phone=String(info?.phone||'').trim().slice(0,30);
  const hasFreight=rows.some(r=>r.id==='7777000010');
- const flete=(!hasFreight&&$('nv-ticket-flete')?.checked)?5000:0;
+ const flete=hasFreight?0:(info?Number(info.flete)||0:($('nv-ticket-flete')?.checked?5000:0));
+ if(flete!==0&&flete!==5000)throw Error('El flete no es válido');
  return {v:1,jobId:crypto.randomUUID(),at:new Date().toISOString(),
-   rows,subtotal,flete,state:payment,client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address};
+   rows,subtotal,flete,state:payment,client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
+}
+const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
+function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
+function resetPrintedSale(job,version){
+ // Solo vaciar una venta si sus productos, importes y datos NO cambiaron
+ // mientras Windows confirmaba la cola. Evita borrar una venta nueva.
+ const current=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
+ if(version!==saleVersion()||
+   (current&&(current.address!==job.address||current.phone!==job.phone||current.flete!==job.flete))){
+  status('✓ Ticket recibido. El carrito cambió durante la impresión y se conservó.',false);
+  return;
+ }
+ const clear=$('clear-cart');
+ if(!clear||typeof clear.click!=='function'){
+  status('✓ Ticket recibido, pero no se pudo vaciar el carrito. Usa Vaciar carrito.',true);
+  return;
+ }
+ clear.click(); // Método oficial: sincroniza carrito, buscador y precio en memoria.
+ if(Object.keys(read('navarro_cart_v1')).length){
+  status('✓ Ticket recibido, pero el carrito no se vació. Revísalo antes de la siguiente venta.',true);
+  return;
+ }
+ try{window.NAVARRO_COBRANZA_ENTREGA?.reset?.()}catch(_){}
+ for(const id of ['nv-ticket-client','nv-ticket-status','nv-ticket-flete']){
+  const field=$(id);if(!field)continue;
+  if(field.type==='checkbox')field.checked=false;
+  else field.value=id==='nv-ticket-status'?'none':'';
+ }
+ status('✓ Ticket enviado. Carrito limpio, listo para nueva venta.',false);
 }
 async function autoPrint(event){
  if(!pair||busy)return;
@@ -73,6 +105,7 @@ async function autoPrint(event){
  const button=$('nv-print-ticket-button');
  let job;
  try{job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
+ const version=saleVersion();
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
  try{
@@ -83,7 +116,7 @@ async function autoPrint(event){
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');
-  status('✓ Ticket enviado a la cola POS-58-Series',false);
+  resetPrintedSale(job,version);
  }catch(err){
   status('No se pudo imprimir: '+(err.name==='AbortError'?'conexión agotada':err.message||'revisa el puente en Windows')+'. El carrito se conservó.',true);
  }finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent=label}
