@@ -14,6 +14,7 @@ window.NAVARRO_CARRITO_SEGURO_INSTALADO=true;
 const CART_KEY='navarro_cart_v1';
 const RESTORE_KEY='navarro_cart_reabrir_v1';
 const UNDO_KEY='navarro_whatsapp_recuperar_v2';
+const PERSISTENT_UNDO_KEY='navarro_whatsapp_recuperar_local_v69'; // copia recuperable si Safari cierra la pestaña
 const LEGACY_PENDING_KEY='navarro_whatsapp_pendiente_v1';
 const MAX=9999;
 const DOUBLE_MS=420;
@@ -220,23 +221,29 @@ function insertCartButtons(){
  }
 }
 function readUndo(){
- const raw=readSession(UNDO_KEY);
- if(!raw)return null;
- try{
-  const o=JSON.parse(raw);
-  if(!o||!o.cart||typeof o.cart!=='object'||Date.now()-o.at>UNDO_EXPIRY){
-   dropSession(UNDO_KEY);return null;
-  }
-  const cleaned={};
-  for(const [k,v] of Object.entries(o.cart)){
-   const n=Number(v);
-    if(validId(k)&&validQty(n))cleaned[k]=n;
-  }
-  return Object.keys(cleaned).length?{at:o.at,cart:cleaned}:null;
- }catch{dropSession(UNDO_KEY);return null}
+ const candidates=[readSession(UNDO_KEY)];
+ try{candidates.push(localStorage.getItem(PERSISTENT_UNDO_KEY))}catch(_){}
+ for(const raw of candidates){
+  if(!raw)continue;
+  try{
+   const o=JSON.parse(raw);
+   if(!o||!o.cart||typeof o.cart!=='object'||Array.isArray(o.cart)||
+      !Number.isFinite(o.at)||o.at>Date.now()||Date.now()-o.at>UNDO_EXPIRY)continue;
+   const cleaned={};
+   for(const [id,qty] of Object.entries(o.cart)){
+    const n=Number(qty);
+    if(validId(id)&&validQty(n))cleaned[id]=n;
+   }
+   if(Object.keys(cleaned).length)return {at:o.at,cart:cleaned};
+  }catch(_){}
+ }
+ dropSession(UNDO_KEY);
+ try{localStorage.removeItem(PERSISTENT_UNDO_KEY)}catch(_){}
+ return null;
 }
 function hideUndo(){
  undoSnapshot=null;dropSession(UNDO_KEY);
+ try{localStorage.removeItem(PERSISTENT_UNDO_KEY)}catch(_){}
  if(undoToast)undoToast.hidden=true;
 }
 function ensureUndo(){
@@ -266,8 +273,13 @@ function clearAfterWhatsApp(snapshot){
  if(!snapshot||!Object.keys(snapshot).length)return;
  const current=readCart();
  // Guardar copia recuperable antes de cualquier cambio de carrito.
- const saved=writeSession(UNDO_KEY,JSON.stringify({at:Date.now(),cart:snapshot}));
- if(!saved){window.alert('No se pudo guardar una copia de recuperación. Conservamos tu carrito.');return}
+ const backup=JSON.stringify({at:Date.now(),cart:snapshot});
+ const saved=writeSession(UNDO_KEY,backup);
+ let persistent=false;
+ try{localStorage.setItem(PERSISTENT_UNDO_KEY,backup);persistent=true}catch(_){}
+ if(!saved&&!persistent){
+  window.alert('No se pudo guardar una copia de recuperación. Conservamos tu carrito.');return;
+ }
  const remaining={};
  for(const [id,qty] of Object.entries(current)){
   const rest=roundQty(qty-(snapshot[id]||0));
@@ -282,6 +294,7 @@ function clearAfterWhatsApp(snapshot){
  }
  if(!reloadWithCart(remaining)){
   dropSession(UNDO_KEY);
+  try{localStorage.removeItem(PERSISTENT_UNDO_KEY)}catch(_){}
   window.alert('No se pudo limpiar el carrito después de abrir WhatsApp; se conserva tu pedido.');
  }else if(window.NAVARRO_CARRITO_EN_VIVO_V66?.version===66)showUndo();
 }
