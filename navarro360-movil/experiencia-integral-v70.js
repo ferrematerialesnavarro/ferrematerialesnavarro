@@ -191,8 +191,13 @@ function imageOptimization(root){
  for(const card of root.querySelectorAll('article[data-card]')){
   for(const image of card.querySelectorAll('img')){
    if(image.decoding!=='async')image.decoding='async';
-   if(image.loading!=='lazy')image.loading='lazy';
-   if(count>3)try{image.fetchPriority='low'}catch(_){}
+   if(count<3){
+    if(image.loading!=='eager')image.loading='eager';
+    try{image.fetchPriority='high'}catch(_){}
+   }else{
+    if(image.loading!=='lazy')image.loading='lazy';
+    try{image.fetchPriority='low'}catch(_){}
+   }
   }
   count++;
  }
