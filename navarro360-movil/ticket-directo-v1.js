@@ -1,4 +1,4 @@
-/* NAVARRO 360 — Ticket directo local V4 · documento imprimible independiente Safari
+/* NAVARRO 360 — Ticket directo local V5 · AirPrint directo sin vista previa propia
    Imprime desde el navegador. No usa WhatsApp, SIFO, ni envía datos.
    Lee el carrito existente y sus mismos ajustes monetarios.
 */
@@ -116,57 +116,34 @@ function preview(){
  paper.dataset.paper=paperChoice==='80'?'80':'58';
  return true;
 }
-function encodePortableTicket(data){
- // La información queda en el fragmento #, no se manda al servidor.
- const bytes=new TextEncoder().encode(JSON.stringify(data));
- let binary='';
- for(let i=0;i<bytes.length;i+=8192){
-  binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
- }
- return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-}
-function printTicket(){
- // Navegamos desde el toque del usuario a un documento que contiene SOLO
- // el recibo. Esta ruta permite abrir el mismo ticket en Safari.
- try{
-  if(!preview())return;
-  const snapshot=collect();
-  if(snapshot.error){window.alert(snapshot.error);return}
-  const state=$('nv-ticket-status').value;
-  const payment=(state==='pagado'||state==='cobrar')?state:'none';
-  const data={
-   v:1,at:(createdAt||new Date()).toISOString(),
-   rows:snapshot.rows.map(p=>({id:p.id,name:p.name,qty:p.qty,unit:p.unit,total:p.total,special:p.special})),
-   subtotal:snapshot.subtotal,
-   flete:$('nv-ticket-flete').checked&&!snapshot.hasFreight?5000:0,
-   client:String($('nv-ticket-client').value||'').trim().slice(0,100),
-   state:payment,
-   size:$('nv-ticket-paper-size').value==='80'?'80':'58',
-   address:String($('nv70-address')?.value||'').trim().slice(0,260)
-  };
-  const url=new URL('./ticket-listo.html',location.href);
-  url.hash='t='+encodePortableTicket(data);
-  window.location.assign(url.href);
- }catch(err){
-  window.alert('No se pudo preparar el ticket para impresión. Recarga NAVARRO 360 y vuelve a intentarlo.');
- }
-}
-function closeTicket(){
+// Un toque: el recibo se prepara fuera de la pantalla y Safari abre AirPrint.
+// AirPrint conserva su confirmación del sistema; la web no puede saltarla.
+let printing=false;
+function restoreAfterPrint(){
+ if(!printing)return;
+ printing=false;
+ document.body.classList.remove('nv-direct-airprint');
  const screen=$('nv-ticket-screen');
  if(screen){screen.hidden=true;screen.setAttribute('aria-hidden','true')}
 }
-function openTicket(){
- createdAt=new Date();
+function printTicket(){
+ if(printing)return;
  const screen=$('nv-ticket-screen');
- if(!screen){window.alert('No se pudo abrir la vista previa del ticket. Recarga la página.');return}
- // Mostrar primero, para evitar medir un recibo oculto en Safari.
- screen.hidden=false;screen.setAttribute('aria-hidden','false');
+ if(!screen){window.alert('No se pudo preparar el ticket. Recarga NAVARRO 360.');return}
+ createdAt=new Date();
+ const snapshot=collect();
+ if(snapshot.error){window.alert(snapshot.error);return}
+ printing=true;
+ screen.hidden=false;
+ screen.setAttribute('aria-hidden','true');
+ document.body.classList.add('nv-direct-airprint');
  try{
-  if(!preview()){closeTicket();return}
-  $('nv-ticket-print').focus();
+  if(!preview()){restoreAfterPrint();return}
+  if(typeof window.print!=='function')throw Error('Función de impresión no disponible');
+  window.print();
  }catch(err){
-  closeTicket();
-  window.alert('No se pudo preparar el ticket. Recarga NAVARRO 360 e inténtalo otra vez.');
+  restoreAfterPrint();
+  window.alert('Este navegador no pudo abrir AirPrint. Abre NAVARRO 360 en Safari para imprimir con Mobility Print.');
  }
 }
 function mount(){
@@ -174,15 +151,16 @@ function mount(){
  if(!drawer||!send||!bottom)return;
  const button=document.createElement('button');
  button.id='nv-print-ticket-button';button.type='button';
- button.textContent='🖨 Imprimir ticket directo';
+ button.textContent='🖨 Imprimir';
  button.setAttribute('aria-label','Imprimir ticket sin WhatsApp ni SIFO');
- button.addEventListener('click',openTicket);
+ button.addEventListener('click',printTicket);
  bottom.insertBefore(button,send);
  const style=document.createElement('style');style.id='nv-ticket-directo-style';
  style.textContent=[
   '#nv-print-ticket-button{display:block;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;background:#205e40;color:white;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}',
   '#nv-print-ticket-button:active{transform:scale(.99)}',
   '#nv-ticket-screen[hidden]{display:none!important}',
+  'body.nv-direct-airprint #nv-ticket-screen{display:block!important;position:absolute!important;left:-10000px!important;top:0!important;inset:auto!important;width:54mm!important;max-width:54mm!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;pointer-events:none!important;visibility:hidden!important;box-shadow:none!important}',
   '#nv-ticket-screen{position:fixed;inset:0;z-index:2147483010;overflow-y:auto;background:#0b1e31db;display:flex;justify-content:center;align-items:flex-start;overscroll-behavior:contain;padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-overflow-scrolling:touch}',
   '#nv-ticket-panel{width:100%;max-width:440px;background:#e9edeb;border-radius:15px;padding:13px;box-shadow:0 15px 45px #0006;box-sizing:border-box}',
   '.nv-ticket-toolbar{font:14px system-ui;color:#20362b}',
@@ -214,7 +192,7 @@ function mount(){
   '  @page{margin:0}',
   '  html,body{margin:0!important;padding:0!important;overflow:visible!important;height:auto!important;background:#fff!important}',
   '  body>*:not(#nv-ticket-screen){display:none!important}',
-  '  #nv-ticket-screen{display:block!important;position:static!important;inset:auto!important;overflow:visible!important;z-index:auto!important;padding:0!important;margin:0!important;background:white!important;max-height:none!important}',
+  '  #nv-ticket-screen{display:block!important;visibility:visible!important;position:static!important;left:auto!important;top:auto!important;inset:auto!important;overflow:visible!important;z-index:auto!important;padding:0!important;margin:0!important;background:white!important;max-height:none!important}',
   '  #nv-ticket-panel{width:auto!important;max-width:none!important;box-shadow:none!important;border:0!important;padding:0!important;margin:0!important;background:white!important}',
   '  #nv-ticket-panel .nv-ticket-toolbar,.nv-ticket-actions{display:none!important}',
   '  #nv-ticket-paper{box-shadow:none!important;border:0!important;margin:0!important;padding:1mm!important;max-width:none!important;break-inside:auto!important;color:#000!important}',
@@ -227,14 +205,14 @@ function mount(){
  screen.id='nv-ticket-screen';screen.hidden=true;screen.setAttribute('aria-hidden','true');
  screen.innerHTML=
   '<div id="nv-ticket-panel"><div class="nv-ticket-toolbar"><h2>🖨️ Ticket directo</h2>'+
-  '<p>Continuar abre una página con solamente el ticket, lista para imprimir desde Safari o Windows. No utiliza WhatsApp ni SIFO.</p>'+
+  '<p>Impresión mediante PaperCut Mobility Print. El menú de confirmación de AirPrint depende del iPhone.</p>'+
   '<div class="nv-ticket-controls"><label>Cliente (opcional)<input id="nv-ticket-client" maxlength="100" placeholder="Mostrador"></label>'+
   '<label>Estado de pago<select id="nv-ticket-status"><option value="none">Sin especificar</option><option value="pagado">Pagado</option><option value="cobrar">Por cobrar</option></select></label>'+
   '<label>Tamaño de papel<select id="nv-ticket-paper-size"><option value="58">58 mm (POS-58)</option><option value="80">80 mm (ticket)</option></select></label></div>'+
   '<label class="nv-ticket-check"><input type="checkbox" id="nv-ticket-flete"> Incluir envío de $50 (si no está en el carrito)</label>'+
   '</div><article id="nv-ticket-paper" data-paper="80"></article>'+
   '<div class="nv-ticket-actions"><button id="nv-ticket-close" type="button">Volver al carrito</button>'+
-  '<button id="nv-ticket-print" type="button">🖨 Continuar a impresión</button></div></div>';
+  '<button id="nv-ticket-print" type="button">🖨 Imprimir</button></div></div>';
  document.body.appendChild(screen);
  $('nv-ticket-close').addEventListener('click',closeTicket);
  $('nv-ticket-print').addEventListener('click',printTicket);
@@ -244,7 +222,8 @@ function mount(){
  document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();closeTicket()}
  },true);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:4,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.addEventListener('afterprint',restoreAfterPrint);
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:5,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
