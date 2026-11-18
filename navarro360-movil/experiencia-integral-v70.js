@@ -31,6 +31,7 @@ function css(){
  '.nv70-track{height:8px;background:#e2eee6;border-radius:8px;overflow:hidden;margin:9px 0}',
  '.nv70-track span{height:100%;background:#259366;display:block}',
  '.nv70-info{font-size:11px;color:#657a6d;line-height:1.55;margin:8px 0 2px}',
+ '.nv70-address{margin-top:10px;padding-top:10px;border-top:1px solid #e1ede5}.nv70-address label{display:block;font-size:12px;font-weight:800;margin-bottom:6px}.nv70-address textarea{width:100%;max-width:100%;box-sizing:border-box;border:1px solid #bfcec4;border-radius:9px;padding:9px;font:16px system-ui;resize:vertical;min-height:72px}.nv70-address button{min-height:43px;border:0;border-radius:9px;background:#1b6847;color:#fff;font:800 12px system-ui;padding:10px 12px;margin:7px 0}',
  '.nv70-warning{background:#fff5df;color:#755523;border-radius:9px;padding:8px;font-size:11px;margin:8px 0}',
  '.nv70-steps{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}',
  '.nv70-steps span{border:1px solid #cadccf;border-radius:8px;background:#f3f8f4;padding:5px;font-size:10px;color:#567361}',
@@ -145,6 +146,22 @@ function renderDelivery(){
  .forEach(([name,done])=>{const el=document.createElement('span');el.textContent=name;el.className=done?'active':'';steps.appendChild(el)});
  host.appendChild(steps);
  if(attempted){const p=line(host,'p','Se intentó abrir WhatsApp. No podemos comprobar que el mensaje se envió ni que SIFO guardó una venta.');p.className='nv70-warning'}
+ const address=document.createElement('section');address.className='nv70-address';
+ const label=document.createElement('label');label.htmlFor='nv70-address';label.textContent='📍 Dirección para domicilio (opcional)';
+ const input=document.createElement('textarea');input.id='nv70-address';input.maxLength=260;
+ input.placeholder='Calle, número, colonia y referencias';
+ try{input.value=sessionStorage.getItem('nv70-address')||''}catch(_){}
+ input.addEventListener('input',()=>{try{sessionStorage.setItem('nv70-address',input.value.slice(0,260))}catch(_){}});
+ const copy=document.createElement('button');copy.type='button';copy.textContent='📋 Copiar dirección para WhatsApp';
+ copy.addEventListener('click',async()=>{
+  const text=input.value.trim();
+  if(text.length<8){input.focus();return}
+  try{await navigator.clipboard.writeText(text);copy.textContent='✓ Dirección copiada'}
+  catch(_){input.focus();copy.textContent='Selecciona y copia el texto manualmente'}
+ });
+ const hint=document.createElement('p');hint.className='nv70-info';
+ hint.textContent='Se conserva sólo en esta pestaña. NO se envía automáticamente con los códigos; pégala en WhatsApp cuando el bot la solicite.';
+ address.append(label,input,copy,hint);host.appendChild(address);
  const note=line(host,'p','Estimación informativa. El flete NO se añade a este carrito. El bot confirmará dirección, importe y condiciones al recibir el pedido.');
  note.className='nv70-info';
 }
@@ -159,7 +176,7 @@ function delivery(){
   cartListening=true;
   new MutationObserver(queueDelivery).observe(cart,{subtree:true,childList:true});
   window.addEventListener('storage',e=>{if(!e.key||e.key==='navarro_cart_v1'||e.key.includes('precio'))queueDelivery()});
-  document.addEventListener('click',e=>{
+  window.addEventListener('click',e=>{
    const trigger=e.target.closest('#send-whatsapp,#mobile-whatsapp');
    if(!trigger||trigger.disabled||!estimation().units)return;
    try{sessionStorage.setItem('nv70-wa-intento',JSON.stringify({at:Date.now()}))}catch(_){}
