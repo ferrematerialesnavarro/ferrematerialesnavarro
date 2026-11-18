@@ -2,7 +2,7 @@
    Pedidos, precios y SIFO NO se autorizan ni se alteran desde este worker. */
 'use strict';
 const PREFIX='navarro360-fullstore-';
-const VERSION=PREFIX+'v70-carga-y-frescura';
+const VERSION=PREFIX+'v71-catalogo-en-archivos';
 const OFFLINE='./offline.html';
 const SHELL=[OFFLINE,'./icon.svg','./manifest.webmanifest'];
 const MAX_CACHE_ENTRIES=85;
