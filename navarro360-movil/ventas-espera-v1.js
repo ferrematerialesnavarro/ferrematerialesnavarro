@@ -316,11 +316,23 @@ function makeButton(text,className){const b=document.createElement('button');b.t
 function init(){
  lines=$('cart-items');const drawer=$('drawer');const bottom=drawer?.querySelector('.drawer-bottom');
  if(!lines||!bottom||!bridge()?.replace)return;
+ // Safari iPhone: una sola zona desplazable para artículos, dirección y todos los botones de pedido.
+ // La barra de Guardar venta/Ventas guardadas permanece siempre visible fuera de la zona.
+ let scrollRegion=drawer.querySelector('#nv-drawer-scroll');
+ if(!scrollRegion){
+  scrollRegion=document.createElement('div');
+  scrollRegion.id='nv-drawer-scroll';
+  drawer.insertBefore(scrollRegion,lines);
+ }
+ scrollRegion.append(lines,bottom);
  window.NAVARRO_VENTAS_ESPERA_V1=true;
  const css=document.createElement('style');css.id='navarro360-ventas-espera-style-v2';
  css.textContent=
-  '#drawer .drawer-bottom{max-height:52vh;max-height:52dvh;min-height:0;overflow-y:auto;overscroll-behavior:contain;flex-shrink:1}'+
-  '#drawer .cart-items{min-height:80px}'+
+  '#drawer.drawer{height:100vh;height:100dvh;max-height:100dvh;bottom:auto;overflow:hidden;display:flex;flex-direction:column}'+
+  '#drawer .drawer-head{position:relative;flex:0 0 auto}'+
+  '#nv-drawer-scroll{flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;touch-action:pan-y;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}'+
+  '#drawer #nv-drawer-scroll .cart-items{flex:none;min-height:0;overflow:visible}'+
+  '#drawer #nv-drawer-scroll .drawer-bottom{flex:none;max-height:none;min-height:0;overflow:visible;overscroll-behavior:auto}'+
   '#nv-caja-bar{box-sizing:border-box;display:flex;gap:8px;flex:none;padding:9px 14px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #dbe5dc;box-shadow:0 -4px 14px #172a1912;z-index:6}'+
   '#nv-caja-bar button{min-width:0;flex:1;border:0;border-radius:12px;padding:9px 7px;min-height:48px;color:#fff;background:#205a38;font:750 13px/1.2 system-ui;cursor:pointer;white-space:normal;overflow-wrap:break-word}'+
   '#nv-caja-bar button.nv-caja-secondary{color:#1d4530;background:#e6f0e8}'+
