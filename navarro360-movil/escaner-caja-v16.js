@@ -31,7 +31,7 @@ function ui(){
  if(overlay)return;
  css();overlay=document.createElement('div');overlay.id='n12';overlay.hidden=true;
  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-label','Escanear productos');
- overlay.innerHTML='<section class="n12-card"><div class="n12-head"><div><strong>📷 Escanear productos</strong><small>Cámara automática · NAVARRO 360</small></div><button type="button" id="n12-close">Cerrar ✕</button></div>'+
+ overlay.innerHTML='<section class="n12-card"><div class="n12-head"><div><strong>📷 Escanear productos</strong><small>Cámara automática · NAVARRO 360 V16</small></div><button type="button" id="n12-close">Cerrar ✕</button></div>'+
  '<div class="n14-searchwrap"><label for="n14-query">🔎 Buscar por nombre o código de barras</label><div class="n14-searchrow"><span>⌕</span><input id="n14-query" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Ej. cemento gris, codo PVC o 7777001648" type="search"></div><div id="n14-results" class="n14-results" hidden aria-live="polite"></div></div>'+
  '<div class="n12-camera"><video playsinline autoplay muted id="n12-video"></video><div hidden id="n12-html5"></div><div class="n12-frame"></div><div id="n13-success" class="n13-success" hidden aria-live="polite"></div></div>'+
  '<div class="n13-summary" aria-label="Resumen de venta en curso"><div class="n13-metric"><small>ARTÍCULOS EN CARRITO</small><strong id="n13-articles">0</strong></div><div class="n13-metric"><small>TOTAL DEL CARRITO</small><strong id="n13-total">$0.00</strong></div></div>'+
