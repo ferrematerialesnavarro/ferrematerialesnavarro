@@ -221,7 +221,11 @@ async function autoPrint(event){
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');
   const history=window.NAVARRO_HISTORIAL;
-  if(history&&typeof history.record==='function'&&!history.record(job)){
+  let saved=true;
+  if(history&&typeof history.record==='function'){
+   try{saved=history.record(job)===true}catch(_){saved=false}
+  }
+  if(!saved){
    // No perder el detalle de una venta que ya se aceptó pero no pudo guardarse.
    status('Ticket recibido por Windows, pero no se pudo guardar el historial. Conservamos el carrito para que revises la venta.',true);
    return;
@@ -252,7 +256,7 @@ async function reimprimir(id){
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)return {ok:false,error:result.error||'Windows no confirmó el ticket.'};
-  window.NAVARRO_HISTORIAL?.markReprint?.(id);
+  try{window.NAVARRO_HISTORIAL?.markReprint?.(id)}catch(_){}
   return {ok:true,queued:true};
  }catch(err){
   return {ok:false,error:err?.name==='AbortError'?'No se confirmó el envío en 20 segundos. Revisa si se imprimió antes de repetir.':'Falló la comunicación con la impresora; comprueba la conexión.'};
