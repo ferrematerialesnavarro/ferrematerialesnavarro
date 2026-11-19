@@ -117,7 +117,8 @@ function render(){
   const row=document.createElement('div');row.className='nv-arq-move';
   const content=document.createElement('div');content.className='nv-arq-move-info';
   const title=document.createElement('strong');
-  title.textContent=(m.kind==='in'?'Entrada · +':'Salida · −')+money(m.cents);
+  const label=m.kind==='in'?'Entrada':m.category==='expense'?'Gasto':m.category==='withdrawal'?'Retiro':'Salida sin clasificar';
+  title.textContent=label+(m.kind==='in'?' · +':' · −')+money(m.cents);
   const reason=document.createElement('small');reason.textContent=String(m.reason||'Sin concepto').slice(0,100);
   content.append(title,reason);
   const del=document.createElement('button');del.type='button';del.textContent='Eliminar';del.dataset.moveId=m.id;
@@ -129,7 +130,7 @@ function render(){
   list.appendChild(p);
  }
  $('nv-arq-move-count').textContent=r.moves.length+' movimiento(s) manual(es)';
- $('nv-arq-warning').textContent='Estimación local: solo '+r.tickets+' tickets marcados PAGADO en efectivo y recibidos en la cola Windows. No incluye ventas sin método, otros dispositivos, ni pagos sin ticket. El historial conserva hasta 100 tickets.';
+ $('nv-arq-warning').textContent='Estimación local: solo '+r.tickets+' tickets marcados PAGADO en efectivo y recibidos en la cola Windows. Gastos y retiros son salidas de efectivo, ambas restan del cajón. Las salidas antiguas quedan sin clasificar. No incluye otras cajas ni pagos sin ticket; máximo 100 tickets recientes.';
 }
 function saveOpening(){
  const day=$('nv-arq-day').value,v=parsePesos($('nv-arq-initial').value);
@@ -151,20 +152,22 @@ function saveCounted(){
 }
 function addMovement(){
  const day=$('nv-arq-day').value;
- const kind=$('nv-arq-kind').value,cents=parsePesos($('nv-arq-move-amount').value,false);
+ const selected=$('nv-arq-kind').value,cents=parsePesos($('nv-arq-move-amount').value,false);
+ const kind=selected==='in'?'in':'out';
+ const category=selected==='expense'?'expense':selected==='withdrawal'?'withdrawal':null;
  const reason=String($('nv-arq-move-reason').value||'').trim().slice(0,100);
- if(!['in','out'].includes(kind)||cents===null){msg('Indica una entrada o salida con importe mayor que cero.',true);return}
+ if(!['in','expense','withdrawal','out'].includes(selected)||cents===null){msg('Indica una entrada o salida con importe mayor que cero.',true);return}
  if(!reason){msg('Indica el motivo del movimiento para identificarlo después.',true);return}
  try{
   const rec=getDay(day);
   if(rec.moves.length>=250){msg('Límite de 250 movimientos por día. No se modificaron datos.',true);return}
   const prev=rec.moves[rec.moves.length-1];
-  if(prev&&prev.kind===kind&&prev.cents===cents&&prev.reason===reason&&
+  if(prev&&prev.kind===kind&&(prev.category||null)===category&&prev.cents===cents&&prev.reason===reason&&
      Date.now()-new Date(prev.at).getTime()<15000){
    msg('Movimiento idéntico recién guardado. Evitamos duplicarlo por doble toque.',true);return;
   }
   const id=typeof crypto?.randomUUID==='function'?crypto.randomUUID():'ARQ-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);
-  rec.moves.push({id,kind,cents,reason,at:new Date().toISOString()});
+  rec.moves.push({id,kind,...(category?{category}:{}),cents,reason,at:new Date().toISOString()});
   saveDay(day,rec);
   $('nv-arq-move-amount').value='';$('nv-arq-move-reason').value='';
   msg('✓ Movimiento registrado para el día '+day+'.');render();
@@ -219,8 +222,8 @@ function mount(){
   '<p id="nv-arq-warning" class="nv-arq-help"></p>'+
   '<div class="nv-arq-edit"><label>Fondo inicial ($)<input id="nv-arq-initial" type="text" inputmode="decimal" placeholder="Ej. 500.00" maxlength="12"></label><button type="button" id="nv-arq-save-initial">Guardar fondo</button></div>'+
   '<h3>Movimientos de efectivo</h3>'+
-  '<div class="nv-arq-grid"><label>Tipo<select id="nv-arq-kind"><option value="in">Entrada</option><option value="out">Salida</option></select></label><label>Importe ($)<input id="nv-arq-move-amount" type="text" inputmode="decimal" maxlength="12" placeholder="Ej. 100.00"></label></div>'+
-  '<label>Motivo<input id="nv-arq-move-reason" type="text" maxlength="100" placeholder="Ej. Cambio para caja, gasto, retiro"></label>'+
+  '<div class="nv-arq-grid"><label>Tipo<select id="nv-arq-kind"><option value="in">Entrada de efectivo</option><option value="expense">Gasto del negocio</option><option value="withdrawal">Retiro de efectivo</option><option value="out">Otra salida (sin clasificar)</option></select></label><label>Importe ($)<input id="nv-arq-move-amount" type="text" inputmode="decimal" maxlength="12" placeholder="Ej. 100.00"></label></div>'+
+  '<label>Motivo<input id="nv-arq-move-reason" type="text" maxlength="100" placeholder="Ej. Pago de material, retiro para banco, caja"></label>'+
   '<button type="button" id="nv-arq-add">+ Registrar entrada o salida</button>'+
   '<p id="nv-arq-move-count" class="nv-arq-help"></p><div id="nv-arq-moves"></div>'+
   '<h3>Cierre y diferencia</h3>'+
@@ -271,6 +274,6 @@ function init(){
  let attempts=0;
  const timer=setInterval(()=>{if(mount()||++attempts>=20)clearInterval(timer)},300);
 }
-window.NAVARRO_ARQUEO_EFECTIVO_V1=Object.freeze({version:1,calcular:calculate,leerDia:getDay,leerMonto:parsePesos,fechaHoy:today});
+window.NAVARRO_ARQUEO_EFECTIVO_V1=Object.freeze({version:2,calcular:calculate,leerDia:getDay,leerMonto:parsePesos,fechaHoy:today});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
