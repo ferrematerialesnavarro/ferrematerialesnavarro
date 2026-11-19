@@ -197,6 +197,7 @@ function resetPrintedSale(job,version){
   return;
  }
  try{window.NAVARRO_COBRANZA_ENTREGA?.reset?.()}catch(_){}
+ try{window.NAVARRO_CAJA_EXPRES_V3?.limpiarMetodo?.()}catch(_){}
  for(const id of ['nv-ticket-client','nv-ticket-status','nv-ticket-flete']){
   const field=$(id);if(!field)continue;
   if(field.type==='checkbox')field.checked=false;
@@ -212,6 +213,10 @@ async function autoPrint(event){
  let job;
  try{job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
  const version=saleVersion();
+ // La forma de pago se toma ANTES del envío; NO se añade al trabajo
+ // de Windows para conservar el protocolo de la POS-58-Series.
+ let confirmedMethod=null;
+ try{confirmedMethod=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||null}catch(_){}
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
  try{
@@ -225,7 +230,7 @@ async function autoPrint(event){
   const history=window.NAVARRO_HISTORIAL;
   let saved=true;
   if(history&&typeof history.record==='function'){
-   try{saved=history.record(job)===true}catch(_){saved=false}
+   try{saved=history.record(job,confirmedMethod)===true}catch(_){saved=false}
   }
   if(!saved){
    // No perder el detalle de una venta que ya se aceptó pero no pudo guardarse.
