@@ -134,6 +134,9 @@ function setupPairUI(button){
  refreshPairUI();
 }
 function buildTicket(){
+ // La validación del domicilio puede quitar FLETE del carrito al alcanzar $1,000.
+ // Debe ejecutarse ANTES de fotografiar las líneas que se imprimen.
+ const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
  const cart=read('navarro_cart_v1'),cl=read('navarro_clavos_importe_v1');
  const imp=read('navarro_importes_cents_v1'),over=read('navarro360_precio_caja_activa_v1');
  const db=window.NAVARRO_DB;
@@ -157,7 +160,6 @@ function buildTicket(){
  if(rows.length>100)throw Error('Máximo 100 productos por ticket');
  const state=$('nv-ticket-status')?.value||'none';
  const payment=['pagado','cobrar'].includes(state)?state:'none';
- const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
  const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
  const phone=String(info?.phone||'').trim().slice(0,30);
  const hasFreight=rows.some(r=>r.id==='7777000010');
@@ -200,7 +202,7 @@ function resetPrintedSale(job,version){
   if(field.type==='checkbox')field.checked=false;
   else field.value=id==='nv-ticket-status'?'none':'';
  }
- status('✓ Ticket enviado. Carrito limpio, listo para nueva venta.',false);
+ status('✓ Ticket enviado a Windows'+(job.phone?' · Teléfono incluido: '+job.phone:'')+'. Carrito limpio para nueva venta.',false);
 }
 async function autoPrint(event){
  if(!pair)return;
