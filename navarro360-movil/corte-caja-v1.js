@@ -103,14 +103,16 @@ function setText(id,text){const el=$(id);if(el)el.textContent=text}
 function refresh(){
  if(!overlay||overlay.hidden)return;
  const p=$('nv-corte-period').value,status=$('nv-corte-status').value,search=$('nv-corte-search').value;
- const date=$('nv-corte-date').value;
- const all=parseRecords();rowsShown=filtered(all,p,date,status,search);
+ const date=$('nv-corte-date').value,method=$('nv-corte-method').value;
+ const all=parseRecords();rowsShown=filtered(all,p,date,status,search,method);
  const t=totals(rowsShown);
  setText('nv-corte-total',money(t.total));
  setText('nv-corte-count',t.count+' tickets');
  setText('nv-corte-paid',money(t.paid)+' · '+t.paidCount);
  setText('nv-corte-credit',money(t.credit)+' · '+t.creditCount);
  setText('nv-corte-other',money(t.other)+' · '+t.otherCount);
+ for(const key of ['cash','card','transfer','unknownPaid'])
+  setText('nv-corte-'+key,money(t[key])+' · '+t[key+'Count']);
  const list=$('nv-corte-list');list.replaceChildren();
  if(!rowsShown.length){
   const p=document.createElement('p');p.className='nv-corte-empty';
@@ -125,7 +127,7 @@ function refresh(){
    top.append(time,amount);el.appendChild(top);
    const meta=document.createElement('div');meta.className='nv-corte-meta';
    const statusLabel=r.status==='pagado'?'Pagado (seleccionado)':r.status==='cobrar'?'Por cobrar':'Sin especificar';
-   meta.textContent=statusLabel+' · '+r.products+' artículos'+(r.copies?' · '+r.copies+' reimpresiones':'');
+   meta.textContent=statusLabel+' · '+methodText(r.method)+' · '+r.products+' artículos'+(r.copies?' · '+r.copies+' reimpresiones':'');
    el.appendChild(meta);
    if(r.client||r.phone){const customer=document.createElement('div');customer.className='nv-corte-meta';customer.textContent=[r.client,r.phone].filter(Boolean).join(' · ');el.appendChild(customer)}
    list.appendChild(el);
@@ -143,6 +145,10 @@ function summary(){
   'Tickets: '+t.count+'\n'+
   'Total enviado a cola: '+money(t.total)+'\n'+
   'Marcados PAGADO: '+money(t.paid)+' ('+t.paidCount+')\n'+
+  'Efectivo confirmado en caja: '+money(t.cash)+' ('+t.cashCount+')\n'+
+  'Tarjeta confirmada manualmente: '+money(t.card)+' ('+t.cardCount+')\n'+
+  'Transferencia confirmada manualmente: '+money(t.transfer)+' ('+t.transferCount+')\n'+
+  'Pagados sin método: '+money(t.unknownPaid)+' ('+t.unknownPaidCount+')\n'+
   'Marcados POR COBRAR: '+money(t.credit)+' ('+t.creditCount+')\n'+
   'Sin especificar: '+money(t.other)+' ('+t.otherCount+')\n'+
   'Nota: NO valida pagos, salida física de papel ni registro en SIFO.';
@@ -181,6 +187,7 @@ function mount(){
   '<div class="nv-corte-filters">'+
   '<label>Periodo<select id="nv-corte-period"><option value="today">Hoy</option><option value="yesterday">Ayer</option><option value="week">Últimos 7 días</option><option value="day">Elegir fecha</option></select></label>'+
   '<label>Estado<select id="nv-corte-status"><option value="all">Todos</option><option value="pagado">Pagado</option><option value="cobrar">Por cobrar</option><option value="none">Sin especificar</option></select></label>'+
+  '<label>Método<select id="nv-corte-method"><option value="all">Todos</option><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="credit">Por cobrar</option><option value="unknown">Sin clasificar</option></select></label>'+
   '<label id="nv-corte-date-label" hidden>Fecha<input type="date" id="nv-corte-date"></label>'+
   '</div>'+
   '<label class="nv-corte-search-label" for="nv-corte-search">Buscar ticket, cliente, teléfono o código de producto</label>'+
@@ -189,7 +196,11 @@ function mount(){
   '<div><small>Total seleccionado</small><strong id="nv-corte-total">$0.00</strong><span id="nv-corte-count">0 tickets</span></div>'+
   '<div><small>Marcados PAGADO</small><strong id="nv-corte-paid">$0.00</strong></div>'+
   '<div><small>Marcados POR COBRAR</small><strong id="nv-corte-credit">$0.00</strong></div>'+
-  '<div><small>Sin estado</small><strong id="nv-corte-other">$0.00</strong></div></div>'+
+  '<div><small>Sin estado</small><strong id="nv-corte-other">$0.00</strong></div>'+
+  '<div><small>💵 Efectivo</small><strong id="nv-corte-cash">$0.00</strong></div>'+
+  '<div><small>💳 Tarjeta</small><strong id="nv-corte-card">$0.00</strong></div>'+
+  '<div><small>🏦 Transferencia</small><strong id="nv-corte-transfer">$0.00</strong></div>'+
+  '<div><small>Pagados sin clasificar</small><strong id="nv-corte-unknownPaid">$0.00</strong></div></div>'+
   '<div class="nv-corte-actions"><button type="button" id="nv-corte-copy">Copiar resumen</button>'+
   '<button type="button" id="nv-corte-export">Exportar CSV</button></div>'+
   '<p id="nv-corte-message" role="status"></p>'+
@@ -223,7 +234,7 @@ function mount(){
  overlay.addEventListener('click',ev=>{if(ev.target===overlay)close()});
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!overlay.hidden)close()});
  $('nv-corte-period').addEventListener('change',()=>{$('nv-corte-date-label').hidden=$('nv-corte-period').value!=='day';refresh()});
- for(const id of ['nv-corte-date','nv-corte-status','nv-corte-search'])$(id).addEventListener('input',refresh);
+ for(const id of ['nv-corte-date','nv-corte-status','nv-corte-method','nv-corte-search'])$(id).addEventListener('input',refresh);
  $('nv-corte-copy').addEventListener('click',copySummary);
  $('nv-corte-export').addEventListener('click',exportCsv);
  return true;
@@ -233,6 +244,6 @@ function init(){
  let tries=0;
  const timer=setInterval(()=>{tries++;if(mount()||tries>=15)clearInterval(timer)},250);
 }
-window.NAVARRO_CORTE_CAJA_V1=Object.freeze({version:1,consultar:()=>parseRecords().map(r=>({at:r.at.toISOString(),total:r.total,status:r.status,copies:r.copies})),resumir:totals,filtrar:filtered,formatoCSV:csv});
+window.NAVARRO_CORTE_CAJA_V1=Object.freeze({version:2,consultar:()=>parseRecords().map(r=>({at:r.at.toISOString(),total:r.total,status:r.status,method:r.method,copies:r.copies})),resumir:totals,filtrar:filtered,formatoCSV:csv});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
