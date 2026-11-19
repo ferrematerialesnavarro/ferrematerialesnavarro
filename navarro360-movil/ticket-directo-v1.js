@@ -77,13 +77,14 @@ function qrSvg(){
  return qrCache;
 }
 function preview(){
+ // Puede retirar FLETE de carrito por envío gratis: primero actualizar cobro.
+ const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
  const data=collect();
  if(data.error){window.alert(data.error);return false}
  const paper=$('nv-ticket-paper');
  const client=String($('nv-ticket-client').value||'').trim().slice(0,100);
  const state=$('nv-ticket-status').value;
  const label=state==='pagado'?'PAGADO':state==='cobrar'?'POR COBRAR':'SIN ESPECIFICAR';
- const info=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.()||null;
  const flete=data.hasFreight?0:(info?info.flete:($('nv-ticket-flete').checked?5000:0));
  const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
  const phone=String(info?.phone||'').trim().slice(0,30);
