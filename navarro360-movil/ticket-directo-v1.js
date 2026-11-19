@@ -217,6 +217,16 @@ function mount(){
   '<div class="nv-ticket-actions"><button id="nv-ticket-close" type="button">Volver al carrito</button>'+
   '<button id="nv-ticket-print" type="button">🖨 Imprimir</button></div></div>';
  document.body.appendChild(screen);
+ // Recuperar también cliente y estado después de recargar una venta con fracciones.
+ try{
+  const stored=sessionStorage.getItem('navarro360_ticket_restaurar_v1');
+  if(stored){
+   sessionStorage.removeItem('navarro360_ticket_restaurar_v1');
+   const data=JSON.parse(stored);
+   $('nv-ticket-client').value=String(data.client||'').slice(0,100);
+   $('nv-ticket-status').value=['pagado','cobrar'].includes(data.payment)?data.payment:'none';
+  }
+ }catch(_){}
  $('nv-ticket-close').addEventListener('click',restoreAfterPrint);
  $('nv-ticket-print').addEventListener('click',printTicket);
  screen.addEventListener('click',e=>{if(e.target===screen)restoreAfterPrint()});
@@ -226,7 +236,7 @@ function mount(){
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();restoreAfterPrint()}
  },true);
  window.addEventListener('afterprint',restoreAfterPrint);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:6,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:7,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
