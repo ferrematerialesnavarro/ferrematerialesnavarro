@@ -91,6 +91,9 @@ function setupPairUI(button){
  button.parentElement.insertBefore(settings,button.nextSibling);
  const overlay=document.createElement('div');overlay.id='nv-printer-pair-overlay';overlay.hidden=true;
  overlay.style.cssText='position:fixed;inset:0;z-index:2147483200;background:#082719df;display:flex;align-items:center;justify-content:center;padding:15px;box-sizing:border-box;overflow-y:auto';
+ const modalCss=document.createElement('style');
+ modalCss.textContent='#nv-printer-pair-overlay[hidden]{display:none!important}';
+ document.head.appendChild(modalCss);
  overlay.innerHTML=
   '<section role="dialog" aria-modal="true" aria-labelledby="nv-printer-pair-title" style="background:#fff;color:#153b2a;max-width:460px;width:100%;padding:18px;border-radius:17px;box-sizing:border-box;box-shadow:0 15px 50px #0005;font-family:system-ui">'+
   '<h2 id="nv-printer-pair-title" style="font-size:20px;margin:0 0 9px">🖨 Vincular impresora</h2>'+
@@ -108,11 +111,11 @@ function setupPairUI(button){
  document.body.appendChild(overlay);
  const err=$('nv-printer-pair-error'),field=$('nv-printer-paste');
  const close=()=>{field.value='';err.textContent='';overlay.hidden=true};
- settings.addEventListener('click',()=>{overlay.hidden=false;refreshPairUI();field.focus()});
+ settings.addEventListener('click',()=>{err.textContent='';err.style.color='#9b2626';overlay.hidden=false;refreshPairUI();field.focus()});
  $('nv-printer-close').addEventListener('click',close);
  $('nv-printer-import').addEventListener('click',()=>{
   try{applyPair(parsePairInput(field.value));close();status('✓ App vinculada. Ahora imprime con un solo toque.',false)}
-  catch(ex){err.textContent=ex.message||'Enlace inválido'}
+  catch(ex){err.style.color='#9b2626';err.textContent=ex.message||'Enlace inválido'}
  });
  $('nv-printer-copy').addEventListener('click',async()=>{
   try{
