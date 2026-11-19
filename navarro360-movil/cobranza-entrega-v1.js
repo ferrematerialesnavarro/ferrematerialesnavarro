@@ -47,10 +47,9 @@ function quote(){
 }
 let mounted=false;
 let manualOverride=null,removingFreight=false;
-function ensureFreeShipping(q){
- // Pedidos de $1,000 o más: retirar también el artículo FLETE si alguien
- // lo agregó al carrito. Reutilizamos el puente oficial sin tocar precios.
- if(!q.valid||q.subtotalProductos<100000||!q.hasFreight||removingFreight)return q;
+function removeFreightProduct(q){
+ // También permite cortesías cuando FLETE se agregó como artículo.
+ if(!q.valid||!q.hasFreight||removingFreight)return q;
  const cart=getObject('navarro_cart_v1');
  const bridge=window.NAVARRO_CARRITO_EN_VIVO_V66;
  if(!Object.hasOwn(cart,'7777000010')||typeof bridge?.replace!=='function')return q;
@@ -62,6 +61,9 @@ function ensureFreeShipping(q){
  }catch(_){}
  finally{removingFreight=false}
  return q;
+}
+function ensureFreeShipping(q){
+ return q.subtotalProductos>=100000?removeFreightProduct(q):q;
 }
 function saveSettings(){
  const s={delivery:!!$('nv-cobro-domicilio')?.checked,phone:String($('nv-cobro-phone')?.value||'').slice(0,30),
@@ -83,8 +85,8 @@ function update(){
    'Envío gratis desde $1,000. Retira FLETE del carrito antes de imprimir.':
    '✓ Envío gratis: los productos suman $1,000 o más. Flete eliminado automáticamente.';
  }else if(q.hasFreight){
-  fee.checked=false;fee.disabled=true;
-  if(msg)msg.textContent='El flete ya está como producto en el carrito. No se cobra dos veces.';
+  fee.checked=true;fee.disabled=false;
+  if(msg)msg.textContent='Flete incluido como producto. Desmarca para quitarlo por cortesía.';
  }else{
   fee.disabled=false;
   fee.checked=manualOverride==='cobrar'?true:manualOverride==='gratis'?false:auto;
@@ -193,7 +195,20 @@ function mount(){
   if(!$('nv-cobro-domicilio').checked){$('nv-cobro-address').value='';saveAddress('')}
   manualOverride=null;update();
  });
- $('nv-cobro-flete').addEventListener('change',()=>{manualOverride=$('nv-cobro-flete').checked?'cobrar':'gratis';update()});
+ $('nv-cobro-flete').addEventListener('change',()=>{
+  const selected=$('nv-cobro-flete').checked;
+  const q=quote();
+  if(q.hasFreight&&!selected){
+   const current=removeFreightProduct(q);
+   if(current.hasFreight){
+    manualOverride=null;update();
+    window.alert('No se pudo retirar el flete del carrito. Elimina el artículo FLETE manualmente para aplicar la cortesía.');
+    return;
+   }
+  }
+  manualOverride=selected?'cobrar':'gratis';
+  update();
+ });
  document.addEventListener('input',e=>{
   if(e.target?.id==='nv70-address'&&e.target.value!==$('nv-cobro-address').value){
    $('nv-cobro-address').value=String(e.target.value||'').slice(0,260);
