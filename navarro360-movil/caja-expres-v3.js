@@ -37,6 +37,12 @@ function countCurrent(){
  return ids.filter(id=>id!=='00000'&&mapCatalog().has(id)).slice(0,100);
 }
 function quote(){
+ // La gratuidad puede retirar el producto FLETE. Primero aplicar la regla,
+ // despues tomar el carrito actual para calcular cambio exacto.
+ const billing=window.NAVARRO_COBRANZA_ENTREGA;
+ if(typeof billing?.snapshot!=='function')throw Error('Abre el carrito y revisa el recuadro de domicilio.');
+ let fee;try{fee=Number(billing.snapshot().flete)}catch(_){throw Error('Revisa los datos del domicilio o el flete.')}
+ if(!Number.isSafeInteger(fee)||![0,5000].includes(fee))throw Error('Flete incorrecto. Revisa tu venta.');
  const entries=Object.entries(read(CART)),db=mapCatalog();
  const cl=read(CLAVOS),im=read(IMPORTES),ov=read(PRECIOS);
  if(!entries.length)return {subtotal:0,flete:0,total:0,count:0};
@@ -54,11 +60,6 @@ function quote(){
   subtotal+=cost;
   if(id==='7777000010')hasFreight=true;
  }
- const billing=window.NAVARRO_COBRANZA_ENTREGA;
- if(typeof billing?.snapshot!=='function')throw Error('Abre el carrito y revisa el recuadro de domicilio.');
- let fee;
- try{fee=Number(billing.snapshot().flete)}catch(_){throw Error('Revisa los datos del domicilio o el flete.')}
- if(!Number.isSafeInteger(fee)||![0,5000].includes(fee))throw Error('Flete incorrecto. Revisa tu venta.');
  if(hasFreight)fee=0;
  const total=subtotal+fee;
  if(!Number.isSafeInteger(total)||total<=0)throw Error('Total de venta no válido.');
