@@ -12,6 +12,12 @@ const $=id=>document.getElementById(id);
 const money=c=>new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(c/100);
 const formatter=new Intl.DateTimeFormat('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 const integer=x=>Number.isSafeInteger(x)&&x>=0;
+function methodFor(state,stored){
+ if(state==='cobrar')return 'credit';
+ if(state==='pagado'&&['cash','card','transfer'].includes(stored))return stored;
+ return 'unknown';
+}
+const methodText=method=>({cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',credit:'Por cobrar',unknown:'Sin clasificar'})[method]||'Sin clasificar';
 const pad=n=>String(n).padStart(2,'0');
 function dayKey(value){
  const d=value instanceof Date?value:new Date(value);
@@ -38,6 +44,7 @@ function parseRecords(){
   out.push({id:j.jobId,at,day:dayKey(at),subtotal:j.subtotal,flete:Number(j.flete||0),
    total:j.subtotal+Number(j.flete||0),
    status:j.state==='pagado'?'pagado':j.state==='cobrar'?'cobrar':'none',
+   method:methodFor(j.state,item.paymentMethod),
    client:String(j.client||'').slice(0,100),phone:String(j.phone||'').slice(0,30),
    codes:j.rows.map(r=>String(r.id)),products:j.rows.length,copies:Math.max(0,Number(item.copies)||0)});
  }
@@ -54,18 +61,23 @@ function periodMatch(record,period,selected){
  }
  return record.day===selected;
 }
-function filtered(records,period,selected,status,needle){
+function filtered(records,period,selected,status,needle,method='all'){
  const s=String(needle||'').toLocaleLowerCase('es-MX').trim();
  return records.filter(r=>periodMatch(r,period,selected)&&
    (status==='all'||r.status===status)&&
+   (method==='all'||r.method===method)&&
    (!s||[r.id,r.client,r.phone,...r.codes].some(x=>String(x).toLocaleLowerCase('es-MX').includes(s))));
 }
 function totals(rows){
- const t={count:rows.length,total:0,paid:0,credit:0,other:0,paidCount:0,creditCount:0,otherCount:0};
+ const t={count:rows.length,total:0,paid:0,credit:0,other:0,paidCount:0,creditCount:0,otherCount:0,
+  cash:0,card:0,transfer:0,unknownPaid:0,cashCount:0,cardCount:0,transferCount:0,unknownPaidCount:0};
  for(const r of rows){
   t.total+=r.total;
-  if(r.status==='pagado'){t.paid+=r.total;t.paidCount++}
-  else if(r.status==='cobrar'){t.credit+=r.total;t.creditCount++}
+  if(r.status==='pagado'){
+   t.paid+=r.total;t.paidCount++;
+   const key=['cash','card','transfer'].includes(r.method)?r.method:'unknownPaid';
+   t[key]+=r.total;t[key+'Count']++;
+  }else if(r.status==='cobrar'){t.credit+=r.total;t.creditCount++}
   else{t.other+=r.total;t.otherCount++}
  }
  return t;
@@ -76,12 +88,12 @@ function csvCell(s){
  return '"'+safe.replace(/"/g,'""')+'"';
 }
 function csv(rows){
- const header=['Fecha','Hora','ID ticket','Estado en ticket','Articulos','Subtotal','Flete adicional','Total','Reimpresiones','Cliente'];
+ const header=['Fecha','Hora','ID ticket','Estado en ticket','Método confirmado','Articulos','Subtotal','Flete adicional','Total','Reimpresiones','Cliente'];
  const data=[header.map(csvCell).join(',')];
  for(const r of rows){
   const label=r.status==='pagado'?'Pagado':r.status==='cobrar'?'Por cobrar':'Sin especificar';
   const d=r.at;
-  data.push([r.day,pad(d.getHours())+':'+pad(d.getMinutes()),r.id,label,r.products,
+  data.push([r.day,pad(d.getHours())+':'+pad(d.getMinutes()),r.id,label,methodText(r.method),r.products,
     (r.subtotal/100).toFixed(2),(r.flete/100).toFixed(2),(r.total/100).toFixed(2),r.copies,r.client].map(csvCell).join(','));
  }
  return '\uFEFF'+data.join('\r\n');
