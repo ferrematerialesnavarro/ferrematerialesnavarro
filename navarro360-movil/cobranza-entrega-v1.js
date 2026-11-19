@@ -1,4 +1,4 @@
-/* NAVARRO 360 · COBRANZA Y ENTREGA V1 (18-11-2026)
+/* NAVARRO 360 · COBRANZA Y ENTREGA V3 (19-11-2026)
    Flete automatico $50 para entrega bajo $1,000; opcion manual;
    telefono y direccion del cliente por venta. Sin SIFO ni WhatsApp.
 */
@@ -46,7 +46,23 @@ function quote(){
  return {subtotal,subtotalProductos,valid,hasFreight,hasItems};
 }
 let mounted=false;
-let manualOverride=null;
+let manualOverride=null,removingFreight=false;
+function ensureFreeShipping(q){
+ // Pedidos de $1,000 o más: retirar también el artículo FLETE si alguien
+ // lo agregó al carrito. Reutilizamos el puente oficial sin tocar precios.
+ if(!q.valid||q.subtotalProductos<100000||!q.hasFreight||removingFreight)return q;
+ const cart=getObject('navarro_cart_v1');
+ const bridge=window.NAVARRO_CARRITO_EN_VIVO_V66;
+ if(!Object.hasOwn(cart,'7777000010')||typeof bridge?.replace!=='function')return q;
+ const next={...cart};delete next['7777000010'];
+ removingFreight=true;
+ try{
+  const result=bridge.replace(next);
+  if(result?.ok&&!Object.hasOwn(getObject('navarro_cart_v1'),'7777000010'))return quote();
+ }catch(_){}
+ finally{removingFreight=false}
+ return q;
+}
 function saveSettings(){
  const s={delivery:!!$('nv-cobro-domicilio')?.checked,phone:String($('nv-cobro-phone')?.value||'').slice(0,30),
    override:manualOverride,address:String($('nv-cobro-address')?.value||'').trim().slice(0,260)};
@@ -56,31 +72,50 @@ function update(){
  const address=$('nv-cobro-address'),delivery=$('nv-cobro-domicilio'),phone=$('nv-cobro-phone');
  const fee=$('nv-cobro-flete'),msg=$('nv-cobro-flete-info'),total=$('nv-cobro-total');
  if(!fee||!address||!delivery||!total)return;
- const q=quote(),needsDelivery=delivery.checked||!!address.value.trim();
- const auto=needsDelivery&&q.subtotalProductos<100000;
- if(q.hasFreight){
+ const q=ensureFreeShipping(quote()),needsDelivery=delivery.checked||!!address.value.trim();
+ const free=q.valid&&q.subtotalProductos>=100000;
+ // El envío gratis siempre prevalece sobre un flete activado manualmente.
+ if(free)manualOverride=null;
+ const auto=needsDelivery&&!free;
+ if(free){
   fee.checked=false;fee.disabled=true;
-  if(msg)msg.textContent='Flete incluido como producto del carrito; no se cobra dos veces.';
+  if(msg)msg.textContent=q.hasFreight?
+   'Envío gratis desde $1,000. Retira FLETE del carrito antes de imprimir.':
+   '✓ Envío gratis: los productos suman $1,000 o más. Flete eliminado automáticamente.';
+ }else if(q.hasFreight){
+  fee.checked=false;fee.disabled=true;
+  if(msg)msg.textContent='El flete ya está como producto en el carrito. No se cobra dos veces.';
  }else{
   fee.disabled=false;
   fee.checked=manualOverride==='cobrar'?true:manualOverride==='gratis'?false:auto;
   if(msg)msg.textContent=manualOverride==='cobrar'?'Flete activado manualmente.':
-   manualOverride==='gratis'?'Flete desactivado manualmente.':
-   auto?'Flete automático: entrega menor a $1,000.':
-   needsDelivery?'Envío gratis desde $1,000.':'Sin domicilio: flete opcional.';
+   manualOverride==='gratis'?'✓ Flete eliminado por cortesía. Puedes volver a activarlo.':
+   auto?'Flete automático de $50. Puedes desactivarlo por cortesía.':
+   'Sin domicilio: flete opcional.';
  }
- const amount=q.hasFreight?0:(fee.checked?5000:0);
+ const amount=free||q.hasFreight?0:(fee.checked?5000:0);
  if(!q.valid){total.textContent='Revisa los precios del carrito antes de cobrar.'}
+ else if(free&&q.hasFreight)total.textContent='Hay un flete existente en el carrito. Quítalo para aplicar el envío gratis.';
  else total.textContent='Productos: '+money(q.subtotal)+' · Flete adicional: '+money(amount)+' · TOTAL: '+money(q.subtotal+amount);
+ const preview=$('nv-cobro-phone-preview');
+ if(preview){
+  const value=String(phone?.value||'').trim();
+  preview.textContent=value?'Saldrá en ticket: Tel. cliente: '+value:'El teléfono aparecerá en el ticket cuando lo escribas.';
+  preview.style.color=value&& !/^[+()\d\s.\-]{5,30}$/.test(value)?'#a42b2b':'#526857';
+ }
  saveSettings();
 }
 function snapshot(){
  update();
  const q=quote();
  if(!q.valid)throw Error('Hay productos con precios incorrectos. Revisa el carrito.');
+ if(q.subtotalProductos>=100000&&q.hasFreight)
+  throw Error('El envío es gratis a partir de $1,000. Quita el producto FLETE antes de imprimir.');
  const address=String($('nv-cobro-address')?.value||$('nv70-address')?.value||'').trim().slice(0,260);
  const phone=String($('nv-cobro-phone')?.value||'').trim().slice(0,30);
- const flete=q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
+ if(phone&&!/^[+()\d\s.\-]{5,30}$/.test(phone))
+  throw Error('Escribe un teléfono válido para incluirlo en el ticket (5 a 30 caracteres).');
+ const flete=q.subtotalProductos>=100000||q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
  return {address,phone,flete,delivery:!!$('nv-cobro-domicilio')?.checked||!!address,subTotalSinFlete:q.subtotalProductos,hasFreight:q.hasFreight};
 }
 function exportState(){
@@ -127,6 +162,7 @@ function mount(){
   '<textarea id="nv-cobro-address" rows="2" maxlength="260" placeholder="Calle, número, colonia y referencias"></textarea>'+
   '<label class="nv-cobro-label" for="nv-cobro-phone">Teléfono del cliente (opcional)</label>'+
   '<input id="nv-cobro-phone" type="tel" inputmode="tel" autocomplete="off" maxlength="30" placeholder="Ej. 33 1234 5678">'+
+  '<p id="nv-cobro-phone-preview" role="status" aria-live="polite" style="font:12px/1.4 system-ui;margin:5px 0">El teléfono aparecerá en el ticket cuando lo escribas.</p>'+
   '<label class="nv-cobro-check nv-cobro-shipping"><input type="checkbox" id="nv-cobro-flete"> Cobrar flete de $50</label>'+
   '<p id="nv-cobro-flete-info"></p>'+
   '<strong id="nv-cobro-total" role="status"></strong>';
@@ -170,6 +206,6 @@ function mount(){
  window.addEventListener('storage',e=>{if(!e.key||e.key==='navarro_cart_v1'||e.key.includes('precio')||e.key.includes('importe'))update()});
  update();
 }
-window.NAVARRO_COBRANZA_ENTREGA=Object.freeze({version:2,snapshot,exportState,restoreState,reset,update});
+window.NAVARRO_COBRANZA_ENTREGA=Object.freeze({version:3,snapshot,exportState,restoreState,reset,update});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
