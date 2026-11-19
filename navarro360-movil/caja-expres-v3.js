@@ -12,6 +12,29 @@ const FAVORITOS='navarro360_favoritos_caja_v2';
 const pesos=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
 const money=cents=>pesos.format(cents/100);
 let catalogRef=null,catalog=null,root=null,view=null,noticeTimer=null;
+let paymentConfirmation=null;
+// Solo clasificar el método confirmado para la venta actual.
+function fingerprint(){
+ const keys=[CART,CLAVOS,IMPORTES,PRECIOS];
+ const stored=keys.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}});
+ const billing=window.NAVARRO_COBRANZA_ENTREGA?.snapshot?.();
+ const q=quote();
+ return JSON.stringify({stored,total:q.total,fee:q.flete,
+  address:String(billing?.address||''),phone:String(billing?.phone||''),
+  client:String($('nv-ticket-client')?.value||'').trim(),
+  state:String($('nv-ticket-status')?.value||'none')});
+}
+function clearPayment(){paymentConfirmation=null;}
+function confirmedMethodForTicket(job){
+ if(!paymentConfirmation||!job)return null;
+ try{
+  const method=paymentConfirmation.method;
+  const validStatus=method==='credit'?job.state==='cobrar':job.state==='pagado';
+  if(!validStatus||paymentConfirmation.tag!==fingerprint()||
+     Number(job.subtotal)+Number(job.flete)!==quote().total)return null;
+  return method;
+ }catch(_){return null}
+}
 function mapCatalog(){
  const arr=window.NAVARRO_DB;
  if(!Array.isArray(arr))throw Error('El catálogo no está cargado.');
@@ -161,6 +184,8 @@ function applyPayment(){
  }
  state.value=method==='credit'?'cobrar':'pagado';
  state.dispatchEvent(new Event('input',{bubbles:true}));
+ // Se invalida al modificar el pedido; no valida pagos con bancos ni SIFO.
+ try{paymentConfirmation={method,tag:fingerprint()}}catch(_){clearPayment()}
  announce(method==='credit'?'Ticket marcado POR COBRAR.':'Estado del ticket actualizado a PAGADO. Imprime cuando estés listo.',false);
  render();
 }
@@ -188,6 +213,7 @@ function onFavoritesClick(event){
  render();
 }
 function resetOnNewSale(){
+ clearPayment();
  const input=$('nv-ce-v2-cash');if(input)input.value='';
  if(view?.method)view.method.value='cash';
  if(root?.open)render();
@@ -249,7 +275,7 @@ function mount(){
  ].join('');
  document.head.appendChild(style);
  details.addEventListener('toggle',render);
- view.method.addEventListener('change',render);
+ view.method.addEventListener('change',()=>{clearPayment();render()});
  $('nv-ce-v2-cash').addEventListener('input',render);
  $('nv-ce-v2-apply').addEventListener('click',applyPayment);
  details.addEventListener('click',event=>{
@@ -263,7 +289,12 @@ function mount(){
   }
  });
  const cart=$('cart-items');
- if(cart)new MutationObserver(()=>{if(root.open)render()}).observe(cart,{childList:true,subtree:false});
+ if(cart)new MutationObserver(()=>{
+  if(paymentConfirmation){
+   try{if(fingerprint()!==paymentConfirmation.tag)clearPayment()}catch(_){clearPayment()}
+  }
+  if(root.open)render();
+ }).observe(cart,{childList:true,subtree:false});
  document.addEventListener('change',e=>{if(root.open&&e.target?.id?.startsWith('nv-cobro-'))render()},true);
  document.addEventListener('input',e=>{if(root.open&&e.target?.id?.startsWith('nv-cobro-'))render()},true);
  document.addEventListener('click',e=>{
@@ -279,6 +310,6 @@ function init(){
  let attempts=0;
  const timer=setInterval(()=>{if(mount()||++attempts>=20)clearInterval(timer)},350);
 }
-window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:3,modo:'complemento',calcular:quote,calcularDinero:parseMoney});
+window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:4,modo:'complemento',calcular:quote,calcularDinero:parseMoney,metodoConfirmado:confirmedMethodForTicket,limpiarMetodo:clearPayment});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
