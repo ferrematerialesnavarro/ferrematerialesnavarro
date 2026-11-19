@@ -237,7 +237,8 @@ function renderWaiting(){
   const date=new Date(d.at);const time=Number.isNaN(date.getTime())?'':date.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   const count=Object.keys(d.cart).length;
   const name=document.createElement('strong');name.textContent='Venta de '+time;
-  const details=document.createElement('small');details.textContent=count+' productos · '+money(draftMoney(d));
+  const details=document.createElement('small');details.textContent=count+' productos · '+money(draftMoney(d))+
+   (d.delivery?.address?' · A domicilio':'')+(d.client?' · '+String(d.client).slice(0,40):'');
   info.append(name,details);
   const controls=document.createElement('div');controls.className='nv-caja-row-buttons';
   const recover=document.createElement('button');recover.type='button';recover.textContent='Recuperar';recover.dataset.nvLoad=d.id;
@@ -256,7 +257,11 @@ function capture(){
  if(!cart||!Object.keys(cart).length)return null;
  const cl=cleanMap(readObj(CLAVO_KEY),cart,99999999);
  const imp=cleanMap(readObj(IMPORTE_KEY),cart,99999999);
- return {cart:clone(cart),clavos:cl,importes:imp,prices:cleanMap(readObj(PRICE_KEY),cart,100000000)};
+ const delivery=window.NAVARRO_COBRANZA_ENTREGA?.exportState?.()||null;
+ const client=String($('nv-ticket-client')?.value||'').trim().slice(0,100);
+ const payment=$('nv-ticket-status')?.value||'none';
+ return {cart:clone(cart),clavos:cl,importes:imp,prices:cleanMap(readObj(PRICE_KEY),cart,100000000),
+   delivery,client,payment:['pagado','cobrar'].includes(payment)?payment:'none'};
 }
 function saveWaiting(){
  const snap=capture();if(!snap){window.alert('El carrito está vacío o tiene una cantidad inválida.');return}
@@ -272,8 +277,11 @@ function saveWaiting(){
   return;
  }
  prices={};safeStore(PRICE_KEY,prices);
+ try{window.NAVARRO_COBRANZA_ENTREGA?.reset?.()}catch(_){}
+ const client=$('nv-ticket-client'),state=$('nv-ticket-status');
+ if(client)client.value='';if(state)state.value='none';
  if(receivedInput)receivedInput.value='';
- statusMsg('✓ Venta guardada. Carrito libre para atender otro cliente.');
+ statusMsg('✓ Venta guardada con sus datos. Carrito libre para otro cliente.');
  waitingVisible=false;schedule();
 }
 function restore(id){
@@ -300,6 +308,17 @@ function restore(id){
   return;
  }
  prices=p;
+ if(d.delivery){
+  let restored=false;
+  try{restored=window.NAVARRO_COBRANZA_ENTREGA?.restoreState?.(d.delivery)===true}catch(_){}
+  if(!restored){
+   window.alert('Los artículos ya se recuperaron, pero faltan los datos del domicilio. La venta se conserva en espera para revisión.');
+   return;
+  }
+ }
+ const ticketClient=$('nv-ticket-client'),ticketState=$('nv-ticket-status');
+ if(ticketClient)ticketClient.value=String(d.client||'').slice(0,100);
+ if(ticketState)ticketState.value=['pagado','cobrar'].includes(d.payment)?d.payment:'none';
  if(!safeStore(KEY,all.filter(x=>x.id!==id))){
   window.alert('La venta se recuperó, pero no se pudo quitar de la lista. Evita recuperarla dos veces.');
   return;
@@ -308,7 +327,12 @@ function restore(id){
  if(receivedInput)receivedInput.value='';
  statusMsg('✓ Venta recuperada. Continúa agregando artículos.');
  if(special){
-  try{sessionStorage.setItem('navarro360_espera_reabrir_v1','1')}catch{}
+  try{
+   sessionStorage.setItem('navarro360_espera_reabrir_v1','1');
+   sessionStorage.setItem('navarro360_ticket_restaurar_v1',JSON.stringify({
+     client:String(d.client||'').slice(0,100),
+     payment:['pagado','cobrar'].includes(d.payment)?d.payment:'none'}));
+  }catch(_){}
   window.location.reload();
  }else schedule();
 }
