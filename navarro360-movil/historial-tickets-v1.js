@@ -10,6 +10,12 @@ const $=id=>document.getElementById(id);
 const pesos=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
 const money=c=>pesos.format(c/100);
 const clean=(s,limit)=>String(s??'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,limit);
+function normalizeMethod(state,method){
+ if(state==='cobrar')return 'credit';
+ if(state==='pagado'&&['cash','card','transfer'].includes(method))return method;
+ return 'unknown';
+}
+const methodLabel=m=>({cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',credit:'Por cobrar',unknown:'Sin clasificar'})[m]||'Sin clasificar';
 function validJob(job){
  if(!job||typeof job!=='object'||!Array.isArray(job.rows)||job.rows.length<1||job.rows.length>100)return null;
  if(typeof job.jobId!=='string'||!/^[0-9a-z-]{8,80}$/i.test(job.jobId))return null;
@@ -39,10 +45,10 @@ function load(){
 function persist(arr){
  try{localStorage.setItem(KEY,JSON.stringify(arr));return true}catch(_){return false}
 }
-function record(job){
+function record(job,paymentMethod){
  const fixed=validJob(job);if(!fixed)return false;
  const all=load();if(all.some(x=>x.job.jobId===fixed.jobId))return true;
- const entry={job:fixed,receivedAt:new Date().toISOString(),copies:0,source:'cola_windows'};
+ const entry={job:fixed,paymentMethod:normalizeMethod(fixed.state,paymentMethod),receivedAt:new Date().toISOString(),copies:0,source:'cola_windows'};
  const next=[entry,...all].slice(0,MAX);
  if(persist(next)){refreshCount();return true}
  // Safari puede llenar su almacenamiento: conservar por lo menos 1 ticket.
@@ -82,6 +88,7 @@ function makeRow(entry){
  const text=document.createElement('p');
  const details=[job.rows.length+' artículos','Cola Windows'];
  if(job.client)details.push(job.client);
+ details.push(methodLabel(normalizeMethod(job.state,entry.paymentMethod)));
  if(entry.copies)details.push(entry.copies+' reimpresión(es)');
  text.textContent=details.join(' · ');
  wrap.appendChild(text);
@@ -163,6 +170,6 @@ function mount(){
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!overlay.hidden)close()});
  refreshCount();
 }
-window.NAVARRO_HISTORIAL=Object.freeze({version:1,record,get,markReprint,list:()=>load().map(x=>({jobId:x.job.jobId,at:x.receivedAt,total:x.job.subtotal+x.job.flete,copies:x.copies}))});
+window.NAVARRO_HISTORIAL=Object.freeze({version:2,record,get,markReprint,list:()=>load().map(x=>({jobId:x.job.jobId,at:x.receivedAt,total:x.job.subtotal+x.job.flete,copies:x.copies,method:normalizeMethod(x.job.state,x.paymentMethod)}))});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
