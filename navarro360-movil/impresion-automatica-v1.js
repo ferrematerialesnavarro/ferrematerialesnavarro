@@ -1,4 +1,4 @@
-/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V5 · PWA emparejable
+/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V6 · historial de tickets
  * Un toque -> POS-58-Series por HTTPS, sin AirPrint, sin WhatsApp, sin SIFO.
  * Solo se activa si este navegador está vinculado por un enlace privado.
  * No borra el carrito; la respuesta confirma cola Windows, no salida física.
@@ -220,11 +220,45 @@ async function autoPrint(event){
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');
+  const history=window.NAVARRO_HISTORIAL;
+  if(history&&typeof history.record==='function'&&!history.record(job)){
+   // No perder el detalle de una venta que ya se aceptó pero no pudo guardarse.
+   status('Ticket recibido por Windows, pero no se pudo guardar el historial. Conservamos el carrito para que revises la venta.',true);
+   return;
+  }
   resetPrintedSale(job,version);
  }catch(err){
   status('No se pudo imprimir: '+(err.name==='AbortError'?'conexión agotada':err.message||'revisa el puente en Windows')+'. El carrito se conservó.',true);
  }finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent=label}
 }
+// Reimpresión explícita desde historial. Siempre crea un ID nuevo para que
+// Windows pueda aceptar otra copia; nunca toca el carrito ni el pago actuales.
+async function reimprimir(id){
+ if(!pair)return {ok:false,error:'Esta app no tiene impresora vinculada.'};
+ if(busy)return {ok:false,error:'Ya existe un trabajo en curso; evita imprimir dos veces.'};
+ const old=window.NAVARRO_HISTORIAL?.get?.(id);
+ if(!old||!Array.isArray(old.rows)||!old.rows.length)return {ok:false,error:'Ticket no encontrado en este dispositivo.'};
+ busy=true;
+ const button=$('nv-print-ticket-button');
+ if(button)button.disabled=true;
+ const ctrl=new AbortController();
+ const timeout=setTimeout(()=>ctrl.abort(),20000);
+ try{
+  const job={...old,jobId:crypto.randomUUID(),reprintOf:old.jobId};
+  const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
+   method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
+   body:JSON.stringify(job),signal:ctrl.signal
+  });
+  let result={};try{result=await response.json()}catch(_){}
+  if(!response.ok||!result.ok)return {ok:false,error:result.error||'Windows no confirmó el ticket.'};
+  window.NAVARRO_HISTORIAL?.markReprint?.(id);
+  return {ok:true,queued:true};
+ }catch(err){
+  return {ok:false,error:err?.name==='AbortError'?'No se confirmó el envío en 20 segundos. Revisa si se imprimió antes de repetir.':'Falló la comunicación con la impresora; comprueba la conexión.'};
+ }finally{clearTimeout(timeout);busy=false;if(button)button.disabled=false}
+}
+window.NAVARRO_PRINT_SILENCIOSA=Object.freeze({version:6,vinculado:()=>!!pair,reimprimir});
 function init(){
  receivePair();
  const button=$('nv-print-ticket-button');
