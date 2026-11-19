@@ -1,4 +1,4 @@
-/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V4
+/* NAVARRO 360 — impresión automática NGROK gratuito autorizado V5 · PWA emparejable
  * Un toque -> POS-58-Series por HTTPS, sin AirPrint, sin WhatsApp, sin SIFO.
  * Solo se activa si este navegador está vinculado por un enlace privado.
  * No borra el carrito; la respuesta confirma cola Windows, no salida física.
@@ -22,20 +22,113 @@ function status(message,bad){
  box.textContent=message;box.style.background=bad?'#a12929':'#165b3c';box.hidden=false;
  clearTimeout(alertTimer);alertTimer=setTimeout(()=>box.hidden=true,bad?5500:3300);
 }
+// Copiar la vinculación de Safari y pegarla en la app instalada:
+ // iOS mantiene separados los datos locales de cada aplicación web.
+function parsePairInput(input){
+ const raw=String(input||'').trim();
+ if(raw.length>4000)throw Error('El enlace es demasiado largo');
+ let fragment=raw;
+ if(/^https:\/\//i.test(raw)){
+  const u=new URL(raw);
+  if(u.origin!==location.origin||!u.pathname.startsWith('/ferrematerialesnavarro/navarro360-movil/'))
+   throw Error('Utiliza un enlace de vinculación de NAVARRO 360');
+  fragment=u.hash;
+ }else if(raw.startsWith('navprint='))fragment='#'+raw;
+ if(!fragment.startsWith('#navprint='))throw Error('Pega el enlace privado completo de vinculación');
+ const code=fragment.slice(10);
+ if(!/^[A-Za-z0-9_-]{40,2000}$/.test(code))throw Error('Código de vinculación inválido');
+ const bin=atob(code.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(code.length/4)*4,'='));
+ const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+ const p=JSON.parse(new TextDecoder().decode(bytes));
+ if(!validPair(p))throw Error('El enlace no corresponde a la impresora configurada');
+ return p;
+}
+function pairingUrl(p){
+ if(!validPair(p))throw Error('Impresora sin vincular');
+ const bytes=new TextEncoder().encode(JSON.stringify({url:p.url,token:p.token}));
+ let binary='';
+ for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+ const code=btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ return location.origin+location.pathname+'#navprint='+code;
+}
+function applyPair(p){
+ if(!validPair(p))throw Error('Vinculación incorrecta');
+ localStorage.setItem(STORAGE,JSON.stringify({url:p.url,token:p.token}));
+ pair={url:p.url,token:p.token};
+ refreshPairUI();
+}
 function receivePair(){
- const hash=location.hash||'';
- if(!hash.startsWith('#navprint='))return;
+ if(!location.hash.startsWith('#navprint='))return;
  try{
-  const t=hash.slice(10);
-  if(!/^[A-Za-z0-9_-]{40,2000}$/.test(t))throw Error('Código de vinculación inválido');
-  const bin=atob(t.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(t.length/4)*4,'='));
-  const raw=Uint8Array.from(bin,c=>c.charCodeAt(0));
-  const p=JSON.parse(new TextDecoder().decode(raw));
-  if(!validPair(p))throw Error('Datos inválidos');
-  localStorage.setItem(STORAGE,JSON.stringify(p));pair=p;
+  applyPair(parsePairInput(location.hash));
   history.replaceState(null,'',location.pathname+location.search);
   setTimeout(()=>status('✓ Impresora vinculada. Ya puedes imprimir con un toque.',false),200);
  }catch(err){status('No se pudo vincular la impresora: '+(err.message||'vuelve a abrir el enlace'),true)}
+}
+function refreshPairUI(){
+ const button=$('nv-print-ticket-button');
+ if(button&&pair){
+  button.textContent='🖨 Imprimir';
+  button.setAttribute('aria-label','Imprimir directamente en POS-58-Series sin menús');
+  button.style.background='#146f3e';
+ }
+ const settings=$('nv-printer-settings');
+ if(settings){
+  settings.textContent=pair?'✓ Impresora vinculada · Configurar':'🔗 Vincular impresora para la app';
+  settings.setAttribute('aria-label',pair?'Consultar o copiar vinculación de impresora':'Vincular la impresora con este dispositivo');
+ }
+ const desc=$('nv-printer-pair-desc');
+ if(desc)desc.textContent=pair?
+  'Impresora conectada en ESTE navegador o app. Puedes copiar su vinculación para instalar NAVARRO 360 en otra aplicación del mismo iPhone.':
+  'Esta app todavía no tiene la vinculación guardada. Copia el enlace privado desde Safari y pégalo aquí una sola vez.';
+ const copy=$('nv-printer-copy');
+ if(copy)copy.hidden=!pair;
+}
+function setupPairUI(button){
+ const settings=document.createElement('button');
+ settings.type='button';settings.id='nv-printer-settings';
+ settings.style.cssText='width:100%;min-height:45px;margin:4px 0 12px;border:1px solid #a9c5b1;border-radius:11px;background:#eff7f0;color:#195233;font:800 13px system-ui;cursor:pointer';
+ button.parentElement.insertBefore(settings,button.nextSibling);
+ const overlay=document.createElement('div');overlay.id='nv-printer-pair-overlay';overlay.hidden=true;
+ overlay.style.cssText='position:fixed;inset:0;z-index:2147483200;background:#082719df;display:flex;align-items:center;justify-content:center;padding:15px;box-sizing:border-box;overflow-y:auto';
+ overlay.innerHTML=
+  '<section role="dialog" aria-modal="true" aria-labelledby="nv-printer-pair-title" style="background:#fff;color:#153b2a;max-width:460px;width:100%;padding:18px;border-radius:17px;box-sizing:border-box;box-shadow:0 15px 50px #0005;font-family:system-ui">'+
+  '<h2 id="nv-printer-pair-title" style="font-size:20px;margin:0 0 9px">🖨 Vincular impresora</h2>'+
+  '<p id="nv-printer-pair-desc" style="font:14px/1.45 system-ui;margin:0 0 14px"></p>'+
+  '<label for="nv-printer-paste" style="display:block;font-size:13px;font-weight:800;margin-bottom:6px">Enlace privado de la impresora</label>'+
+  '<textarea id="nv-printer-paste" rows="3" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pega aquí el enlace de vinculación de NAVARRO 360" style="box-sizing:border-box;width:100%;border:1px solid #9fb9a8;border-radius:9px;padding:10px;font:16px/1.3 system-ui;background:white;color:#163d28;resize:vertical"></textarea>'+
+  '<p style="font:12px/1.45 system-ui;color:#55665c">En Safari, abre NAVARRO 360 → Carrito → Impresora vinculada → Copiar vinculación. Regresa a la app de inicio, pega y guarda. No compartas este enlace.</p>'+
+  '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0">'+
+  '<button type="button" id="nv-printer-import" style="min-height:47px;border:0;background:#176641;color:#fff;border-radius:10px;font:800 13px system-ui">✓ Guardar vínculo</button>'+
+  '<button type="button" id="nv-printer-copy" style="min-height:47px;border:1px solid #b8ceb9;background:#eef5f0;color:#205439;border-radius:10px;font:800 13px system-ui">Copiar vinculación</button>'+
+  '<button type="button" id="nv-printer-paste-clipboard" style="min-height:44px;border:1px solid #b8ceb9;background:white;color:#205439;border-radius:10px;font:800 12px system-ui">Pegar desde portapapeles</button>'+
+  '<button type="button" id="nv-printer-close" style="min-height:44px;border:1px solid #b8ceb9;background:white;color:#205439;border-radius:10px;font:800 12px system-ui">Cerrar</button></div>'+
+  '<p id="nv-printer-pair-error" role="status" style="font:12px/1.4 system-ui;color:#9b2626;margin:0"></p>'+
+  '</section>';
+ document.body.appendChild(overlay);
+ const err=$('nv-printer-pair-error'),field=$('nv-printer-paste');
+ const close=()=>{field.value='';err.textContent='';overlay.hidden=true};
+ settings.addEventListener('click',()=>{overlay.hidden=false;refreshPairUI();field.focus()});
+ $('nv-printer-close').addEventListener('click',close);
+ $('nv-printer-import').addEventListener('click',()=>{
+  try{applyPair(parsePairInput(field.value));close();status('✓ App vinculada. Ahora imprime con un solo toque.',false)}
+  catch(ex){err.textContent=ex.message||'Enlace inválido'}
+ });
+ $('nv-printer-copy').addEventListener('click',async()=>{
+  try{
+   const link=pairingUrl(pair);
+   if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(link);
+   else{field.value=link;field.focus();field.select();err.textContent='Selecciona y copia el enlace mostrado.';return}
+   err.style.color='#1e7045';err.textContent='✓ Vinculación copiada. Pégala dentro de la app instalada.';
+  }catch(ex){err.style.color='#9b2626';err.textContent='No se pudo copiar. Intenta desde Safari.'}
+ });
+ $('nv-printer-paste-clipboard').addEventListener('click',async()=>{
+  try{field.value=await navigator.clipboard.readText();err.textContent='Ahora toca «Guardar vínculo».'}
+  catch(_){field.focus();err.textContent='Mantén presionado el campo y selecciona Pegar.'}
+ });
+ overlay.addEventListener('click',ev=>{if(ev.target===overlay)close()});
+ document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!overlay.hidden)close()});
+ refreshPairUI();
 }
 function buildTicket(){
  const cart=read('navarro_cart_v1'),cl=read('navarro_clavos_importe_v1');
@@ -107,8 +200,9 @@ function resetPrintedSale(job,version){
  status('✓ Ticket enviado. Carrito limpio, listo para nueva venta.',false);
 }
 async function autoPrint(event){
- if(!pair||busy)return;
+ if(!pair)return;
  event.preventDefault();event.stopImmediatePropagation();
+ if(busy)return;
  const button=$('nv-print-ticket-button');
  let job;
  try{job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
@@ -132,12 +226,10 @@ function init(){
  receivePair();
  const button=$('nv-print-ticket-button');
  if(!button)return;
- if(pair){
-  button.textContent='🖨 Imprimir';
-  button.setAttribute('aria-label','Imprimir inmediatamente en POS-58-Series sin abrir menús');
-  button.addEventListener('click',autoPrint,true);
-  button.style.background='#146f3e';
- }
+ // Registrarlo siempre para que la nueva vinculación funcione sin recargar.
+ button.addEventListener('click',autoPrint,true);
+ setupPairUI(button);
+ refreshPairUI();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
