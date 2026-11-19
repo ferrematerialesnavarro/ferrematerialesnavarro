@@ -87,7 +87,8 @@ function sanitizeEspera(input){
  const ids=new Set(),result=[];
  for(const d of input){
   if(!isObj(d)||!str(d.id,100)||d.id.length<5||ids.has(d.id)||
-    !isNum(d.at)||!isObj(d.cart)||Object.keys(d.cart).length<1||Object.keys(d.cart).length>300)
+    !Number.isSafeInteger(d.at)||d.at<1||d.at>4102444800000||
+    !isObj(d.cart)||Object.keys(d.cart).length<1||Object.keys(d.cart).length>300)
    error('Una venta en espera está incompleta o duplicada.');
   ids.add(d.id);
   const cart=Object.create(null);
