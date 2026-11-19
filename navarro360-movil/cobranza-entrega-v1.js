@@ -83,6 +83,25 @@ function snapshot(){
  const flete=q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
  return {address,phone,flete,delivery:!!$('nv-cobro-domicilio')?.checked||!!address,subTotalSinFlete:q.subtotalProductos,hasFreight:q.hasFreight};
 }
+function exportState(){
+ saveSettings();
+ const s=getSale();
+ return {delivery:!!s.delivery,address:String(s.address||'').slice(0,260),
+   phone:String(s.phone||'').slice(0,30),
+   override:['cobrar','gratis'].includes(s.override)?s.override:null};
+}
+function restoreState(data){
+ if(!data||typeof data!=='object'||Array.isArray(data))return false;
+ const a=$('nv-cobro-address'),p=$('nv-cobro-phone'),d=$('nv-cobro-domicilio');
+ if(!a||!p||!d)return false;
+ a.value=String(data.address||'').slice(0,260);
+ p.value=String(data.phone||'').slice(0,30);
+ d.checked=!!data.delivery||!!a.value.trim();
+ manualOverride=['cobrar','gratis'].includes(data.override)?data.override:null;
+ saveAddress(a.value);
+ update();
+ return true;
+}
 function reset(){
  manualOverride=null;
  const ids=['nv-cobro-address','nv-cobro-phone'];
@@ -151,6 +170,6 @@ function mount(){
  window.addEventListener('storage',e=>{if(!e.key||e.key==='navarro_cart_v1'||e.key.includes('precio')||e.key.includes('importe'))update()});
  update();
 }
-window.NAVARRO_COBRANZA_ENTREGA=Object.freeze({version:1,snapshot,reset,update});
+window.NAVARRO_COBRANZA_ENTREGA=Object.freeze({version:2,snapshot,exportState,restoreState,reset,update});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
