@@ -240,6 +240,7 @@ async function autoPrint(event){
    return;
   }
   resetPrintedSale(job,version);
+  if(result.recorded===false)status('⚠ Ticket aceptado por Windows, pero NO se guardó en el panel de cajas. Revisa el registro en la computadora.',true);
  }catch(err){
   status('No se pudo imprimir: '+(err.name==='AbortError'?'conexión agotada':err.message||'revisa el puente en Windows')+'. El carrito se conservó.',true);
  }finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent=label}
