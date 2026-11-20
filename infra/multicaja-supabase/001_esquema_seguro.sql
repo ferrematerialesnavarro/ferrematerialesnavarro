@@ -64,6 +64,24 @@ revoke all on function nav360_private.is_admin() from public;
 revoke all on function nav360_private.is_admin() from anon;
 grant execute on function nav360_private.is_admin() to authenticated;
 
+-- Revocación inmediata incluso si el empleado conserva sesión Auth.
+create or replace function nav360_private.is_active()
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $
+  select exists (
+    select 1 from public.nv360_staff s
+    where s.user_id = (select auth.uid())
+      and s.active = true
+  );
+$;
+revoke all on function nav360_private.is_active() from public;
+revoke all on function nav360_private.is_active() from anon;
+grant execute on function nav360_private.is_active() to authenticated;
+
 -- Registro mínimo de tickets en cola. NO se envían domicilios, teléfonos,
 -- nombres de clientes, imágenes ni tokens de impresora a esta tabla.
 create table if not exists public.nv360_sales (
@@ -152,16 +170,19 @@ grant insert (
 drop policy if exists nv360_staff_select on public.nv360_staff;
 create policy nv360_staff_select on public.nv360_staff
   for select to authenticated
-  using (user_id = (select auth.uid()) or (select nav360_private.is_admin()));
+  using ((select nav360_private.is_active()) and (user_id = (select auth.uid()) or (select nav360_private.is_admin())));
 
 drop policy if exists nv360_registers_select on public.nv360_registers;
 create policy nv360_registers_select on public.nv360_registers
   for select to authenticated
   using (
-    (select nav360_private.is_admin())
-    or id in (
-      select a.register_id from public.nv360_assignments a
-      where a.seller_id = (select auth.uid())
+    (select nav360_private.is_active())
+    and (
+      (select nav360_private.is_admin())
+      or id in (
+        select a.register_id from public.nv360_assignments a
+        where a.seller_id = (select auth.uid())
+      )
     )
   );
 
@@ -169,16 +190,22 @@ drop policy if exists nv360_assignments_select on public.nv360_assignments;
 create policy nv360_assignments_select on public.nv360_assignments
   for select to authenticated
   using (
-    seller_id = (select auth.uid())
-    or (select nav360_private.is_admin())
+    (select nav360_private.is_active())
+    and (
+      seller_id = (select auth.uid())
+      or (select nav360_private.is_admin())
+    )
   );
 
 drop policy if exists nv360_sales_select on public.nv360_sales;
 create policy nv360_sales_select on public.nv360_sales
   for select to authenticated
   using (
-    seller_id = (select auth.uid())
-    or (select nav360_private.is_admin())
+    (select nav360_private.is_active())
+    and (
+      seller_id = (select auth.uid())
+      or (select nav360_private.is_admin())
+    )
   );
 
 drop policy if exists nv360_sales_insert on public.nv360_sales;
@@ -202,8 +229,11 @@ drop policy if exists nv360_cash_events_select on public.nv360_cash_events;
 create policy nv360_cash_events_select on public.nv360_cash_events
   for select to authenticated
   using (
-    seller_id = (select auth.uid())
-    or (select nav360_private.is_admin())
+    (select nav360_private.is_active())
+    and (
+      seller_id = (select auth.uid())
+      or (select nav360_private.is_admin())
+    )
   );
 
 drop policy if exists nv360_cash_events_insert on public.nv360_cash_events;
