@@ -217,13 +217,15 @@ async function autoPrint(event){
  // de Windows para conservar el protocolo de la POS-58-Series.
  let confirmedMethod=null;
  try{confirmedMethod=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||null}catch(_){}
+ // Metadatos opcionales para el resumen local de cajas V12. No alteran el ticket ni SIFO.
+ const saleMeta={caja:window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',paymentMethod:confirmedMethod||'unknown'};
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
  try{
   const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
-   body:JSON.stringify(job),signal:ctrl.signal
+   body:JSON.stringify({...job,saleMeta}),signal:ctrl.signal
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');
@@ -238,6 +240,7 @@ async function autoPrint(event){
    return;
   }
   resetPrintedSale(job,version);
+  if(result.recorded===false)status('⚠ Ticket aceptado por Windows, pero NO se guardó en el panel de cajas. Revisa el registro en la computadora.',true);
  }catch(err){
   status('No se pudo imprimir: '+(err.name==='AbortError'?'conexión agotada':err.message||'revisa el puente en Windows')+'. El carrito se conservó.',true);
  }finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent=label}
