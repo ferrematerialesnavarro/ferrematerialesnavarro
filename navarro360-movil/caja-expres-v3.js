@@ -254,6 +254,48 @@ function mount(){
  document.head.appendChild(style);
  details.addEventListener('cancel',()=>{if(view.method)view.method.value=paymentConfirmation?.method||'cash'});
  view.method.addEventListener('change',render);
+ const cashInput=$('nv-ce-v2-cash');
+ const continueButton=$('nv-ce-v2-apply');
+ const finish=document.createElement('dialog');
+ finish.setAttribute('aria-labelledby','nv-finish-title');
+ finish.innerHTML='<h2 id="nv-finish-title">Terminar venta</h2><button type="button" data-target="nv-no-print">Terminar sin imprimir</button> <button type="button" data-target="nv-print-ticket-button">Imprimir ticket</button>';
+ finish.style.cssText='border:1px solid #b8d5c0;border-radius:12px;color:#153c29;max-width:92vw';
+ const actions=Array.from(finish.querySelectorAll('button'));
+ for(const action of actions){
+  action.className='btn btn-whatsapp';
+  action.addEventListener('click',()=>{
+   const target=$(action.dataset.target);
+   if(!target||target.disabled)return;
+   finish.close();
+   target.click();
+  });
+ }
+ document.body.appendChild(finish);
+ finish.addEventListener('keydown',event=>{
+  if(event.key==='Enter' && event.repeat){event.preventDefault();return}
+  if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
+  event.preventDefault();
+  actions.find(action=>action!==document.activeElement&&!action.disabled)?.focus();
+ });
+ details.addEventListener('keydown',event=>{
+  if(event.key!=='Enter'||event.isComposing)return;
+  if(event.repeat){event.preventDefault();return}
+  if(event.target===view.method && view.method.value==='cash'){
+   event.preventDefault();cashInput.focus();cashInput.select();
+  }else if(event.target===cashInput){
+   event.preventDefault();render();
+   if(!continueButton.disabled)continueButton.focus();
+  }else if(event.target===continueButton && !continueButton.disabled){
+   event.preventDefault();applyPayment();
+   if(details.open)return;
+   for(const action of actions){
+    const target=$(action.dataset.target);
+    action.disabled=!target||target.disabled;
+   }
+   finish.showModal();
+   actions.find(action=>!action.disabled)?.focus();
+  }
+ });
  $('nv-ce-v2-cash').addEventListener('input',render);
  $('nv-ce-v2-apply').addEventListener('click',applyPayment);
  details.addEventListener('click',event=>{
