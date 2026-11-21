@@ -214,7 +214,46 @@ let reportsWindow=null,reportsReady=false,lastReady=0,reportDelivery=null,report
 function pendingReportKeys(){
  return Object.keys(localStorage).filter(key=>key.startsWith(REPORT_PREFIX));
 }
+let automatic=null,sendingAuto=false;
+try{automatic=JSON.parse(localStorage.getItem('navarro-ventas-equipo'));}catch{}
+async function enrollAutomatic(){
+ if(!location.hash.startsWith('#navventas='))return;
+ const fragment=location.hash.slice("#navventas=".length);
+ history.replaceState(null,'',location.pathname+location.search);
+ try{
+  const {url,code}=JSON.parse(atob(fragment.replace(/-/g,'+').replace(/_/g,'/')));
+  if(!/^https:\/\/[a-z0-9-]+\.ngrok-free\.(dev|app)$/.test(url)||!/^[a-f0-9]{64}$/.test(code))throw Error();
+  const r=await fetch(url+'/ventas/alta',{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({code}),signal:AbortSignal.timeout(15000)});
+  if(!r.ok)throw Error();
+  const {token,caja}=await r.json();
+  if(!/^[a-f0-9]{64}$/.test(token)||!/^[A-Z0-9_-]{2,30}$/.test(caja))throw Error();
+  localStorage.setItem('navarro-ventas-equipo',JSON.stringify({url,token,caja}));location.reload();
+ }catch{alert('No se pudo vincular la caja. Genera otro QR en Windows.');}
+}
+async function bridgePost(input){
+ const r=await fetch(automatic.url+'/ventas/recibir',{method:'POST',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+automatic.token,'content-type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify(input),signal:AbortSignal.timeout(12000)});
+ if(!r.ok)throw Error();return r.json();
+}
+async function automaticFlush(){
+ if(sendingAuto)return;
+ sendingAuto=true;
+ try{
+  const keys=pendingReportKeys(),own=keys.filter(k=>JSON.parse(localStorage.getItem(k)).caja===automatic.caja);
+  sendAudit(own);
+  for(const key of own.slice(0,10)){
+   const sale=JSON.parse(localStorage.getItem(key));if(!sale)continue;
+   const ack=await bridgePost(sale);if(!ack.ok||ack.id!==sale.id)throw Error();
+   rememberSale(sale);localStorage.removeItem(key);
+  }
+  if(reportLabel)reportLabel.textContent='Caja '+automatic.caja+' · Pendientes en este dispositivo: '+pendingReportKeys().length;
+ }catch{if(reportLabel)reportLabel.textContent='Envío pendiente. Reintentaremos automáticamente.';}
+ finally{sendingAuto=false;}
+}
+queueMicrotask(enrollAutomatic);
+setInterval(()=>{if(automatic)automaticFlush();},5000);
+window.addEventListener('online',()=>{if(automatic)automaticFlush();});
 function reportMessage(message){
+ if(automatic&&message.type==='audit'){if(message.audit.caja===automatic.caja)bridgePost({...message.audit,operation:'estadoCaja'}).catch(()=>{});return;}
  if(reportsWindow&&!reportsWindow.closed)reportsWindow.postMessage({channel:REPORTS_CHANNEL,...message},REPORTS_ORIGIN);
 }
 const JOURNAL='navarro-report-audit:';
@@ -225,7 +264,7 @@ function rememberSale(sale){
  if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({id:sale.id,caja:sale.caja,amount:sale.subtotal+sale.flete}));
 }
 function sendAudit(pending){
- if(!reportsReady||Date.now()-lastAudit<15000)return;
+ if((!automatic&&!reportsReady)||Date.now()-lastAudit<15000)return;
  const date=localDay(Date.now()), prefix=JOURNAL+date+':';
  let device=localStorage.getItem('navarro-audit-device');
  if(!device){device=crypto.randomUUID();localStorage.setItem('navarro-audit-device',device);}
@@ -235,7 +274,7 @@ function sendAudit(pending){
  const cutoff=localDay(Date.now()-7*86400000);
  for(const k of keys)if(k.slice(JOURNAL.length,JOURNAL.length+10)<cutoff)localStorage.removeItem(k);
  const rows=keys.filter(k=>k.startsWith(prefix)).map(k=>JSON.parse(localStorage.getItem(k)));
- const boxes=new Set([window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',...rows.map(r=>r.caja),...queue.map(r=>r.caja)]);
+ const boxes=new Set([automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',...rows.map(r=>r.caja),...queue.map(r=>r.caja)]);
  for(const caja of boxes){
   const sales=rows.filter(r=>r.caja===caja);
   reportMessage({type:'audit',audit:{device,date,caja,pending:queue.filter(r=>r.caja===caja).length,complete:sales.length<=1000,sales:sales.slice(0,1000).map(({id,amount})=>({id,amount}))}});
@@ -243,6 +282,7 @@ function sendAudit(pending){
  lastAudit=Date.now();
 }
 function flushReport(){
+ if(automatic){automaticFlush();return;}
  if(!reportsWindow||reportsWindow.closed||Date.now()-lastReady>10000)reportsReady=false;
  if(reportsWindow&&!reportsWindow.closed)reportMessage({type:'hello'});
  try{
@@ -293,7 +333,7 @@ function queueReport(job,meta){
 }
 function finishWithoutPrint(){
  if(busy)return;
- if(!pair&&!reportsReady){status('Conecta reportes en esta caja para finalizar ventas.',true);return;}
+ if(!automatic&&!pair&&!reportsReady){status('Conecta reportes en esta caja para finalizar ventas.',true);return;}
  busy=true;
  try{
   const job=buildTicket(), version=saleVersion();
@@ -302,7 +342,7 @@ function finishWithoutPrint(){
   if(localStorage.getItem(guard)===version)throw Error('Esta venta ya se finalizó. Vacía el carrito antes de iniciar otra.');
   if(!window.confirm('¿Finalizar esta venta por '+new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format((job.subtotal+job.flete)/100)+' sin imprimir?'))return;
   const method=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||'unknown';
-  const meta={caja:window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',vendedor:reportSeller(),paymentMethod:method};
+  const meta={caja:automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',vendedor:reportSeller(),paymentMethod:method};
   localStorage.setItem(guard,version);
   if(!queueReport(job,meta)){localStorage.removeItem(guard);throw Error('No se pudo guardar la venta en este navegador.');}
   try{window.NAVARRO_HISTORIAL?.record?.(job,method);}catch(_){}
@@ -330,6 +370,7 @@ function setupReports(button){
  document.addEventListener('change',syncRef);
  document.addEventListener('input',syncRef);
  syncRef();
+ if(automatic){controls.querySelector('button').hidden=true;collections.hidden=true;}
  reportLabel=controls.querySelector('[role="status"]');
  try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
  seller.addEventListener('change',()=>{try{localStorage.setItem(REPORT_SELLER,seller.value.trim());}catch(_){}});
@@ -353,6 +394,7 @@ function setupReports(button){
 }
 
 async function autoPrint(event){
+ if(automatic&&!pair){event.preventDefault();event.stopImmediatePropagation();status('Vincula la impresora para imprimir o elige Finalizar venta sin imprimir.',true);return;}
  if(!pair)return;
  event.preventDefault();event.stopImmediatePropagation();
  if(busy)return;
@@ -366,7 +408,7 @@ async function autoPrint(event){
  try{confirmedMethod=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||null}catch(_){}
  // Metadatos opcionales para el resumen local de cajas V12. No alteran el ticket ni SIFO.
  const reportVendor=reportSeller();
- const saleMeta={caja:window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',paymentMethod:confirmedMethod||'unknown'};
+ const saleMeta={caja:automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',paymentMethod:confirmedMethod||'unknown'};
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
  try{
