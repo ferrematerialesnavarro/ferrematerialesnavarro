@@ -291,6 +291,8 @@ function mount(){
  });
  const cart=$('cart-items');
  const confirmCart=$('nv-confirmar-carrito');
+ const deliveryPanel=$('nv-cobro-panel');
+ if(confirmCart && deliveryPanel)deliveryPanel.after(confirmCart);
  function syncConfirmCart(){
   if(confirmCart)confirmCart.hidden=!Object.values(read(CART)).some(qty=>Number(qty)>0);
  }
