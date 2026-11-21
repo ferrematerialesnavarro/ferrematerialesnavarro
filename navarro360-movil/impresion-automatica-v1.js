@@ -394,6 +394,7 @@ function setupReports(button){
 }
 
 async function autoPrint(event){
+ if(automatic&&!pair){event.preventDefault();event.stopImmediatePropagation();status('Vincula la impresora para imprimir o elige Finalizar venta sin imprimir.',true);return;}
  if(!pair)return;
  event.preventDefault();event.stopImmediatePropagation();
  if(busy)return;
