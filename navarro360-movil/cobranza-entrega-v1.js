@@ -74,7 +74,9 @@ function update(){
  const address=$('nv-cobro-address'),delivery=$('nv-cobro-domicilio'),phone=$('nv-cobro-phone');
  const fee=$('nv-cobro-flete'),msg=$('nv-cobro-flete-info'),total=$('nv-cobro-total');
  if(!fee||!address||!delivery||!total)return;
- const q=ensureFreeShipping(quote()),needsDelivery=delivery.checked||!!address.value.trim();
+ const needsDelivery=delivery.checked;
+ $('nv-cobro-detalles').hidden=!needsDelivery;
+ const q=ensureFreeShipping(quote());
  const free=q.valid&&q.subtotalProductos>=100000;
  // El envío gratis siempre prevalece sobre un flete activado manualmente.
  if(free)manualOverride=null;
@@ -89,7 +91,7 @@ function update(){
   if(msg)msg.textContent='Flete incluido como producto. Desmarca para quitarlo por cortesía.';
  }else{
   fee.disabled=false;
-  fee.checked=manualOverride==='cobrar'?true:manualOverride==='gratis'?false:auto;
+  fee.checked=needsDelivery&&(manualOverride==='cobrar'||(manualOverride!=='gratis'&&auto));
   if(msg)msg.textContent=manualOverride==='cobrar'?'Flete activado manualmente.':
    manualOverride==='gratis'?'✓ Flete eliminado por cortesía. Puedes volver a activarlo.':
    auto?'Flete automático de $50. Puedes desactivarlo por cortesía.':
@@ -114,7 +116,7 @@ function snapshot(){
  if(q.subtotalProductos>=100000&&q.hasFreight)
   throw Error('El envío es gratis a partir de $1,000. Quita el producto FLETE antes de imprimir.');
  const address=String($('nv-cobro-address')?.value||$('nv70-address')?.value||'').trim().slice(0,260);
- const phone=String($('nv-cobro-phone')?.value||'').trim().slice(0,30);
+ const phone=$('nv-cobro-domicilio')?.checked?String($('nv-cobro-phone')?.value||'').trim().slice(0,30):'';
  if(phone&&!/^[+()\d\s.\-]{5,30}$/.test(phone))
   throw Error('Escribe un teléfono válido para incluirlo en el ticket (5 a 30 caracteres).');
  const flete=q.subtotalProductos>=100000||q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
@@ -158,21 +160,21 @@ function mount(){
  const section=document.createElement('section');section.id='nv-cobro-panel';
  section.setAttribute('aria-label','Datos de cobro, entrega y teléfono');
  section.innerHTML=
-  '<div class="nv-cobro-title">🚚 Entrega y datos del cliente</div>'+
-  '<label class="nv-cobro-check"><input type="checkbox" id="nv-cobro-domicilio"> Entrega a domicilio</label>'+
-  '<label class="nv-cobro-label" for="nv-cobro-address">Dirección de entrega</label>'+
+
+  '<label class="nv-cobro-check"><input type="checkbox" id="nv-cobro-domicilio" aria-controls="nv-cobro-detalles"> Entrega a domicilio</label>'+
+  '<div id="nv-cobro-detalles" hidden><label class="nv-cobro-label" for="nv-cobro-address">Dirección de entrega</label>'+
   '<textarea id="nv-cobro-address" rows="2" maxlength="260" placeholder="Calle, número, colonia y referencias"></textarea>'+
   '<label class="nv-cobro-label" for="nv-cobro-phone">Teléfono del cliente (opcional)</label>'+
   '<input id="nv-cobro-phone" type="tel" inputmode="tel" autocomplete="off" maxlength="30" placeholder="Ej. 33 1234 5678">'+
   '<p id="nv-cobro-phone-preview" role="status" aria-live="polite" style="font:12px/1.4 system-ui;margin:5px 0">El teléfono aparecerá en el ticket cuando lo escribas.</p>'+
   '<label class="nv-cobro-check nv-cobro-shipping"><input type="checkbox" id="nv-cobro-flete"> Cobrar flete de $50</label>'+
   '<p id="nv-cobro-flete-info"></p>'+
-  '<strong id="nv-cobro-total" role="status"></strong>';
+  '<strong id="nv-cobro-total" role="status"></strong></div>';
  bottom.insertBefore(section,print);
  const style=document.createElement('style');style.id='nv-cobro-style';
  style.textContent=
   '#nv-cobro-panel{background:#f1f7f2;border:1px solid #b5d2bd;border-radius:13px;padding:12px;margin:12px 0;color:#193b2a;box-sizing:border-box;font-family:system-ui}'+
-  '#nv-cobro-panel .nv-cobro-title{font-size:15px;font-weight:900;margin-bottom:9px}'+
+  '#nv-cobro-detalles[hidden]{display:none!important}'+
   '#nv-cobro-panel .nv-cobro-label{display:block;font-size:12px;font-weight:800;margin:10px 0 5px}'+
   '#nv-cobro-panel input[type=tel],#nv-cobro-panel textarea{display:block;width:100%;box-sizing:border-box;border:1px solid #b8cabc;border-radius:9px;padding:10px;font:16px system-ui;background:white;color:#152f24}'+
   '#nv-cobro-panel .nv-cobro-check{display:flex;gap:9px;align-items:center;font-size:13px;font-weight:850;margin:7px 0}'+
