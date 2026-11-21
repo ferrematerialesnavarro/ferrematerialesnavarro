@@ -16,7 +16,7 @@
   const btn=document.createElement('button');
   btn.type='button';btn.id='nv-caja-configurar';
   btn.style.cssText='width:100%;min-height:42px;margin:4px 0 8px;border:1px solid #b8d1bf;border-radius:11px;background:#f1f7f2;color:#235a3b;font:800 13px system-ui';
-  const refresh=()=>btn.textContent=caja?'🏪 Caja activa: '+caja+' · Cambiar':'🏪 Asignar caja a este telefono';
+  const refresh=()=>{btn.hidden=Boolean(caja);btn.textContent=caja?'🏪 Caja activa: '+caja+' · Cambiar':'🏪 Asignar caja a este telefono';};
   refresh();
   btn.addEventListener('click',()=>{
    const raw=window.prompt('Identificador de caja para este telefono (ejemplo CAJA_01). Se guarda solamente en este navegador.',caja||'CAJA_01');
