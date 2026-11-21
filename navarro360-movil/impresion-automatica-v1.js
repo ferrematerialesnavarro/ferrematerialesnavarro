@@ -205,6 +205,81 @@ function resetPrintedSale(job,version){
  }
  status('✓ Ticket enviado a Windows'+(job.phone?' · Teléfono incluido: '+job.phone:'')+'. Carrito limpio para nueva venta.',false);
 }
+
+const REPORTS_URL='https://navarro-reportes-movil.lushalder16.chatgpt.site/';
+const REPORTS_ORIGIN='https://navarro-reportes-movil.ferrematerialesnavar.chatgpt.site';
+const REPORTS_CHANNEL='navarro-web-sales-v1';
+const REPORT_PREFIX='navarro-report-pending:';
+const REPORT_SELLER='navarro-report-seller';
+let reportsWindow=null,reportsReady=false,lastReady=0,reportDelivery=null,reportLabel=null,reportsTimer=null;
+function pendingReportKeys(){
+ return Object.keys(localStorage).filter(key=>key.startsWith(REPORT_PREFIX));
+}
+function reportMessage(message){
+ if(reportsWindow&&!reportsWindow.closed)reportsWindow.postMessage({channel:REPORTS_CHANNEL,...message},REPORTS_ORIGIN);
+}
+function flushReport(){
+ if(!reportsWindow||reportsWindow.closed||Date.now()-lastReady>10000)reportsReady=false;
+ if(reportsWindow&&!reportsWindow.closed)reportMessage({type:'hello'});
+ try{
+  const pending=pendingReportKeys();
+  if(reportLabel)reportLabel.textContent=pending.length?
+   pending.length+' venta(s) pendiente(s) de sincronizar.':reportsReady?'Reportes conectados.':'Abre Panel Navarro para sincronizar.';
+  if(!reportsReady||!pending.length) return;
+  if(reportDelivery&&Date.now()-reportDelivery.sentAt<18000)return;
+  const sale=JSON.parse(localStorage.getItem(pending[0]));
+  if(!sale)return;
+  reportDelivery={id:sale.id,sentAt:Date.now()};
+  reportMessage({type:'sale',sale});
+ }catch(_){if(reportLabel)reportLabel.textContent='No se pudo leer la cola de reportes en este navegador.';}
+}
+window.addEventListener('message',event=>{
+ const message=event.data;
+ if(event.origin!==REPORTS_ORIGIN||event.source!==reportsWindow||message?.channel!==REPORTS_CHANNEL)return;
+ if(message.type==='ready'){
+  lastReady=Date.now();
+  reportsReady=true;
+  return;
+ }
+ if(message.type==='saved'&&message.id===reportDelivery?.id){
+  try{localStorage.removeItem(REPORT_PREFIX+message.id);}catch(_){}
+  reportDelivery=null;
+  flushReport();
+ }
+});
+function reportSeller(){try{return localStorage.getItem(REPORT_SELLER);}catch(_){return null;}}
+function queueReport(job,meta){
+ try{
+  const record={id:job.jobId,at:new Date().toISOString(),caja:meta.caja,vendedor:meta.vendedor,
+   estado:job.state||'none',metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
+   rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
+  localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
+  flushReport();
+  return true;
+ }catch(_){return false;}
+}
+function setupReports(button){
+ const controls=document.createElement('div');
+ controls.style.cssText='margin:0 0 12px;font:13px system-ui;color:#195233';
+ controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button><div role="status"></div>';
+ const seller=controls.querySelector('input');
+ reportLabel=controls.querySelector('[role="status"]');
+ try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
+ seller.addEventListener('change',()=>{try{localStorage.setItem(REPORT_SELLER,seller.value.trim());}catch(_){}});
+ controls.querySelector('button').addEventListener('click',()=>{
+  reportsWindow=window.open(REPORTS_URL,'navarro-reportes');
+  if(!reportsWindow){reportLabel.textContent='Permite abrir Panel Navarro en otra pestaña para sincronizar.';return;}
+  reportsReady=false;
+  lastReady=0;
+  reportDelivery=null;
+  clearInterval(reportsTimer);
+  reportsTimer=setInterval(flushReport,4000);
+  flushReport();
+ });
+ button.parentElement.insertBefore(controls,button.nextSibling);
+ flushReport();
+}
+
 async function autoPrint(event){
  if(!pair)return;
  event.preventDefault();event.stopImmediatePropagation();
@@ -218,6 +293,7 @@ async function autoPrint(event){
  let confirmedMethod=null;
  try{confirmedMethod=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||null}catch(_){}
  // Metadatos opcionales para el resumen local de cajas V12. No alteran el ticket ni SIFO.
+ const reportVendor=reportSeller();
  const saleMeta={caja:window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',paymentMethod:confirmedMethod||'unknown'};
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
  const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
@@ -229,6 +305,7 @@ async function autoPrint(event){
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');
+  const queued=queueReport(job,{...saleMeta,vendedor:reportVendor});
   const history=window.NAVARRO_HISTORIAL;
   let saved=true;
   if(history&&typeof history.record==='function'){
@@ -240,7 +317,8 @@ async function autoPrint(event){
    return;
   }
   resetPrintedSale(job,version);
-  if(result.recorded===false)status('⚠ Ticket aceptado por Windows, pero NO se guardó en el panel de cajas. Revisa el registro en la computadora.',true);
+  if(!queued)status('Ticket recibido, pero no se pudo guardar el envío al panel. Revisa el almacenamiento del navegador.',true);
+  else if(result.recorded===false)status('⚠ Ticket aceptado por Windows, pero NO se guardó en el panel de cajas. Revisa el registro en la computadora.',true);
  }catch(err){
   status('No se pudo imprimir: '+(err.name==='AbortError'?'conexión agotada':err.message||'revisa el puente en Windows')+'. El carrito se conservó.',true);
  }finally{clearTimeout(timeout);busy=false;button.disabled=false;button.textContent=label}
@@ -280,6 +358,7 @@ function init(){
  // Registrarlo siempre para que la nueva vinculación funcione sin recargar.
  button.addEventListener('click',autoPrint,true);
  setupPairUI(button);
+ setupReports(button);
  refreshPairUI();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
