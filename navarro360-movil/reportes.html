@@ -87,7 +87,7 @@ function showTicket(t){
   const l=asText('div','');l.className='line';l.append(asText('span',r.name+' · '+r.id+' · '+r.qty+' × '+money(r.unit)),asText('b',money(r.total)));box.append(l);
  }
  const totals=$('receipt-totals');totals.replaceChildren();
- for(const [title,value] of [['Subtotal',t.subtotal],['Flete',t.flete],['TOTAL',t.total]]){const line=asText('div','');line.className='line';line.append(asText('span',title),asText('b',money(value)));totals.append(line)}
+ for(const [title,value] of (t.hasBreakdown===false?[['TOTAL',t.total]]:[['Subtotal',t.subtotal],['Flete',t.flete],['TOTAL',t.total]])){const line=asText('div','');line.className='line';line.append(asText('span',title),asText('b',money(value)));totals.append(line)}
  $('ticket-dialog').showModal();
 }
 async function refresh(){
