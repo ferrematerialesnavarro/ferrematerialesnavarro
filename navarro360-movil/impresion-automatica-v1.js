@@ -320,11 +320,44 @@ window.addEventListener('message',event=>{
  }
 });
 function reportSeller(){try{return localStorage.getItem(REPORT_SELLER);}catch(_){return null;}}
+const REVIEW_PREFIX='navarro-revision-pendiente:';
+let reviewing=false,reviewUrl=null;
+async function sendReviews(){
+ if(reviewing)return;
+ reviewing=true;
+ try{
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith(REVIEW_PREFIX));
+  if(!keys.length)return;
+  if(!reviewUrl){
+   const config=await fetch(new URL('ventas-publicas.json',document.baseURI),{cache:'no-store',signal:AbortSignal.timeout(8000)});
+   if(!config.ok)throw Error();
+   const {url}=await config.json();
+   if(!/^https:\/\/[a-z0-9-]+\.ngrok-free\.(dev|app)$/.test(url))throw Error();
+   reviewUrl=url;
+  }
+  for(const key of keys.slice(0,10)){
+   const raw=localStorage.getItem(key);if(!raw)continue;
+   const sale=JSON.parse(raw);
+   const r=await fetch(reviewUrl+'/ventas/por-confirmar',{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:raw,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});
+   if(!r.ok)throw Error();const ack=await r.json();if(!ack.ok||ack.id!==sale.id)throw Error();
+   localStorage.removeItem(key);
+   if(reportLabel&&!automatic)reportLabel.textContent='Ticket recibido por el panel · Por confirmar · '+sale.id.slice(-8);
+  }
+ }catch{reviewUrl=null;if(reportLabel&&!automatic)reportLabel.textContent='Ticket guardado en este dispositivo. Pendiente de enviar para revisión.';}
+ finally{reviewing=false;}
+}
+setInterval(sendReviews,15000);
+window.addEventListener('online',sendReviews);
+queueMicrotask(sendReviews);
 function queueReport(job,meta){
  try{
   const record={id:job.jobId,at:new Date().toISOString(),caja:meta.caja,vendedor:meta.vendedor,
    estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
+  if(!automatic&&!reportsReady){
+   record.caja='SIN_ASIGNAR';record.vendedor=null;
+   localStorage.setItem(REVIEW_PREFIX+record.id,JSON.stringify(record));sendReviews();return true;
+  }
   localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
   try{rememberSale(record);}catch(_){} lastAudit=0;
   flushReport();
@@ -333,7 +366,6 @@ function queueReport(job,meta){
 }
 function finishWithoutPrint(){
  if(busy)return;
- if(!automatic&&!pair&&!reportsReady){status('Conecta reportes en esta caja para finalizar ventas.',true);return;}
  busy=true;
  try{
   const job=buildTicket(), version=saleVersion();
