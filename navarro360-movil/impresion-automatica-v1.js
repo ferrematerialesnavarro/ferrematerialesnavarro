@@ -206,7 +206,6 @@ function resetPrintedSale(job,version,printed=true){
  status(printed?'✓ Ticket enviado a Windows. Carrito limpio para nueva venta.':'Venta finalizada sin imprimir. Carrito limpio para nueva venta.',false);
 }
 
-const REPORTS_URL='https://navarro-reportes-movil.lushalder16.chatgpt.site/';
 const REPORTS_ORIGIN='https://navarro-reportes-movil.ferrematerialesnavar.chatgpt.site';
 const REPORTS_CHANNEL='navarro-web-sales-v1';
 const REPORT_PREFIX='navarro-report-pending:';
@@ -290,6 +289,11 @@ function setupReports(button){
  refLabel.textContent='Nombre o referencia de cobranza (opcional) ';
  const ref=document.createElement('input');
  ref.id='nv-credit-ref';ref.maxLength=100;ref.autocomplete='off';
+ const collections=document.createElement('a');
+ collections.href=REPORTS_ORIGIN+'/?vista=cobranza';
+ collections.target='_blank';collections.rel='noopener';
+ collections.textContent='Consultar pendientes y abonar';
+ controls.appendChild(collections);
  refLabel.appendChild(ref);
  controls.appendChild(refLabel);
  const syncRef=()=>{refLabel.hidden=$('nv-ticket-status')?.value!=='cobrar';};
@@ -300,7 +304,7 @@ function setupReports(button){
  try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
  seller.addEventListener('change',()=>{try{localStorage.setItem(REPORT_SELLER,seller.value.trim());}catch(_){}});
  controls.querySelector('button').addEventListener('click',()=>{
-  reportsWindow=window.open(REPORTS_URL,'navarro-reportes');
+  reportsWindow=window.open(REPORTS_ORIGIN+'/','navarro-reportes');
   if(!reportsWindow){reportLabel.textContent='Permite abrir Panel Navarro en otra pestaña para sincronizar.';return;}
   reportsReady=false;
   lastReady=0;
