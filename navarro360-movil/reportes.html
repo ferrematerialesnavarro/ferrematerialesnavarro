@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#114a33">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src https://*.ngrok-free.app https://*.ngrok-free.dev; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>NAVARRO 360 | Reportes móviles</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#143e2c;background:#f2f6f3;font-synthesis:none}*{box-sizing:border-box}body{margin:0}button,select,input{font:inherit}button{cursor:pointer}header{background:linear-gradient(135deg,#0b3f2b,#176f48);color:white;padding:calc(20px + env(safe-area-inset-top)) 18px 18px}header .label{font-size:12px;letter-spacing:.08em;opacity:.8;font-weight:800}h1{margin:5px 0 4px;font-size:24px}header p{margin:0;opacity:.83;font-size:13px}.shell{max-width:900px;margin:auto;padding:15px 13px calc(24px + env(safe-area-inset-bottom))}.bar,.filters{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.bar{justify-content:space-between;margin-bottom:12px}.chip{border:1px solid #cdded2;border-radius:30px;padding:7px 10px;background:white;font-size:12px;font-weight:750}.chip[data-status="ok"]{color:#176142;border-color:#9bd2b0}.chip[data-status="bad"]{color:#9a382f;border-color:#e8b3b0}.btn{border:0;border-radius:11px;padding:11px 14px;background:#136943;color:#fff;font-size:13px;font-weight:750;min-height:43px}.btn.alt{background:#e4eee8;color:#1c5b3b}.filters{margin:0 0 12px}.filters label{font-size:12px;font-weight:750;display:flex;align-items:center;gap:7px}.filters select{max-width:180px;background:white;border:1px solid #cadae0;border-radius:10px;padding:9px 10px;color:#17402d}.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.kpi,.panel{background:white;border:1px solid #dce9df;border-radius:15px;box-shadow:0 2px 9px #133d2510}.kpi{padding:16px 13px;min-height:108px}.kpi small{display:block;font-size:12px;color:#5d7667;margin-bottom:8px}.kpi strong{display:block;font-size:clamp(19px,4.7vw,28px);font-weight:850;letter-spacing:-.04em;overflow-wrap:anywhere}.kpi em{font-size:11px;color:#64786b;font-style:normal}.kpi.hero{background:#e3f1e8;border-color:#b3d9c0}.panel{padding:15px;margin-top:12px}.panel h2{font-size:17px;margin:0 0 12px}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{background:#f3f7f4;border-radius:12px;padding:10px}.stat small{display:block;font-size:12px;color:#617768}.stat strong{font-size:15px}.muted{color:#698071;font-size:12px}.tickets{display:grid;gap:7px}.ticket{width:100%;text-align:left;border:1px solid #d8e6da;background:white;border-radius:12px;padding:11px;display:flex;justify-content:space-between;gap:10px;color:#214733}.ticket .info{display:block;font-size:12px;color:#637c69;margin-top:4px}.ticket strong{font-size:14px}.ticket .amount{text-align:right;white-space:nowrap}.ticket:hover{background:#f3fbf5}.empty{padding:25px 8px;color:#6d8072;text-align:center}.small{font-size:11px;color:#7c8b80;line-height:1.5}dialog{border:0;border-radius:18px;padding:0;width:min(550px,calc(100vw - 26px));max-height:90dvh;box-shadow:0 16px 50px #081e1a70}dialog::backdrop{background:#071b17b8}dialog .inside{padding:20px;max-height:88dvh;overflow:auto}dialog h2{margin:0 0 12px;font-size:20px}.field{width:100%;padding:11px;font-size:15px;border:1px solid #bbd1c2;border-radius:9px;margin:6px 0 10px}.dialogactions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}.line{display:flex;justify-content:space-between;gap:8px;margin:7px 0;font-size:13px}.line span:first-child{min-width:0;overflow-wrap:anywhere}.line b{text-align:right;white-space:nowrap}.receipt{border-top:1px dashed #abc4b0;border-bottom:1px dashed #abc4b0;padding:10px 0;margin:12px 0}.notice{border-radius:12px;background:#f2f7f3;border:1px solid #d9e7db;padding:12px;font-size:13px;line-height:1.5}.failure{background:#fbeeed;border-color:#ecc2be;color:#7e302d}#error[hidden],#synchelp[hidden]{display:none}@media(min-width:650px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}.stats{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><div class="label">FERREMATERIALES NAVARRO</div><h1>Reportes de ventas</h1><p>NAVARRO 360 · Administrador móvil · Solo consulta</p></header>
+<main class="shell">
+<div class="bar"><span id="status" class="chip" data-status="idle" role="status">Sin vincular a Windows</span><div><button id="refresh" class="btn alt" type="button">Actualizar</button> <button id="pair" class="btn" type="button">Vincular</button></div></div>
+<div id="error" class="notice failure" hidden></div>
+<div id="synchelp" class="notice" hidden>Para mostrar ventas reales, instala el puente NAVARRO V14 en Windows y abre el enlace privado «VINCULAR-REPORTES-IPHONE.html» que genera. No sirve el enlace de la impresora: los permisos son diferentes.</div>
+<div class="filters"><label>Periodo <select id="period"><option value="hoy">Hoy</option><option value="7d">7 días</option><option value="30d">30 días</option><option value="todo">Todo</option></select></label><label>Caja <select id="cashbox"><option value="">Todas</option></select></label></div>
+<section class="kpis" aria-label="Resumen de ventas">
+<div class="kpi"><small>Tickets registrados</small><strong id="tickets">—</strong><em>Sin contar reimpresiones</em></div>
+<div class="kpi hero"><small>Dinero marcado PAGADO</small><strong id="paid">—</strong><em>No confirma depósito bancario</em></div>
+<div class="kpi"><small>Por cobrar</small><strong id="pending">—</strong><em>Saldo pendiente</em></div>
+<div class="kpi"><small>Ventas registradas</small><strong id="gross">—</strong><em>Importe total</em></div>
+</section>
+<section class="panel"><h2>Desglose de cobros</h2><div class="stats">
+<div class="stat"><small>Efectivo</small><strong id="cash">—</strong></div>
+<div class="stat"><small>Tarjeta</small><strong id="card">—</strong></div>
+<div class="stat"><small>Transferencia</small><strong id="transfer">—</strong></div>
+<div class="stat"><small>Sin método</small><strong id="other">—</strong></div>
+</div><p class="muted" id="counts">Sin datos sincronizados.</p></section>
+<section class="panel"><h2>Tickets recientes</h2><div id="ticket-list" class="tickets"><p class="empty">Vincula Windows para ver las ventas.</p></div><p class="small" id="updated">Los datos del panel son los tickets aceptados por la impresora de Windows. Ventas sin imprimir y SIFO aún no se incluyen.</p></section>
+<p class="small">La consulta usa un permiso privado de solo lectura. No permite imprimir, cambiar pagos, editar SIFO ni leer datos personales de clientes. No compartas tu enlace de vinculación.</p>
+</main>
+<dialog id="pair-dialog"><div class="inside"><h2>Vincular reportes de Windows</h2><p class="muted">Pega aquí el enlace privado para reportes que genera el instalador V14 en la computadora. No uses el enlace de impresión.</p><label for="pair-field">Enlace privado</label><textarea class="field" id="pair-field" rows="4" autocomplete="off" spellcheck="false" placeholder="https://.../reportes.html#nvreport=..."></textarea><div id="pair-error" class="notice failure" hidden></div><div class="dialogactions"><button type="button" class="btn alt" id="pair-cancel">Cancelar</button><button type="button" class="btn" id="pair-save">Guardar vínculo</button></div><button type="button" id="forget" class="btn alt" style="margin-top:12px">Desvincular este dispositivo</button></div></dialog>
+<dialog id="ticket-dialog"><div class="inside"><h2>Detalle del ticket</h2><p class="muted" id="receipt-info"></p><div id="receipt-rows" class="receipt"></div><div id="receipt-totals"></div><div class="dialogactions"><button class="btn" type="button" id="ticket-close">Cerrar</button></div></div></dialog>
+<script>
+(()=>{'use strict';
+const STORE='navarro360_reportes_readonly_v14';
+const $=id=>document.getElementById(id),fmt=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
+const money=v=>fmt.format(Number(v||0)/100);
+let pair=null,busy=false,lastData=null;
+try{const p=JSON.parse(localStorage.getItem(STORE)||'null');if(valid(p))pair=p;}catch(_){}
+function valid(p){return !!p&&/^https:\/\/[a-z0-9-]+\.ngrok-free\.(dev|app)$/.test(p.url||'')&&/^[0-9a-f]{64}$/.test(p.token||'')}
+function decode(s){const b=atob(s.replace(/-/g,'+').replace(/_/g,'/'));return JSON.parse(new TextDecoder().decode(Uint8Array.from(b,c=>c.charCodeAt(0))))}
+function extract(raw){raw=String(raw||'').trim();let fragment=raw;if(/^https:\/\//i.test(raw)){const u=new URL(raw);if(u.origin!==location.origin||u.pathname!==location.pathname)throw Error('El vínculo no corresponde a esta página');fragment=u.hash;}if(fragment.startsWith('nvreport='))fragment='#'+fragment;if(!fragment.startsWith('#nvreport='))throw Error('Pega el vínculo privado de reportes');const value=fragment.slice(10);if(!/^[a-zA-Z0-9_-]{40,2000}$/.test(value))throw Error('Código incorrecto');const p=decode(value);if(!valid(p))throw Error('Vínculo de reportes inválido');return p}
+const setState=(msg,kind)=>{$('status').textContent=msg;$('status').dataset.status=kind||'idle'};
+const err=(msg)=>{$('error').textContent=msg;$('error').hidden=!msg};
+try{if(location.hash.startsWith('#nvreport=')){pair=extract(location.hash);localStorage.setItem(STORE,JSON.stringify(pair));history.replaceState(null,'',location.pathname+location.search);}}catch(_){err('No se pudo guardar el enlace privado. Vuelve a vincular reportes.');}
+$('synchelp').hidden=!!pair;
+$('pair').onclick=()=>{$('pair-dialog').showModal();$('pair-error').hidden=true};
+$('pair-cancel').onclick=()=>$('pair-dialog').close();
+$('pair-save').onclick=()=>{try{const p=extract($('pair-field').value);localStorage.setItem(STORE,JSON.stringify(p));pair=p;$('pair-dialog').close();$('pair-field').value='';$('synchelp').hidden=true;err('');refresh()}catch(e){$('pair-error').textContent=e.message;$('pair-error').hidden=false}};
+$('forget').onclick=()=>{if(!confirm('¿Desvincular los reportes de este teléfono?'))return;localStorage.removeItem(STORE);pair=null;lastData=null;$('pair-dialog').close();$('synchelp').hidden=false;setState('Sin vincular a Windows','idle');err('');};
+$('refresh').onclick=()=>refresh();
+$('period').onchange=()=>refresh();
+$('cashbox').onchange=()=>refresh();
+$('ticket-close').onclick=()=>$('ticket-dialog').close();
+const asText=(tag,text,cls)=>{const n=document.createElement(tag);n.textContent=String(text??'');if(cls)n.className=cls;return n};
+function paint(o){
+ const t=o.totales||{};
+ for(const [id,key,asMoney] of [['tickets','tickets',false],['paid','pagado',true],['pending','pendiente',true],['gross','total',true],['cash','efectivo',true],['card','tarjeta',true],['transfer','transferencia',true],['other','sinMetodo',true]]){
+  $(id).textContent=asMoney?money(t[key]):Number(t[key]||0).toLocaleString('es-MX');
+ }
+ $('counts').textContent='Pagadas: '+(t.pagadas||0)+' · Por cobrar: '+(t.porCobrar||0)+' · Sin estado: '+(t.sinEstado||0)+' · Tickets mostrados: '+(o.tickets||[]).length;
+ const chosen=$('cashbox').value;const oldOptions=[...$('cashbox').options].map(x=>x.value);const newBoxes=Array.isArray(o.cajas)?o.cajas:[];
+ if(!$('cashbox').dataset.locked){
+  // La lista de cajas se recibe desde el servidor, nunca desde códigos escritos por el cliente.
+  if(oldOptions.slice(1).join('|')!==newBoxes.join('|')){$('cashbox').replaceChildren(new Option('Todas',''));for(const c of newBoxes)$('cashbox').add(new Option(c,c));$('cashbox').value=chosen||''}
+ }
+ const list=$('ticket-list');list.replaceChildren();
+ if(!(o.tickets||[]).length){list.append(asText('p','No hay tickets para este periodo y caja.','empty'));return;}
+ for(const tick of o.tickets){
+  const btn=asText('button','');btn.type='button';btn.className='ticket';
+  const left=asText('div','');left.append(asText('strong',tick.caja||'SIN_ASIGNAR'));
+  const at=new Date(tick.at);left.append(asText('span',(isNaN(at.getTime())?'Fecha no disponible':at.toLocaleString('es-MX'))+' · '+({pagado:'PAGADO',cobrar:'POR COBRAR',none:'SIN ESTADO'}[tick.estado]||'SIN ESTADO')+' · '+({cash:'Efectivo',card:'Tarjeta',transfer:'Transferencia',credit:'Crédito',unknown:'No definido'}[tick.metodo]||'No definido'),'info'));
+  const right=asText('div','');right.className='amount';right.append(asText('strong',money(tick.total)));right.append(asText('span','Ver ticket','info'));btn.append(left,right);
+  btn.onclick=()=>showTicket(tick);list.append(btn);
+ }
+ $('updated').textContent='Actualizado '+new Date().toLocaleTimeString('es-MX')+' · Se muestran hasta 300 tickets recientes. No incluye reimpresiones ni ventas sin ticket impreso.';
+}
+function showTicket(t){
+ $('receipt-info').textContent=(t.caja||'SIN_ASIGNAR')+' · '+new Date(t.at).toLocaleString('es-MX')+' · '+t.id;
+ const box=$('receipt-rows');box.replaceChildren();
+ if(!Array.isArray(t.rows)||!t.rows.length)box.append(asText('p','Este registro antiguo no contiene el detalle de productos.'));
+ else for(const r of t.rows){
+  const l=asText('div','');l.className='line';l.append(asText('span',r.name+' · '+r.id+' · '+r.qty+' × '+money(r.unit)),asText('b',money(r.total)));box.append(l);
+ }
+ const totals=$('receipt-totals');totals.replaceChildren();
+ for(const [title,value] of (t.hasBreakdown===false?[['TOTAL',t.total]]:[['Subtotal',t.subtotal],['Flete',t.flete],['TOTAL',t.total]])){const line=asText('div','');line.className='line';line.append(asText('span',title),asText('b',money(value)));totals.append(line)}
+ $('ticket-dialog').showModal();
+}
+async function refresh(){
+ if(busy||!pair){if(!pair){setState('Sin vincular a Windows');$('synchelp').hidden=false}return;}
+ busy=true;$('refresh').disabled=true;setState('Actualizando…');
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),13000);
+ try{
+  const q=new URLSearchParams({periodo:$('period').value,caja:$('cashbox').value});
+  const r=await fetch(pair.url+'/reportes/v1?'+q.toString(),{headers:{Authorization:'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},mode:'cors',credentials:'omit',cache:'no-store',signal:ctrl.signal});
+  const result=await r.json().catch(()=>({}));
+  if(!r.ok||result.ok!==true)throw Error(result.error||('No se pudieron consultar los reportes ('+r.status+')'));
+  if(result.version!==14||!Array.isArray(result.tickets))throw Error('La versión del puente de Windows no es compatible');
+  lastData=result;paint(result);setState('Conectado a Windows','ok');err('');
+ }catch(e){setState('Sin conexión al panel','bad');err('No se pudieron actualizar los datos. Verifica que Windows, la impresora y el puente V14 estén encendidos. '+(e.name==='AbortError'?'La conexión agotó el tiempo.':e.message));}
+ finally{clearTimeout(timer);$('refresh').disabled=false;busy=false;}
+}
+setState(pair?'Vinculado · Conectando…':'Sin vincular a Windows');
+if(pair)refresh();
+setInterval(()=>{if(!document.hidden)refresh()},5000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
+})();
+</script>
+</body></html>
