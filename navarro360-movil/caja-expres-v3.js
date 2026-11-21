@@ -143,25 +143,13 @@ function render(){
  const cash=$('nv-ce-v2-cash'),method=view.method.value;
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
- const current=$('nv-ticket-status')?.value||'none';
- $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Estado actual del ticket: PAGADO':current==='cobrar'?'Estado actual del ticket: POR COBRAR':'Estado actual del ticket: sin especificar';
+ const current=method==='credit'?'cobrar':'pagado';
+ $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Al continuar: PAGADO':current==='cobrar'?'Al continuar: POR COBRAR':'Estado actual del ticket: sin especificar';
  $('nv-ce-v2-cash-section').hidden=method!=='cash';
- apply.disabled=!q.count;
- if(!q.count){result.textContent='Agrega un producto para calcular el cambio.';apply.textContent='Aplicar estado al ticket';}
- else if(method==='cash'){
-  if(amount===null){result.textContent='Escribe cuánto efectivo entregó el cliente.';apply.disabled=true;}
-  else if(amount<q.total){result.textContent='Faltan '+money(q.total-amount)+'.';apply.disabled=true;}
-  else{result.textContent='Cambio a entregar: '+money(amount-q.total);apply.disabled=false;}
-  apply.textContent='Marcar PAGADO (efectivo)';
- }else if(method==='transfer'){
-  result.textContent='Verifica en tu cuenta que recibiste la transferencia antes de marcar PAGADO.';
-  apply.textContent='Confirmar transferencia recibida';
- }else if(method==='card'){
-  result.textContent='Cobra primero en tu terminal bancaria y verifica que muestre APROBADA. NAVARRO 360 no realiza cargos a tarjetas.';
-  apply.textContent='Confirmar tarjeta APROBADA';
- }else{
-  result.textContent='Este método marcará el ticket POR COBRAR. No registra un abono ni una deuda en SIFO.';
-  apply.textContent='Marcar POR COBRAR';
+ apply.disabled=!q.count || (method==='cash' && cash.value.trim()!=='' && (amount===null || amount<q.total));
+ result.textContent='';
+ if(method==='cash' && cash.value.trim()!==''){
+  result.textContent=amount===null?'Revisa el importe.':amount<q.total?'Faltan '+money(q.total-amount):'Cambio: '+money(amount-q.total);
  }
  renderFavorites();
 }
@@ -170,24 +158,12 @@ function applyPayment(){
  if(!q.count){announce('Agrega productos antes de cambiar el estado del ticket.',true);return}
  const state=$('nv-ticket-status');if(!state){announce('No se encontró el estado original del ticket. No se cambió nada.',true);return}
  const method=view.method.value;
- if(method==='cash'){
-  const amount=parseMoney($('nv-ce-v2-cash').value);
-  if(amount===null||amount<q.total){announce('Falta efectivo o el monto no es válido. No se cambió el estado.',true);render();return}
- }else if(method==='transfer'){
-  if(!window.confirm('¿Ya verificaste que la transferencia llegó a tu cuenta?')){
-   announce('Transferencia sin confirmar. El ticket permanece igual.',true);return;
-  }
- }else if(method==='card'){
-  if(!window.confirm('¿La terminal bancaria mostró OPERACIÓN APROBADA y comprobaste el importe completo? NAVARRO 360 no procesa el cobro.')){
-   announce('Tarjeta no confirmada. El estado del ticket no cambió.',true);return;
-  }
- }
  state.value=method==='credit'?'cobrar':'pagado';
  state.dispatchEvent(new Event('input',{bubbles:true}));
  // Se invalida al modificar el pedido; no valida pagos con bancos ni SIFO.
  try{paymentConfirmation={method,tag:fingerprint()}}catch(_){clearPayment()}
  announce(method==='credit'?'Ticket marcado POR COBRAR.':'Estado del ticket actualizado a PAGADO. Imprime cuando estés listo.',false);
- render();
+ root.close();
 }
 function onFavoritesClick(event){
  const b=event.target.closest('button[data-favorite-save],button[data-favorite-remove],button[data-favorite-add]');
@@ -216,30 +192,30 @@ function resetOnNewSale(){
  clearPayment();
  const input=$('nv-ce-v2-cash');if(input)input.value='';
  if(view?.method)view.method.value='cash';
- if(root?.open)render();
+ if(root?.open)root.close();
 }
 function mount(){
  if(root)return;
  const billing=$('nv-cobro-panel'),print=$('nv-print-ticket-button');
  if(!billing||!print||!print.parentElement)return false;
- const details=document.createElement('details');details.id='nv-ce-v2';
+ const details=document.createElement('dialog');details.id='nv-ce-v2';details.setAttribute('aria-labelledby','nv-payment-title');
  details.innerHTML=
-  '<summary>⚡ Caja Exprés <span class="nv-ce-v2-mini">CAMBIO · PAGOS · FAVORITOS</span></summary>'+
+  '<h2 id="nv-payment-title">Forma de pago</h2>'+
   '<section class="nv-ce-v2-content">'+
-   '<p class="nv-ce-v2-warning">Complemento del carrito: calcula cambio y prepara el estado del ticket. La impresión sigue en el botón original; no procesa pagos bancarios ni SIFO.</p>'+
+
    '<div class="nv-ce-v2-total"><span>Total actual</span><strong id="nv-ce-v2-total">$0.00</strong></div>'+
    '<p id="nv-ce-v2-split" class="nv-ce-v2-subtotal"></p>'+
-   '<label for="nv-ce-v2-method">Forma de pago (solo auxiliar)</label>'+
+   '<label for="nv-ce-v2-method">Método</label>'+
    '<select id="nv-ce-v2-method"><option value="cash">💵 Efectivo</option><option value="transfer">🏦 Transferencia</option><option value="card">💳 Tarjeta de débito o crédito</option><option value="credit">🧾 Por cobrar</option></select>'+
    '<div id="nv-ce-v2-cash-section">'+
-    '<label for="nv-ce-v2-cash">Efectivo entregado</label>'+
+    '<label for="nv-ce-v2-cash">Efectivo entregado (opcional)</label>'+
     '<input id="nv-ce-v2-cash" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 500.00" maxlength="12">'+
     '<div class="nv-ce-v2-quick"><button type="button" data-cash="exact">Exacto</button><button type="button" data-cash="200">200</button><button type="button" data-cash="500">500</button><button type="button" data-cash="1000">1,000</button></div>'+
    '</div>'+
    '<strong id="nv-ce-v2-result" role="status">Escribe el efectivo recibido.</strong>'+
    '<p id="nv-ce-v2-ticket-state" class="nv-ce-v2-state"></p>'+
-   '<button type="button" id="nv-ce-v2-apply">Aplicar estado al ticket</button>'+
-   '<p class="nv-ce-v2-warning">La terminal y el banco autorizan los pagos con tarjeta. Solo después de confirmar, esta opción cambia el estado del ticket a PAGADO. El ticket físico vigente muestra PAGADO/POR COBRAR, no la forma de pago.</p>'+
+   '<button type="button" id="nv-ce-v2-apply">Continuar</button>'+
+
    '<div class="nv-ce-v2-favorites-title">☆ Productos favoritos</div>'+
    '<p id="nv-ce-v2-favorites-hint" class="nv-ce-v2-subtotal"></p>'+
    '<div id="nv-ce-v2-favorites"></div>'+
@@ -273,10 +249,11 @@ function mount(){
   '.nv-ce-v2-fav-row button{flex-shrink:0}.nv-ce-v2-fav-row button:last-child{background:#fff4f3!important;color:#a32b2b!important}',
   '#nv-ce-v2 .nv-ce-v2-fav-chip{white-space:normal;text-align:left;min-height:39px}',
   '#nv-ce-v2-alert{font:800 12px/1.4 system-ui;margin:6px 0;color:#205939}'
+  ,'dialog#nv-ce-v2{position:fixed;inset:0;margin:auto;width:min(92vw,400px);max-height:82dvh;overflow:auto;padding:16px}#nv-ce-v2::backdrop{background:#0a172b80}#nv-payment-title{font-size:22px;margin:2px 12px}'
  ].join('');
  document.head.appendChild(style);
- details.addEventListener('toggle',render);
- view.method.addEventListener('change',()=>{clearPayment();render()});
+ details.addEventListener('cancel',()=>{if(view.method)view.method.value=paymentConfirmation?.method||'cash'});
+ view.method.addEventListener('change',render);
  $('nv-ce-v2-cash').addEventListener('input',render);
  $('nv-ce-v2-apply').addEventListener('click',applyPayment);
  details.addEventListener('click',event=>{
@@ -298,15 +275,18 @@ function mount(){
  }
  syncConfirmCart();
  confirmCart?.addEventListener('click',()=>{
-  details.open=true;
+  view.method.value=paymentConfirmation?.method||'cash';
+  details.showModal();
+  render();
   requestAnimationFrame(()=>{
-   const heading=details.querySelector('summary');
+   const heading=view.method;
    heading.focus({preventScroll:true});
    heading.scrollIntoView({block:'start',behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
   });
  });
  if(cart)new MutationObserver(()=>{
   syncConfirmCart();
+  if(confirmCart?.hidden)resetOnNewSale();
   if(paymentConfirmation){
    try{if(fingerprint()!==paymentConfirmation.tag)clearPayment()}catch(_){clearPayment()}
   }
