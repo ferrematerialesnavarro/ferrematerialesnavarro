@@ -170,7 +170,7 @@ function buildTicket(){
 }
 const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
 function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
-function resetPrintedSale(job,version){
+function resetPrintedSale(job,version,printed=true){
  // Solo vaciar una venta si sus productos, importes y datos NO cambiaron
  // mientras Windows confirmaba la cola. Evita borrar una venta nueva.
  let current=null;
@@ -203,7 +203,7 @@ function resetPrintedSale(job,version){
   if(field.type==='checkbox')field.checked=false;
   else field.value=id==='nv-ticket-status'?'none':'';
  }
- status('✓ Ticket enviado a Windows'+(job.phone?' · Teléfono incluido: '+job.phone:'')+'. Carrito limpio para nueva venta.',false);
+ status(printed?'✓ Ticket enviado a Windows. Carrito limpio para nueva venta.':'Venta finalizada sin imprimir. Carrito limpio para nueva venta.',false);
 }
 
 const REPORTS_URL='https://navarro-reportes-movil.lushalder16.chatgpt.site/';
@@ -223,8 +223,12 @@ function flushReport(){
  if(reportsWindow&&!reportsWindow.closed)reportMessage({type:'hello'});
  try{
   const pending=pendingReportKeys();
-  if(reportLabel)reportLabel.textContent=pending.length?
-   pending.length+' venta(s) pendiente(s) de sincronizar.':reportsReady?'Reportes conectados.':'Abre Panel Navarro para sincronizar.';
+  const receipt=JSON.parse(localStorage.getItem('navarro-report-receipt')||'null');
+  const first=pending.length?JSON.parse(localStorage.getItem(pending[0])):null;
+  const label=record=>' · '+record.id.slice(-8)+' · '+new Date(record.at).toLocaleTimeString('es-MX');
+  if(reportLabel)reportLabel.textContent=[first?'Pendiente de enviar'+label(first)+' · '+pending.length+' pendiente(s)':'',receipt?'Guardado en reportes'+label(receipt):''].filter(Boolean).join(' | ')||(reportsReady?'Reportes conectados.':'Abre Panel Navarro para sincronizar.');
+  const retry=$('nv-report-retry');
+  if(retry)retry.hidden=!first;
   if(!reportsReady||!pending.length) return;
   if(reportDelivery&&Date.now()-reportDelivery.sentAt<18000)return;
   const sale=JSON.parse(localStorage.getItem(pending[0]));
@@ -242,7 +246,7 @@ window.addEventListener('message',event=>{
   return;
  }
  if(message.type==='saved'&&message.id===reportDelivery?.id){
-  try{localStorage.removeItem(REPORT_PREFIX+message.id);}catch(_){}
+  try{localStorage.setItem('navarro-report-receipt',JSON.stringify({id:message.id,at:new Date().toISOString()}));localStorage.removeItem(REPORT_PREFIX+message.id);}catch(_){}
   reportDelivery=null;
   flushReport();
  }
@@ -258,10 +262,29 @@ function queueReport(job,meta){
   return true;
  }catch(_){return false;}
 }
+function finishWithoutPrint(){
+ if(busy)return;
+ if(!pair&&!reportsReady){status('Conecta reportes en esta caja para finalizar ventas.',true);return;}
+ busy=true;
+ try{
+  const job=buildTicket(), version=saleVersion();
+  if(job.state==='none')throw Error('Elige PAGADO o POR COBRAR antes de finalizar.');
+  const guard='navarro-finalizada-sin-impresion';
+  if(localStorage.getItem(guard)===version)throw Error('Esta venta ya se finalizó. Vacía el carrito antes de iniciar otra.');
+  if(!window.confirm('¿Finalizar esta venta por '+new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format((job.subtotal+job.flete)/100)+' sin imprimir?'))return;
+  const method=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||'unknown';
+  const meta={caja:window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',vendedor:reportSeller(),paymentMethod:method};
+  localStorage.setItem(guard,version);
+  if(!queueReport(job,meta)){localStorage.removeItem(guard);throw Error('No se pudo guardar la venta en este navegador.');}
+  try{window.NAVARRO_HISTORIAL?.record?.(job,method);}catch(_){}
+  resetPrintedSale(job,version,false);
+  if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(guard);
+ }catch(err){status(err.message,true);}finally{busy=false;}
+}
 function setupReports(button){
  const controls=document.createElement('div');
  controls.style.cssText='margin:0 0 12px;font:13px system-ui;color:#195233';
- controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button><div role="status"></div>';
+ controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
  const seller=controls.querySelector('input');
  reportLabel=controls.querySelector('[role="status"]');
  try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
@@ -275,6 +298,11 @@ function setupReports(button){
   clearInterval(reportsTimer);
   reportsTimer=setInterval(flushReport,4000);
   flushReport();
+ });
+ controls.querySelector('#nv-no-print').addEventListener('click',finishWithoutPrint);
+ controls.querySelector('#nv-report-retry').addEventListener('click',()=>{
+  if(!reportsWindow||reportsWindow.closed||!reportsReady){controls.querySelector('button').click();return;}
+  reportDelivery=null;flushReport();
  });
  button.parentElement.insertBefore(controls,button.nextSibling);
  flushReport();
