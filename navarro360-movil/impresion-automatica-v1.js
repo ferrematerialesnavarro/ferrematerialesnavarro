@@ -217,15 +217,44 @@ function pendingReportKeys(){
 function reportMessage(message){
  if(reportsWindow&&!reportsWindow.closed)reportsWindow.postMessage({channel:REPORTS_CHANNEL,...message},REPORTS_ORIGIN);
 }
+const JOURNAL='navarro-report-audit:';
+const localDay=at=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(at));
+let lastAudit=0;
+function rememberSale(sale){
+ const key=JOURNAL+localDay(sale.at)+':'+sale.id;
+ if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({id:sale.id,caja:sale.caja,amount:sale.subtotal+sale.flete}));
+}
+function sendAudit(pending){
+ if(!reportsReady||Date.now()-lastAudit<15000)return;
+ const date=localDay(Date.now()), prefix=JOURNAL+date+':';
+ let device=localStorage.getItem('navarro-audit-device');
+ if(!device){device=crypto.randomUUID();localStorage.setItem('navarro-audit-device',device);}
+ const queue=pending.map(k=>JSON.parse(localStorage.getItem(k)));
+ queue.forEach(rememberSale);
+ const keys=Object.keys(localStorage).filter(k=>k.startsWith(JOURNAL));
+ const cutoff=localDay(Date.now()-7*86400000);
+ for(const k of keys)if(k.slice(JOURNAL.length,JOURNAL.length+10)<cutoff)localStorage.removeItem(k);
+ const rows=keys.filter(k=>k.startsWith(prefix)).map(k=>JSON.parse(localStorage.getItem(k)));
+ const boxes=new Set([window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',...rows.map(r=>r.caja),...queue.map(r=>r.caja)]);
+ for(const caja of boxes){
+  const sales=rows.filter(r=>r.caja===caja);
+  reportMessage({type:'audit',audit:{device,date,caja,pending:queue.filter(r=>r.caja===caja).length,complete:sales.length<=1000,sales:sales.slice(0,1000).map(({id,amount})=>({id,amount}))}});
+ }
+ lastAudit=Date.now();
+}
 function flushReport(){
  if(!reportsWindow||reportsWindow.closed||Date.now()-lastReady>10000)reportsReady=false;
  if(reportsWindow&&!reportsWindow.closed)reportMessage({type:'hello'});
  try{
   const pending=pendingReportKeys();
+  try{sendAudit(pending);}catch(_){/* La cola de ventas sigue disponible. */}
   const receipt=JSON.parse(localStorage.getItem('navarro-report-receipt')||'null');
   const first=pending.length?JSON.parse(localStorage.getItem(pending[0])):null;
+  const counts=new Map();
+  for(const key of pending){const {caja}=JSON.parse(localStorage.getItem(key));counts.set(caja,(counts.get(caja)||0)+1);}
+  const byBox=[...counts].map(([box,n])=>box+': '+n).join(' · ');
   const label=record=>' · '+record.id.slice(-8)+' · '+new Date(record.at).toLocaleTimeString('es-MX');
-  if(reportLabel)reportLabel.textContent=[first?'Pendiente de enviar'+label(first)+' · '+pending.length+' pendiente(s)':'',receipt?'Guardado en reportes'+label(receipt):''].filter(Boolean).join(' | ')||(reportsReady?'Reportes conectados.':'Abre Panel Navarro para sincronizar.');
+  if(reportLabel)reportLabel.textContent=[first?'Pendiente de enviar'+label(first)+' · '+pending.length+' pendiente(s) · '+byBox:'',receipt?'Guardado en reportes'+label(receipt):''].filter(Boolean).join(' | ')||(reportsReady?'Reportes conectados.':'Abre Panel Navarro para sincronizar.');
   const retry=$('nv-report-retry');
   if(retry)retry.hidden=!first;
   if(!reportsReady||!pending.length) return;
@@ -245,7 +274,7 @@ window.addEventListener('message',event=>{
   return;
  }
  if(message.type==='saved'&&message.id===reportDelivery?.id){
-  try{localStorage.setItem('navarro-report-receipt',JSON.stringify({id:message.id,at:new Date().toISOString()}));localStorage.removeItem(REPORT_PREFIX+message.id);}catch(_){}
+  try{localStorage.setItem('navarro-report-receipt',JSON.stringify({id:message.id,at:new Date().toISOString()}));const saved=JSON.parse(localStorage.getItem(REPORT_PREFIX+message.id));if(saved)rememberSale(saved);localStorage.removeItem(REPORT_PREFIX+message.id);lastAudit=0;}catch(_){}
   reportDelivery=null;
   flushReport();
  }
@@ -257,6 +286,7 @@ function queueReport(job,meta){
    estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
   localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
+  try{rememberSale(record);}catch(_){} lastAudit=0;
   flushReport();
   return true;
  }catch(_){return false;}
