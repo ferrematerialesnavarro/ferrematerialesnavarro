@@ -166,7 +166,7 @@ function buildTicket(){
  const flete=hasFreight?0:(info?Number(info.flete)||0:($('nv-ticket-flete')?.checked?5000:0));
  if(flete!==0&&flete!==5000)throw Error('El flete no es válido');
  return {v:1,jobId:crypto.randomUUID(),at:new Date().toISOString(),
-   rows,subtotal,flete,state:payment,client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
+   rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:String($('nv-credit-ref')?.value||'').trim().slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
 }
 const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
 function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
@@ -198,7 +198,7 @@ function resetPrintedSale(job,version,printed=true){
  }
  try{window.NAVARRO_COBRANZA_ENTREGA?.reset?.()}catch(_){}
  try{window.NAVARRO_CAJA_EXPRES_V3?.limpiarMetodo?.()}catch(_){}
- for(const id of ['nv-ticket-client','nv-ticket-status','nv-ticket-flete']){
+ for(const id of ['nv-ticket-client','nv-ticket-status','nv-ticket-flete','nv-credit-ref']){
   const field=$(id);if(!field)continue;
   if(field.type==='checkbox')field.checked=false;
   else field.value=id==='nv-ticket-status'?'none':'';
@@ -255,7 +255,7 @@ function reportSeller(){try{return localStorage.getItem(REPORT_SELLER);}catch(_)
 function queueReport(job,meta){
  try{
   const record={id:job.jobId,at:new Date().toISOString(),caja:meta.caja,vendedor:meta.vendedor,
-   estado:job.state||'none',metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
+   estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
   localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
   flushReport();
@@ -286,6 +286,16 @@ function setupReports(button){
  controls.style.cssText='margin:0 0 12px;font:13px system-ui;color:#195233';
  controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
  const seller=controls.querySelector('input');
+ const refLabel=document.createElement('label');
+ refLabel.textContent='Nombre o referencia de cobranza (opcional) ';
+ const ref=document.createElement('input');
+ ref.id='nv-credit-ref';ref.maxLength=100;ref.autocomplete='off';
+ refLabel.appendChild(ref);
+ controls.appendChild(refLabel);
+ const syncRef=()=>{refLabel.hidden=$('nv-ticket-status')?.value!=='cobrar';};
+ document.addEventListener('change',syncRef);
+ document.addEventListener('input',syncRef);
+ syncRef();
  reportLabel=controls.querySelector('[role="status"]');
  try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
  seller.addEventListener('change',()=>{try{localStorage.setItem(REPORT_SELLER,seller.value.trim());}catch(_){}});
