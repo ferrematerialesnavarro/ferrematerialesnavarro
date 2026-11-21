@@ -258,7 +258,7 @@ function mount(){
  const continueButton=$('nv-ce-v2-apply');
  const finish=document.createElement('dialog');
  finish.setAttribute('aria-labelledby','nv-finish-title');
- finish.innerHTML='<h2 id="nv-finish-title">Terminar venta</h2><button type="button" data-target="nv-print-ticket-button">Imprimir ticket</button> <button type="button" data-target="nv-no-print">Terminar sin imprimir</button>';
+ finish.innerHTML='<h2 id="nv-finish-title">Terminar venta</h2><button type="button" data-target="nv-no-print">Terminar sin imprimir</button> <button type="button" data-target="nv-print-ticket-button">Imprimir ticket</button>';
  finish.style.cssText='border:1px solid #b8d5c0;border-radius:12px;color:#153c29;max-width:92vw';
  const actions=Array.from(finish.querySelectorAll('button'));
  for(const action of actions){
