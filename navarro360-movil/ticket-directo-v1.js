@@ -161,8 +161,8 @@ function mount(){
  bottom.insertBefore(button,send);
  const style=document.createElement('style');style.id='nv-ticket-directo-style';
  style.textContent=[
-  '#nv-print-ticket-button{display:block;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;background:#205e40;color:white;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}',
-  '#nv-print-ticket-button:active{transform:scale(.99)}',
+  '#nv-print-ticket-button,#nv-no-print{display:block;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;background:#205e40;color:white;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}',
+  '#nv-print-ticket-button:active,#nv-no-print:active{transform:scale(.99)}',
   '#nv-ticket-screen[hidden]{display:none!important}',
   'body.nv-direct-airprint #nv-ticket-screen{display:block!important;position:absolute!important;left:-10000px!important;top:0!important;inset:auto!important;width:54mm!important;max-width:54mm!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;pointer-events:none!important;visibility:hidden!important;box-shadow:none!important}',
   '#nv-ticket-screen{position:fixed;inset:0;z-index:2147483010;overflow-y:auto;background:#0b1e31db;display:flex;justify-content:center;align-items:flex-start;overscroll-behavior:contain;padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-overflow-scrolling:touch}',
