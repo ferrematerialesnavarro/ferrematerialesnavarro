@@ -207,7 +207,7 @@ function resetPrintedSale(job,version){
 }
 
 const REPORTS_URL='https://navarro-reportes-movil.lushalder16.chatgpt.site/';
-const REPORTS_ORIGIN=new URL(REPORTS_URL).origin;
+const REPORTS_ORIGIN='https://navarro-reportes-movil.ferrematerialesnavar.chatgpt.site';
 const REPORTS_CHANNEL='navarro-web-sales-v1';
 const REPORT_PREFIX='navarro-report-pending:';
 const REPORT_SELLER='navarro-report-seller';
