@@ -319,7 +319,8 @@ window.addEventListener('message',event=>{
   flushReport();
  }
 });
-function reportSeller(){try{return localStorage.getItem(REPORT_SELLER);}catch(_){return null;}}
+function assignedBox(){return automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'';}
+function reportSeller(){const caja=assignedBox();if(caja && caja!=='SIN_ASIGNAR')return caja;try{return localStorage.getItem(REPORT_SELLER);}catch(_){return null;}}
 const REVIEW_PREFIX='navarro-revision-pendiente:';
 let reviewing=false,reviewUrl=null;
 async function sendReviews(){
@@ -355,7 +356,7 @@ function queueReport(job,meta){
    estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
   if(!automatic&&!reportsReady){
-   record.caja='SIN_ASIGNAR';record.vendedor=null;
+   if(record.caja==='SIN_ASIGNAR')record.vendedor=null;
    localStorage.setItem(REVIEW_PREFIX+record.id,JSON.stringify(record));sendReviews();return true;
   }
   localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
@@ -385,8 +386,11 @@ function finishWithoutPrint(){
 function setupReports(button){
  const controls=document.createElement('div');
  controls.style.cssText='margin:0 0 12px;font:13px system-ui;color:#195233';
- controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
+ controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button" hidden>Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
  const seller=controls.querySelector('input');
+ function syncSeller(){const caja=assignedBox();seller.parentElement.hidden=Boolean(caja && caja!=='SIN_ASIGNAR');}
+ syncSeller();
+ document.addEventListener('click',event=>{if(event.target.closest?.('#nv-caja-configurar'))syncSeller();});
  const refLabel=document.createElement('label');
  refLabel.textContent='Nombre o referencia de cobranza (opcional) ';
  const ref=document.createElement('input');
