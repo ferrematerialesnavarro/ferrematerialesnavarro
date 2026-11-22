@@ -83,15 +83,35 @@ try{
  }
 }catch{}
 const importeFinal=id=>esClavo(id)?clavoImporte(id):((importesCents[id]||0)/100);
+const PRICE_KEY='navarro360_precio_caja_activa_v1';
+function salePrices(){try{return JSON.parse(localStorage.getItem(PRICE_KEY)||'{}')||{}}catch{return {}}}
+function assignedRegister(){
+ try{const box=JSON.parse(localStorage.getItem('navarro-ventas-equipo')||'null');return Boolean(box?.caja && /^[a-f0-9]{64}$/.test(box.token))}catch{return false}
+}
+function unitCents(id,prices){return Number.isSafeInteger(prices[id])&&prices[id]>0?prices[id]:Math.round((dictionary.get(id)?.price||0)*100)}
+function lineAmount(id,qty,prices){return importeFinal(id)||Math.round(qty*unitCents(id,prices))/100}
+function editSalePrice(id){
+ if(!assignedRegister()||!cart[id])return;
+ const prices=salePrices();
+ const raw=prompt('Precio por unidad para esta venta: '+dictionary.get(id).name,(unitCents(id,prices)/100).toFixed(2));
+ if(raw===null)return;
+ const value=raw.trim().replace(',','.');
+ if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(value)||Number(value)<=0){alert('Escribe un precio mayor a cero con hasta dos decimales.');return}
+ prices[id]=Math.round(Number(value)*100);
+ try{localStorage.setItem(PRICE_KEY,JSON.stringify(prices))}catch{alert('No se pudo guardar el precio.');return}
+ delete clavoCents[id];delete importesCents[id];
+ save();renderCart();renderProducts();
+}
 function cantidadDesdeImporte(id,importePesos){
  const p=dictionary.get(String(id));
  if(!p||!Number.isFinite(p.price)||p.price<=0||!Number.isFinite(importePesos)||importePesos<=0)return null;
- const cantidad=leerCantidad((importePesos/p.price).toFixed(3));
+ const price=unitCents(id,salePrices())/100;
+ const cantidad=leerCantidad((importePesos/price).toFixed(3));
  if(cantidad===null)return null;
- return {cantidad,real:cantidad*p.price,diferencia:Math.abs(cantidad*p.price-importePesos)};
+ return {cantidad,real:cantidad*price,diferencia:Math.abs(cantidad*price-importePesos)};
 }
-const count=()=>Math.round(Object.values(cart).reduce((s,n)=>s+n,0)*1000)/1000, subtotal=()=>Object.entries(cart).reduce((s,[id,n])=>s+((esImporte(id)&&importeFinal(id)>0)?importeFinal(id):(dictionary.get(id)?.price||0)*n),0);
-function save(){try{localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents));localStorage.setItem(IMPORTE_KEY,JSON.stringify(importesCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':formatearCantidad(count())+' unidades';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
+const count=()=>Math.round(Object.values(cart).reduce((s,n)=>s+n,0)*1000)/1000, subtotal=()=>{const prices=salePrices();return Object.entries(cart).reduce((s,[id,n])=>s+lineAmount(id,n,prices),0)};
+function save(){try{const prices=salePrices();const removed=Object.keys(prices).filter(id=>!cart[id]);if(removed.length){for(const id of removed)delete prices[id];localStorage.setItem(PRICE_KEY,JSON.stringify(prices))}localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents));localStorage.setItem(IMPORTE_KEY,JSON.stringify(importesCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':formatearCantidad(count())+' unidades';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
  const thumbs=q('#mobile-thumbnails'); if(thumbs){thumbs.textContent=count()?count()+' unidades':'';}
 } 
 function toast(msg){let t=document.querySelector('.toast');if(t)t.remove();t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.append(t);setTimeout(()=>t.remove(),2400)}
@@ -163,10 +183,10 @@ function renderProducts(){
 function openCart(){lastFocus=document.activeElement;q('#overlay').hidden=false;q('#drawer').classList.add('open');q('#drawer').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';renderCart();q('#cart-close').focus()}
 function closeCart(){q('#drawer').classList.remove('open');q('#drawer').setAttribute('aria-hidden','true');q('#overlay').hidden=true;document.body.style.overflow='';lastFocus?.focus?.()}
 function renderCart(){
- const entries=Object.entries(cart);
+ const entries=Object.entries(cart),prices=salePrices(),canEdit=assignedRegister();
  q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
- const p=dictionary.get(id),imp=importeFinal(id),total=imp>0?imp:p.price*num;
- return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio base ${money(p.price)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div><button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${esImporte(id)?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
+ const p=dictionary.get(id),imp=importeFinal(id),total=lineAmount(id,num,prices);
+ return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio unitario ${money(unitCents(id,prices)/100)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div>${canEdit?`<button type="button" data-price-edit="${esc(id)}">✎ Precio</button>`:""}<button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${esImporte(id)?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
@@ -319,7 +339,7 @@ const especiales=e.target.closest('[data-card="00000"]');
 if(especiales){window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');return}
 const btn=e.target.closest('button');if(btn){if(btn.dataset.importeEdit)editarImporte(btn.dataset.importeEdit);else if(btn.dataset.inc)change(btn.dataset.inc,1);else if(btn.dataset.dec)change(btn.dataset.dec,-1);else if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;if(card.dataset.card==='00000'){window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');return;}change(card.dataset.card,1);toast('✓ Una unidad agregada al carrito')});
 q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();if(card.dataset.card==='00000')window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');else change(card.dataset.card,1)}});
-q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.importeEdit){editarImporte(b.dataset.importeEdit);return;}if(b.dataset.remove){const id=b.dataset.remove;delete cart[id];delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
+q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.priceEdit){editSalePrice(b.dataset.priceEdit);return;}if(b.dataset.importeEdit){editarImporte(b.dataset.importeEdit);return;}if(b.dataset.remove){const id=b.dataset.remove;delete cart[id];delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
 q('#mobile-cart-open').onclick=openCart;q('#mobile-whatsapp').onclick=()=>{if(count()>0)send();else window.open('https://wa.me/'+WHATSAPP,'_blank','noopener,noreferrer')};q('#search-mobile').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search').value=search;renderProducts()});q('#cart-top').onclick=openCart;q('#floating-cart').onclick=openCart;q('#cart-close').onclick=closeCart;q('#overlay').onclick=closeCart;
 const menuToggle=q('#mobile-nav-toggle'),menuPanel=q('#mobile-menu-panel');if(menuToggle&&menuPanel){menuToggle.addEventListener('click',()=>{const expanded=menuToggle.getAttribute('aria-expanded')==='true';menuPanel.hidden=expanded;menuToggle.setAttribute('aria-expanded',String(!expanded))});menuPanel.addEventListener('click',e=>{if(e.target.closest('a')){menuPanel.hidden=true;menuToggle.setAttribute('aria-expanded','false')}})}
 q('#send-whatsapp').onclick=send;q('#copy-order').onclick=copyOrder;q('#clear-cart').onclick=()=>{cart={};clavoCents={};importesCents={};save();renderCart();renderProducts()};
