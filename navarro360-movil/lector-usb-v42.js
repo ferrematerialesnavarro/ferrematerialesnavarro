@@ -75,6 +75,7 @@ document.addEventListener('keydown',e=>{
  const el=e.target.closest?.(SELECTOR);if(!el||e.isComposing)return;
  if(e.key==='Enter'||e.key==='Tab'){
   const code=el.value.trim();
+  if(/^(?:00|00000|productos varios)$/i.test(code)&&typeof window.NAVARRO_ESCANER_AGREGAR==='function'){e.preventDefault();e.stopImmediatePropagation();clearTimeout(timer);if(!e.repeat&&window.NAVARRO_ESCANER_AGREGAR('00000')?.ok)reset(el);return}
   if(/^\d{5,20}$/.test(code.replace(/[\s-]/g,''))){e.preventDefault();e.stopImmediatePropagation();finish(el,true)}
  }
 },true);

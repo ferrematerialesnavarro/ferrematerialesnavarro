@@ -29,7 +29,7 @@ const displayNames={
  '7777001051':'Arena de río sin cernir'
 };
 const publicList=HIGHLIGHTS.map(x=>{const p=dictionary.get(String(x.id));return p?{...p,display:displayNames[p.id]||p.name,cat:x.cat,img:x.img,sub:x.sub||"",public:true}:null}).filter(Boolean);
-publicList.unshift({id:'00000',name:'PRODUCTOS VARIOS',price:20,display:'PRODUCTOS VARIOS',cat:'Todos',sub:'Por importe',img:'',public:true});
+if(!publicList.some(p=>p.id==='00000'))publicList.unshift({id:'00000',name:'PRODUCTOS VARIOS',price:20,display:'PRODUCTOS VARIOS',cat:'Todos',sub:'Por importe',img:'',public:true});
 const publicCodes=new Set(publicList.map(x=>x.id));
 const categories=['Construcción','Plomería','Electricidad','Herramientas','Pintura','Todos'];
 const subs=['Todos','Cementos y morteros','Pegapisos y acabados','Arenas y agregados','Acero y estructuras','Ladrillos y paneles'];
@@ -79,7 +79,7 @@ let importesCents={};
 try{
  const old=JSON.parse(localStorage.getItem(IMPORTE_KEY)||'{}');
  if(old && typeof old==='object' && !Array.isArray(old)){
-  for(const [id,n] of Object.entries(old))if(dictionary.has(id)&&esImporte(id)&&!esClavo(id)&&Number.isSafeInteger(n)&&n>0&&n<=99999999)importesCents[id]=n;
+  for(const [id,n] of Object.entries(old))if(dictionary.has(id)&&(id==='00000'||esImporte(id))&&!esClavo(id)&&Number.isSafeInteger(n)&&n>0&&n<=99999999)importesCents[id]=n;
  }
 }catch{}
 const importeFinal=id=>esClavo(id)?clavoImporte(id):((importesCents[id]||0)/100);
@@ -118,7 +118,7 @@ function toast(msg){let t=document.querySelector('.toast');if(t)t.remove();t=doc
 function productResults(){
   // Búsqueda por código siempre exacta, en los 17,835 artículos disponibles.
   const entered=String(search||'').trim();
-  const code=entered.replace(/\s+/g,'');
+  const code=entered==='00'?'00000':entered.replace(/\s+/g,'');
   const photoFor=id=>publicList.find(x=>x.id===id)?.img||window.NAVARRO_FOTOS_PAGINA?.[id]||'';
   if (/^\d{5,}$/.test(code)) {
     nameMatches=0;
@@ -175,7 +175,7 @@ function renderProducts(){
  const posX=hasPic?(ix%atlas.columns)*atlas.size:0;
  const posY=hasPic?Math.floor(ix/atlas.columns)*atlas.size:0;
  const pic=hasPic?`<span class="product-sprite" role="img" aria-label="Imagen del catálogo" style="background-position:-${posX}px -${posY}px;background-size:${atlas.columns*atlas.size}px ${atlas.rows*atlas.size}px"></span>`:`<span class="product-symbol" aria-hidden="true">${p.cat==='Herramientas'?(toolIcons[p.sub]||'🛠️'):(icons[p.cat]||'📦')}</span>`;
- const qty=p.id==='00000'?'<span class="card-prompt">Solicitar importe por WhatsApp</span>':n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';
+ const qty=p.id==='00000'?'<span class="card-prompt">Ingresar importe</span>':n?`<div class="card-qty"><button type="button" data-dec="${esc(p.id)}" aria-label="Quitar una unidad">−</button><strong aria-live="polite">${formatearCantidad(n)}</strong><button type="button" data-inc="${esc(p.id)}" aria-label="Agregar una unidad">+</button></div>`:'<span class="card-prompt">+ Toca para agregar</span>';
  const pencil=esImporte(p.id)?`<button type="button" class="card-importe" data-importe-edit="${esc(p.id)}" aria-label="Ingresar importe en pesos para ${esc(p.display||p.name)}" title="Ingresar importe en pesos">✏️</button>`:'';
  return `<article class="product tap-product ${n?'in-cart':''}" data-card="${esc(p.id)}" tabindex="0" aria-label="${esc(p.display||p.name)}; precio base ${money(p.price)}. Tocar para sumar una unidad"><div class="product-visual">${pic}${pencil}<span class="product-cat">${esc(p.sub||p.cat)}</span></div><div class="product-info"><h3>${esc(p.display||p.name)}</h3><span class="product-code">Código ${esc(p.id)}</span><div class="product-bottom"><div><div class="price">${p.id==='00000'?'Importe libre':money(p.price)}</div><div class="price-note">${p.id==='00000'?'Base en SIFO: $20.00 · Indica el importe en WhatsApp':'Precio base'+(esImporte(p.id)?' por '+unidadVenta(p.id):'')}</div>${importeFinal(p.id)>0?'<div class="price-note">Importe del carrito: '+money(importeFinal(p.id))+'</div>':''}</div>${qty}</div>${esImporte(p.id)?`<button type="button" class="card-importe-inline" data-importe-edit="${esc(p.id)}" aria-label="Comprar por importe en pesos: ${esc(p.display||p.name)}">✏️ Comprar por importe</button>`:''}</div></article>`;
  }).join('');
@@ -189,6 +189,19 @@ function renderCart(){
  return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio unitario ${money(unitCents(id,prices)/100)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div>${canEdit?`<button type="button" data-price-edit="${esc(id)}">✎ Precio</button>`:""}<button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${esImporte(id)?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
+}
+function agregarVarios(){
+ const id='00000';
+ const raw=window.prompt('Productos varios · Importe a agregar en pesos','');
+ if(raw===null)return false;
+ const value=raw.trim().replace(',','.');
+ if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(value)||Number(value)<=0){window.alert('Escribe un importe mayor a cero con hasta dos decimales.');return false}
+ const prices=salePrices(),unit=unitCents(id,prices);
+ const cents=Math.round(lineAmount(id,cart[id]||0,prices)*100)+Math.round(Number(value)*100);
+ const qty=Math.round(cents/unit*1000)/1000;
+ if(qty<=0||qty>9999||cents>99999999){window.alert('El importe está fuera del rango del carrito.');return false}
+ cart[id]=qty;importesCents[id]=cents;
+ save();renderCart();renderProducts();return true;
 }
 function editarClavo(id){return editarImporte(id);}
 function editarImporte(id){
@@ -226,6 +239,7 @@ function editarCantidad(id){
  return true;
 }
 function change(id,amount){
+ if(id==='00000'&&amount>0){agregarVarios();return}
  if(!dictionary.has(id))return;
  delete clavoCents[id];delete importesCents[id];
  const n=Math.max(0,Math.min(9999,Math.round(((cart[id]||0)+amount)*1000)/1000));
@@ -280,7 +294,7 @@ window.NAVARRO_CARRITO_EN_VIVO_V66=Object.freeze({
 /* Escáner: no multiplica clavos, solicita importe. */
 window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
  const code=String(rawCode||'').trim();
- if(code==='00000'){window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');return {ok:true,especial:'PRODUCTOS VARIOS'}}
+ if(code==='00'||code==='00000')return {ok:agregarVarios(),especial:'PRODUCTOS VARIOS'};
  if(!/^\d{5,}$/.test(code)||!dictionary.has(code))return {ok:false,reason:'Código no disponible en el catálogo'};
  if(esClavo(code))return editarClavo(code)?{ok:true,quantity:1,importe:clavoImporte(code)}:{ok:false,reason:'Falta confirmar el importe de clavos'};
  const before=cart[code]||0;
@@ -336,9 +350,9 @@ q('#clear-search').addEventListener('click',()=>{nameLimit=LIMIT;q('#search').va
 q('#search-more').addEventListener('click',()=>{nameLimit+=LIMIT;renderProducts()});
 q('#products').addEventListener('click',e=>{
 const especiales=e.target.closest('[data-card="00000"]');
-if(especiales){window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');return}
-const btn=e.target.closest('button');if(btn){if(btn.dataset.importeEdit)editarImporte(btn.dataset.importeEdit);else if(btn.dataset.inc)change(btn.dataset.inc,1);else if(btn.dataset.dec)change(btn.dataset.dec,-1);else if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;if(card.dataset.card==='00000'){window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');return;}change(card.dataset.card,1);toast('✓ Una unidad agregada al carrito')});
-q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();if(card.dataset.card==='00000')window.open('https://wa.me/'+WHATSAPP+'?text=00000','_blank','noopener,noreferrer');else change(card.dataset.card,1)}});
+if(especiales){agregarVarios();return}
+const btn=e.target.closest('button');if(btn){if(btn.dataset.importeEdit)editarImporte(btn.dataset.importeEdit);else if(btn.dataset.inc)change(btn.dataset.inc,1);else if(btn.dataset.dec)change(btn.dataset.dec,-1);else if(btn.dataset.qtyEdit)editarCantidad(btn.dataset.qtyEdit);return;}const card=e.target.closest('[data-card]');if(!card||!dictionary.has(card.dataset.card))return;if(card.dataset.card==='00000'){agregarVarios();return;}change(card.dataset.card,1);toast('✓ Una unidad agregada al carrito')});
+q('#products').addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const card=e.target.closest('[data-card]');if(card&&card===e.target){e.preventDefault();if(card.dataset.card==='00000')agregarVarios();else change(card.dataset.card,1)}});
 q('#cart-items').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.priceEdit){editSalePrice(b.dataset.priceEdit);return;}if(b.dataset.importeEdit){editarImporte(b.dataset.importeEdit);return;}if(b.dataset.remove){const id=b.dataset.remove;delete cart[id];delete clavoCents[id];delete importesCents[id];save();renderCart();renderProducts();return;}if(b.dataset.inc)change(b.dataset.inc,1);if(b.dataset.dec)change(b.dataset.dec,-1);if(b.dataset.qtyEdit)editarCantidad(b.dataset.qtyEdit)});
 q('#mobile-cart-open').onclick=openCart;q('#mobile-whatsapp').onclick=()=>{if(count()>0)send();else window.open('https://wa.me/'+WHATSAPP,'_blank','noopener,noreferrer')};q('#search-mobile').addEventListener('input',e=>{nameLimit=LIMIT;search=e.target.value;q('#search').value=search;renderProducts()});q('#cart-top').onclick=openCart;q('#floating-cart').onclick=openCart;q('#cart-close').onclick=closeCart;q('#overlay').onclick=closeCart;
 const menuToggle=q('#mobile-nav-toggle'),menuPanel=q('#mobile-menu-panel');if(menuToggle&&menuPanel){menuToggle.addEventListener('click',()=>{const expanded=menuToggle.getAttribute('aria-expanded')==='true';menuPanel.hidden=expanded;menuToggle.setAttribute('aria-expanded',String(!expanded))});menuPanel.addEventListener('click',e=>{if(e.target.closest('a')){menuPanel.hidden=true;menuToggle.setAttribute('aria-expanded','false')}})}
