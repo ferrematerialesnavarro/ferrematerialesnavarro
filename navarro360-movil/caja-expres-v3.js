@@ -216,7 +216,7 @@ function mount(){
    '<p id="nv-ce-v2-split" class="nv-ce-v2-subtotal"></p>'+
    '<label for="nv-ce-v2-method">Método</label>'+
    '<select id="nv-ce-v2-method"><option value="cash">💵 Efectivo</option><option value="transfer">🏦 Transferencia</option><option value="card">💳 Tarjeta de débito o crédito</option><option value="credit">🧾 Por cobrar</option></select>'+
-   '<div id="nv-guest-transfer" hidden><dl><dt>Banco</dt><dd>Banamex</dd><dt>CLABE interbancaria</dt><dd><input readonly aria-label="CLABE interbancaria" value="002320701431657931"></dd><dt>Nombre del beneficiario</dt><dd>Diana Navarro</dd></dl><p><a id="nv-proof-link" target="_blank" rel="noopener noreferrer">Enviar comprobante por WhatsApp</a></p><p>Adjunta tu comprobante en el chat. Tu pedido queda por cobrar hasta que confirmemos el depósito.</p></div>'+
+   '<div id="nv-guest-transfer" hidden><dl><dt>Banco</dt><dd>Banamex</dd><dt>CLABE interbancaria</dt><dd><input readonly aria-label="CLABE interbancaria" value="002320701431657931"></dd><dt>Nombre del beneficiario</dt><dd>Diana Navarro</dd></dl><p>Cuando termines la transferencia, toca el botón y adjunta tu comprobante en el chat de Ferremateriales Navarro.</p><p><a id="nv-proof-link" target="_blank" rel="noopener noreferrer">Mandar mi comprobante por WhatsApp</a></p><p>Tu pedido queda por cobrar hasta que confirmemos el depósito.</p></div>'+
    '<div id="nv-ce-v2-cash-section">'+
     '<label for="nv-ce-v2-cash">Efectivo entregado (opcional)</label>'+
     '<input id="nv-ce-v2-cash" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 500.00" maxlength="12">'+
@@ -260,7 +260,7 @@ function mount(){
   '#nv-ce-v2 .nv-ce-v2-fav-chip{white-space:normal;text-align:left;min-height:39px}',
   '#nv-ce-v2-alert{font:800 12px/1.4 system-ui;margin:6px 0;color:#205939}'
   ,'dialog#nv-ce-v2{position:fixed;inset:0;margin:auto;width:min(92vw,400px);max-height:82dvh;overflow:auto;padding:16px}#nv-ce-v2::backdrop{background:#0a172b80}#nv-payment-title{font-size:22px;margin:2px 12px}'
-  ,'#nv-guest-transfer dl{margin:12px 0;padding:14px;border:1px solid #b8d5c0;border-radius:10px;background:white}#nv-guest-transfer dt{font-size:13px;font-weight:700;color:#526857}#nv-guest-transfer dd{margin:2px 0 12px;font-weight:750}#nv-guest-transfer dd:last-child{margin-bottom:0}'
+  ,'#nv-proof-link{display:block;text-align:center;padding:12px;border-radius:9px;background:#205b3b;color:white;font-weight:750;text-decoration:none}#nv-guest-transfer dl{margin:12px 0;padding:14px;border:1px solid #b8d5c0;border-radius:10px;background:white}#nv-guest-transfer dt{font-size:13px;font-weight:700;color:#526857}#nv-guest-transfer dd{margin:2px 0 12px;font-weight:750}#nv-guest-transfer dd:last-child{margin-bottom:0}'
  ].join('');
  document.head.appendChild(style);
  details.addEventListener('cancel',()=>{if(view.method)view.method.value=paymentConfirmation?.requested||paymentConfirmation?.method||'cash'});
