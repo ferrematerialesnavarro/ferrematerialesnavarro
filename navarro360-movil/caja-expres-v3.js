@@ -97,21 +97,29 @@ function quote(){
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
 function textoPedido(q){
- const divider='────────────────────';
- const lines=['*FERREMATERIALES NAVARRO*','TICKET DE PEDIDO',divider];
- for(const [i,row] of q.rows.entries()){
-  if(i)lines.push('');
-  lines.push('*'+row.name+'*','Código: '+row.id,
-   row.qty+' × '+money(row.unit)+'   |   Importe: '+money(row.cost));
+ const lines=['🏗️ *FERREMATERIALES NAVARRO*',q.delivery.delivery?'🚚 *PEDIDO A DOMICILIO*':'🛒 *PEDIDO*','','🛒 *TABLA DE PRODUCTOS*','```'+'PRODUCTO'.padEnd(21)+'CANT'.padStart(6)+'IMPORTE'.padStart(12),'-'.repeat(39)];
+ for(const row of q.rows){
+  const words=String(row.name).replace(/`/g,"'").trim().split(/\s+/);
+  const parts=[''];
+  for(const word of words){
+   for(const chunk of word.match(/.{1,20}/gu)||[]){
+    const last=parts.length-1;
+    const next=(parts[last]+' '+chunk).trim();
+    if(next.length<=20)parts[last]=next;else parts.push(chunk);
+   }
+  }
+  lines.push(parts[0].padEnd(21)+String(row.qty).padStart(6)+money(row.cost).padStart(12),...parts.slice(1));
  }
- lines.push(divider,'Subtotal: '+money(q.subtotal),'Flete adicional: '+money(q.flete),
-  '*TOTAL DEL PEDIDO: '+money(q.total)+'*',divider,
-  'Forma de pago: Transferencia','*POR COBRAR* · Depósito por verificar');
+ lines[lines.length-1]+='```';
+ lines.push('','💰 *Subtotal de productos: '+money(q.subtotal)+'*');
+ if(q.delivery.delivery||q.flete)lines.push('🚚 *Flete: '+(q.flete?money(q.flete):q.rows.some(r=>r.id==='7777000010')?'Incluido en productos':'GRATIS')+'*');
+ lines.push('💵 *TOTAL: '+money(q.total)+'*');
  if(q.delivery.delivery){
-  lines.push('','*ENTREGA A DOMICILIO*');
-  if(q.delivery.address)lines.push('Dirección: '+q.delivery.address);
-  if(q.delivery.phone)lines.push('Teléfono: '+q.delivery.phone);
+  lines.push('','📍 *DATOS DE ENTREGA*');
+  if(q.delivery.address)lines.push('🏠 Dirección: '+q.delivery.address);
+  if(q.delivery.phone)lines.push('📱 Teléfono: '+q.delivery.phone);
  }
+ lines.push('','💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*','Depósito por verificar.');
  return lines.join('\n');
 }
 function parseMoney(v){
