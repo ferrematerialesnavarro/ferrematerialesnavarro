@@ -329,18 +329,38 @@ function mount(){
    event.preventDefault();render();
    if(!continueButton.disabled)continueButton.focus();
   }else if(event.target===continueButton && !continueButton.disabled){
-   event.preventDefault();applyPayment();
-   if(details.open)return;
-   for(const action of actions){
-    const target=$(action.dataset.target);
-    action.disabled=!target||target.disabled;
-   }
-   finish.showModal();
-   actions.find(action=>!action.disabled)?.focus();
+   event.preventDefault();continueButton.click();
   }
  });
  $('nv-ce-v2-cash').addEventListener('input',render);
- $('nv-ce-v2-apply').addEventListener('click',applyPayment);
+ const bank=$('nv-guest-transfer');
+ const bankPosition=document.createComment('datos bancarios');
+ bank.before(bankPosition);
+ finish.addEventListener('close',()=>{if(bank.parentNode===finish)bankPosition.after(bank)});
+ continueButton.addEventListener('click',()=>{
+  render();
+  if(continueButton.disabled)return;
+  const transfer=view.method.value==='transfer';
+  if(transfer){
+   const message=encodeURIComponent(textoPedido(quote()));
+   $('nv-proof-link').href='https://wa.me/525639129040?text='+message;
+   $('nv-share-order').href='https://wa.me/?text='+message;
+  }
+  applyPayment();
+  if(details.open)return;
+  if(transfer){
+   finish.insertBefore(bank,actions[0]);
+   bank.hidden=false;
+  }
+  $('nv-finish-title').textContent=transfer?'Datos para transferencia':'Terminar venta';
+  for(const action of actions){
+   const target=$(action.dataset.target);
+   action.disabled=!target||target.disabled;
+  }
+  finish.showModal();
+  if(transfer)bank.querySelector('input').focus();
+  else actions.find(action=>!action.disabled)?.focus();
+ });
  details.addEventListener('click',event=>{
   const b=event.target.closest('button[data-cash]');
   if(b){
