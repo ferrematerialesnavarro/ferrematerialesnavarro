@@ -96,7 +96,7 @@ function quote(){
  if(!Number.isSafeInteger(total)||total<=0)throw Error('Total de venta no válido.');
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
-function textoPedido(q){
+function textoPedido(q,method='transfer'){
  const lines=['🏗️ *FERREMATERIALES NAVARRO*',q.delivery.delivery?'🚚 *PEDIDO A DOMICILIO*':'🛒 *PEDIDO*','','🛒 *TABLA DE PRODUCTOS*','```'+'PRODUCTO'.padEnd(21)+'CANT'.padStart(6)+'IMPORTE'.padStart(12),'-'.repeat(39)];
  for(const row of q.rows){
   const words=String(row.name).replace(/`/g,"'").trim().split(/\s+/);
@@ -119,7 +119,8 @@ function textoPedido(q){
   if(q.delivery.address)lines.push('🏠 Dirección: '+q.delivery.address);
   if(q.delivery.phone)lines.push('📱 Teléfono: '+q.delivery.phone);
  }
- lines.push('','💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*','Depósito por verificar.');
+ const cash=method==='cash';
+ lines.push('',cash?'💵 *Método de pago: EFECTIVO*':'💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*',cash?'🚚 *COBRAR AL ENTREGAR*':'Depósito por verificar.');
  return lines.join('\n');
 }
 function parseMoney(v){
@@ -178,6 +179,7 @@ function render(){
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
  const guest=esInvitado();
+ apply.textContent=guest && method==='cash' && $('nv-cobro-domicilio')?.checked?'Enviar pedido por WhatsApp':'Continuar';
  const current=guest||method==='credit'?'cobrar':'pagado';
  $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Al continuar: PAGADO':current==='cobrar'?'Al continuar: POR COBRAR':'Estado actual del ticket: sin especificar';
  $('nv-ce-v2-cash-section').hidden=guest||method!=='cash';
@@ -349,6 +351,12 @@ function mount(){
  continueButton.addEventListener('click',()=>{
   render();
   if(continueButton.disabled)return;
+  if(esInvitado() && view.method.value==='cash' && $('nv-cobro-domicilio')?.checked){
+   const message=textoPedido(quote(),'cash');
+   applyPayment();
+   if(!details.open)location.href='https://wa.me/525639129040?text='+encodeURIComponent(message);
+   return;
+  }
   const transfer=view.method.value==='transfer';
   if(transfer){
    const message=encodeURIComponent(textoPedido(quote()));
