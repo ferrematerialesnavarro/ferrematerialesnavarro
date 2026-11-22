@@ -96,6 +96,7 @@ function quote(){
  if(!Number.isSafeInteger(total)||total<=0)throw Error('Total de venta no válido.');
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
+function enviarDomicilio(method){return esInvitado() && ['cash','card'].includes(method) && $('nv-cobro-domicilio')?.checked}
 function textoPedido(q,method='transfer'){
  const lines=['🏗️ *FERREMATERIALES NAVARRO*',q.delivery.delivery?'🚚 *PEDIDO A DOMICILIO*':'🛒 *PEDIDO*','','🛒 *TABLA DE PRODUCTOS*','```'+'PRODUCTO'.padEnd(21)+'CANT'.padStart(6)+'IMPORTE'.padStart(12),'-'.repeat(39)];
  for(const row of q.rows){
@@ -119,8 +120,8 @@ function textoPedido(q,method='transfer'){
   if(q.delivery.address)lines.push('🏠 Dirección: '+q.delivery.address);
   if(q.delivery.phone)lines.push('📱 Teléfono: '+q.delivery.phone);
  }
- const cash=method==='cash';
- lines.push('',cash?'💵 *Método de pago: EFECTIVO*':'💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*',cash?'🚚 *COBRAR AL ENTREGAR*':'Depósito por verificar.');
+ const cash=method==='cash',card=method==='card';
+ lines.push('',cash?'💵 *Método de pago: EFECTIVO*':card?'💳 *Método de pago: TARJETA*':'💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*',cash?'🚚 *COBRAR AL ENTREGAR*':card?'🚚 *IMPORTANTE: LLEVAR TERMINAL PARA COBRAR AL ENTREGAR*':'Depósito por verificar.');
  return lines.join('\n');
 }
 function parseMoney(v){
@@ -179,7 +180,7 @@ function render(){
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
  const guest=esInvitado();
- const enviarPorWhatsApp=guest && method==='cash' && $('nv-cobro-domicilio')?.checked;
+ const enviarPorWhatsApp=enviarDomicilio(method);
  $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
  apply.textContent=enviarPorWhatsApp?'Enviar pedido por WhatsApp':'Continuar';
  const current=guest||method==='credit'?'cobrar':'pagado';
@@ -354,8 +355,8 @@ function mount(){
  continueButton.addEventListener('click',()=>{
   render();
   if(continueButton.disabled)return;
-  if(esInvitado() && view.method.value==='cash' && $('nv-cobro-domicilio')?.checked){
-   const message=textoPedido(quote(),'cash');
+  if(enviarDomicilio(view.method.value)){
+   const message=textoPedido(quote(),view.method.value);
    applyPayment();
    if(!details.open)location.href='https://wa.me/525639129040?text='+encodeURIComponent(message);
    return;
