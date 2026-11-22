@@ -24,6 +24,12 @@ function fingerprint(){
   client:String($('nv-ticket-client')?.value||'').trim(),
   state:String($('nv-ticket-status')?.value||'none')});
 }
+function esInvitado(){return window.NAVARRO_PRINT_SILENCIOSA?.vinculado?.()!==true}
+function notaPedido(){
+ if(!esInvitado()||!paymentConfirmation)return '';
+ try{if(paymentConfirmation.tag!==fingerprint())return ''}catch{return ''}
+ return {card:'IMPORTANTE: llevar terminal para el cobro.',transfer:'Transferencia pendiente de verificar.',cash:'Cobrar en efectivo al entregar.'}[paymentConfirmation.requested]||'';
+}
 function clearPayment(){paymentConfirmation=null;}
 function confirmedMethodForTicket(job){
  if(!paymentConfirmation||!job)return null;
@@ -143,12 +149,15 @@ function render(){
  const cash=$('nv-ce-v2-cash'),method=view.method.value;
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
- const current=method==='credit'?'cobrar':'pagado';
+ const guest=esInvitado();
+ const current=guest||method==='credit'?'cobrar':'pagado';
  $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Al continuar: PAGADO':current==='cobrar'?'Al continuar: POR COBRAR':'Estado actual del ticket: sin especificar';
- $('nv-ce-v2-cash-section').hidden=method!=='cash';
- apply.disabled=!q.count || (method==='cash' && cash.value.trim()!=='' && (amount===null || amount<q.total));
- result.textContent='';
- if(method==='cash' && cash.value.trim()!==''){
+ $('nv-ce-v2-cash-section').hidden=guest||method!=='cash';
+ $('nv-guest-transfer').hidden=!(guest&&method==='transfer');
+ $('nv-proof-link').href='https://wa.me/525639129040?text='+encodeURIComponent('Hola, envío el comprobante de mi pedido de NAVARRO 360 por '+money(q.total)+'.');
+ apply.disabled=!q.count || (!guest && method==='cash' && cash.value.trim()!=='' && (amount===null || amount<q.total));
+ result.textContent=guest&&method==='card'?'IMPORTANTE: llevar terminal para el cobro.':guest&&method==='cash'?'Pago en efectivo al recibir.':'';
+ if(!guest && method==='cash' && cash.value.trim()!==''){
   result.textContent=amount===null?'Revisa el importe.':amount<q.total?'Faltan '+money(q.total-amount):'Cambio: '+money(amount-q.total);
  }
  renderFavorites();
@@ -158,11 +167,11 @@ function applyPayment(){
  if(!q.count){announce('Agrega productos antes de cambiar el estado del ticket.',true);return}
  const state=$('nv-ticket-status');if(!state){announce('No se encontró el estado original del ticket. No se cambió nada.',true);return}
  const method=view.method.value;
- state.value=method==='credit'?'cobrar':'pagado';
+ state.value=esInvitado()||method==='credit'?'cobrar':'pagado';
  state.dispatchEvent(new Event('input',{bubbles:true}));
  // Se invalida al modificar el pedido; no valida pagos con bancos ni SIFO.
- try{paymentConfirmation={method,tag:fingerprint()}}catch(_){clearPayment()}
- announce(method==='credit'?'Ticket marcado POR COBRAR.':'Estado del ticket actualizado a PAGADO. Imprime cuando estés listo.',false);
+ try{paymentConfirmation={method:esInvitado()?'credit':method,requested:method,tag:fingerprint()}}catch(_){clearPayment()}
+ announce(state.value==='cobrar'?'Ticket marcado POR COBRAR.':'Estado del ticket actualizado a PAGADO. Imprime cuando estés listo.',false);
  root.close();
 }
 function onFavoritesClick(event){
@@ -207,6 +216,7 @@ function mount(){
    '<p id="nv-ce-v2-split" class="nv-ce-v2-subtotal"></p>'+
    '<label for="nv-ce-v2-method">Método</label>'+
    '<select id="nv-ce-v2-method"><option value="cash">💵 Efectivo</option><option value="transfer">🏦 Transferencia</option><option value="card">💳 Tarjeta de débito o crédito</option><option value="credit">🧾 Por cobrar</option></select>'+
+   '<div id="nv-guest-transfer" hidden><p>Banamex · CLABE</p><input readonly aria-label="CLABE interbancaria" value="002320701431657931"><p><a id="nv-proof-link" target="_blank" rel="noopener noreferrer">Enviar comprobante por WhatsApp</a></p><p>Adjunta tu comprobante en el chat. Tu pedido queda por cobrar hasta que confirmemos el depósito.</p></div>'+
    '<div id="nv-ce-v2-cash-section">'+
     '<label for="nv-ce-v2-cash">Efectivo entregado (opcional)</label>'+
     '<input id="nv-ce-v2-cash" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 500.00" maxlength="12">'+
@@ -252,7 +262,7 @@ function mount(){
   ,'dialog#nv-ce-v2{position:fixed;inset:0;margin:auto;width:min(92vw,400px);max-height:82dvh;overflow:auto;padding:16px}#nv-ce-v2::backdrop{background:#0a172b80}#nv-payment-title{font-size:22px;margin:2px 12px}'
  ].join('');
  document.head.appendChild(style);
- details.addEventListener('cancel',()=>{if(view.method)view.method.value=paymentConfirmation?.method||'cash'});
+ details.addEventListener('cancel',()=>{if(view.method)view.method.value=paymentConfirmation?.requested||paymentConfirmation?.method||'cash'});
  view.method.addEventListener('change',render);
  const cashInput=$('nv-ce-v2-cash');
  const continueButton=$('nv-ce-v2-apply');
@@ -280,7 +290,7 @@ function mount(){
  details.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.isComposing)return;
   if(event.repeat){event.preventDefault();return}
-  if(event.target===view.method && view.method.value==='cash'){
+  if(event.target===view.method && !esInvitado() && view.method.value==='cash'){
    event.preventDefault();cashInput.focus();cashInput.select();
   }else if(event.target===cashInput){
    event.preventDefault();render();
@@ -349,6 +359,6 @@ function init(){
  let attempts=0;
  const timer=setInterval(()=>{if(mount()||++attempts>=20)clearInterval(timer)},350);
 }
-window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:4,modo:'complemento',calcular:quote,calcularDinero:parseMoney,metodoConfirmado:confirmedMethodForTicket,limpiarMetodo:clearPayment});
+window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:4,modo:'complemento',calcular:quote,calcularDinero:parseMoney,notaPedido,metodoConfirmado:confirmedMethodForTicket,limpiarMetodo:clearPayment});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
