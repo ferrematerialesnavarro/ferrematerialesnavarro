@@ -159,14 +159,15 @@ function buildTicket(){
  if(!rows.length)throw Error('Agrega al menos un producto antes de imprimir');
  if(rows.length>100)throw Error('Máximo 100 productos por ticket');
  const state=$('nv-ticket-status')?.value||'none';
- const payment=['pagado','cobrar'].includes(state)?state:'none';
+ const payment=!pair?'cobrar':['pagado','cobrar'].includes(state)?state:'none';
+ const nota=window.NAVARRO_CAJA_EXPRES_V3?.notaPedido?.()||'';
  const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
  const phone=String(info?.phone||'').trim().slice(0,30);
  const hasFreight=rows.some(r=>r.id==='7777000010');
  const flete=hasFreight?0:(info?Number(info.flete)||0:($('nv-ticket-flete')?.checked?5000:0));
  if(flete!==0&&flete!==5000)throw Error('El flete no es válido');
  return {v:1,jobId:crypto.randomUUID(),at:new Date().toISOString(),
-   rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:String($('nv-credit-ref')?.value||'').trim().slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
+   rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:[nota,String($('nv-credit-ref')?.value||'').trim()].filter(Boolean).join(' · ').slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
 }
 const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
 function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
