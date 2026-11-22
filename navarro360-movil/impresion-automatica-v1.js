@@ -326,12 +326,7 @@ function reportSeller(){
 }
 const REVIEW_PREFIX='navarro-revision-pendiente:';
 let reviewing=false,reviewUrl=null;
-async function sendReviews(){
- if(reviewing)return;
- reviewing=true;
- try{
-  const keys=Object.keys(localStorage).filter(k=>k.startsWith(REVIEW_PREFIX));
-  if(!keys.length)return;
+async function postReview(raw,id){
   if(!reviewUrl){
    const config=await fetch(new URL('ventas-publicas.json',document.baseURI),{cache:'no-store',signal:AbortSignal.timeout(8000)});
    if(!config.ok)throw Error();
@@ -339,11 +334,42 @@ async function sendReviews(){
    if(!/^https:\/\/[a-z0-9-]+\.ngrok-free\.(dev|app)$/.test(url))throw Error();
    reviewUrl=url;
   }
+   const r=await fetch(reviewUrl+'/ventas/por-confirmar',{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:raw,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});
+   if(!r.ok)throw Error();const ack=await r.json();if(!ack.ok||ack.id!==id)throw Error();
+
+}
+async function confirmGuestOrder(method){
+ if(pair||busy||!$('nv-cobro-domicilio')?.checked)throw Error('Revisa el pedido antes de confirmar.');
+ busy=true;
+ try{
+  const job=buildTicket(),version=saleVersion();
+  const labels={cash:'Efectivo al entregar',card:'Llevar terminal para cobrar',transfer:'Transferencia por verificar',credit:'Método por definir'};
+  if(!labels[method])throw Error('Selecciona una forma de pago.');
+  const record={caja:'SIN_ASIGNAR',vendedor:'Invitado',estado:'cobrar',metodo:'credit',reference:labels[method],address:job.address,phone:job.phone,subtotal:job.subtotal,flete:job.flete,rows:job.rows.map(({id,name,qty,unit,total})=>({id,name,qty,unit,total}))};
+  const key='navarro-pedido-invitado-pendiente',signature=JSON.stringify([record,job.address,job.phone]);
+  let pending=JSON.parse(localStorage.getItem(key)||'null');
+  if(pending?.signature!==signature){
+   record.id=job.jobId;record.at=job.at;
+   pending={signature,record};localStorage.setItem(key,JSON.stringify(pending));
+  }
+  await postReview(JSON.stringify(pending.record),pending.record.id);
+  job.jobId=pending.record.id;
+  resetPrintedSale(job,version,false);
+  if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
+  return job.jobId;
+ }finally{busy=false}
+}
+window.NAVARRO_CONFIRMAR_PEDIDO=confirmGuestOrder;
+async function sendReviews(){
+ if(reviewing)return;
+ reviewing=true;
+ try{
+  const keys=Object.keys(localStorage).filter(k=>k.startsWith(REVIEW_PREFIX));
+  if(!keys.length)return;
   for(const key of keys.slice(0,10)){
    const raw=localStorage.getItem(key);if(!raw)continue;
    const sale=JSON.parse(raw);
-   const r=await fetch(reviewUrl+'/ventas/por-confirmar',{method:'POST',headers:{'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:raw,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)});
-   if(!r.ok)throw Error();const ack=await r.json();if(!ack.ok||ack.id!==sale.id)throw Error();
+   await postReview(raw,sale.id);
    localStorage.removeItem(key);
    if(reportLabel&&!automatic)reportLabel.textContent='Ticket recibido por el panel · Por confirmar · '+sale.id.slice(-8);
   }
