@@ -83,7 +83,8 @@ function preview(){
  if(data.error){window.alert(data.error);return false}
  const paper=$('nv-ticket-paper');
  const client=String($('nv-ticket-client').value||'').trim().slice(0,100);
- const state=$('nv-ticket-status').value;
+ const state=window.NAVARRO_PRINT_SILENCIOSA?.vinculado?.()===true?$('nv-ticket-status').value:'cobrar';
+ const nota=window.NAVARRO_CAJA_EXPRES_V3?.notaPedido?.()||'';
  const label=state==='pagado'?'PAGADO':state==='cobrar'?'POR COBRAR':'SIN ESPECIFICAR';
  const flete=data.hasFreight?0:(info?info.flete:($('nv-ticket-flete').checked?5000:0));
  const address=String(info?.address??$('nv70-address')?.value??'').trim().slice(0,260);
@@ -102,6 +103,7 @@ function preview(){
   '<div class="nv-ticket-center"><b>TICKET DE VENTA LOCAL</b></div>'+
   '<div class="nv-ticket-meta">Fecha: '+escapeHTML(dateFormat.format(stamp))+'</div>'+
   (client?'<div class="nv-ticket-meta">Cliente: '+escapeHTML(client)+'</div>':'')+
+  (nota?'<div class="nv-ticket-meta"><b>'+escapeHTML(nota)+'</b></div>':'')+
   (phone?'<div class="nv-ticket-meta">Tel. cliente: '+escapeHTML(phone)+'</div>':'')+
   (state!=='none'?'<div class="nv-ticket-meta">Estado: <b>'+label+'</b></div>':'')+
   '<div class="nv-ticket-rule"></div>'+
