@@ -62,8 +62,10 @@ function removeFreightProduct(q){
  finally{removingFreight=false}
  return q;
 }
+function puedeEditarFlete(){return window.NAVARRO_PRINT_SILENCIOSA?.vinculado?.()===true}
+function envioGratis(centavos){return puedeEditarFlete()?centavos>=100000:centavos>99900}
 function ensureFreeShipping(q){
- return q.subtotalProductos>=100000?removeFreightProduct(q):q;
+ return envioGratis(q.subtotalProductos)?removeFreightProduct(q):q;
 }
 function saveSettings(){
  const s={delivery:!!$('nv-cobro-domicilio')?.checked,phone:String($('nv-cobro-phone')?.value||'').slice(0,30),
@@ -75,9 +77,12 @@ function update(){
  const fee=$('nv-cobro-flete'),msg=$('nv-cobro-flete-info'),total=$('nv-cobro-total');
  if(!fee||!address||!delivery||!total)return;
  const needsDelivery=delivery.checked;
+ const editable=puedeEditarFlete();
+ fee.closest('label').style.display=editable?'':'none';
+ if(!editable)manualOverride=null;
  $('nv-cobro-detalles').hidden=!needsDelivery;
  const q=ensureFreeShipping(quote());
- const free=q.valid&&q.subtotalProductos>=100000;
+ const free=q.valid&&envioGratis(q.subtotalProductos);
  // El envío gratis siempre prevalece sobre un flete activado manualmente.
  if(free)manualOverride=null;
  const auto=needsDelivery&&!free;
@@ -97,6 +102,11 @@ function update(){
    auto?'Flete automático de $50. Puedes desactivarlo por cortesía.':
    'Sin domicilio: flete opcional.';
  }
+ if(!editable){
+  fee.disabled=true;
+  fee.checked=needsDelivery&&!free;
+  if(msg)msg.textContent=free?'Envío gratis.':q.hasFreight?'Flete incluido en los productos.':'Flete a domicilio: $50.';
+ }
  const amount=free||q.hasFreight?0:(fee.checked?5000:0);
  if(!q.valid){total.textContent='Revisa los precios del carrito antes de cobrar.'}
  else if(free&&q.hasFreight)total.textContent='Hay un flete existente en el carrito. Quítalo para aplicar el envío gratis.';
@@ -113,13 +123,13 @@ function snapshot(){
  update();
  const q=quote();
  if(!q.valid)throw Error('Hay productos con precios incorrectos. Revisa el carrito.');
- if(q.subtotalProductos>=100000&&q.hasFreight)
-  throw Error('El envío es gratis a partir de $1,000. Quita el producto FLETE antes de imprimir.');
+ if(envioGratis(q.subtotalProductos)&&q.hasFreight)
+  throw Error('Este pedido tiene envío gratis. Quita el producto FLETE antes de imprimir.');
  const address=String($('nv-cobro-address')?.value||$('nv70-address')?.value||'').trim().slice(0,260);
  const phone=$('nv-cobro-domicilio')?.checked?String($('nv-cobro-phone')?.value||'').trim().slice(0,30):'';
  if(phone&&!/^[+()\d\s.\-]{5,30}$/.test(phone))
   throw Error('Escribe un teléfono válido para incluirlo en el ticket (5 a 30 caracteres).');
- const flete=q.subtotalProductos>=100000||q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
+ const flete=envioGratis(q.subtotalProductos)||q.hasFreight?0:($('nv-cobro-flete')?.checked?5000:0);
  return {address,phone,flete,delivery:!!$('nv-cobro-domicilio')?.checked||!!address,subTotalSinFlete:q.subtotalProductos,hasFreight:q.hasFreight};
 }
 function exportState(){
@@ -198,6 +208,7 @@ function mount(){
   manualOverride=null;update();
  });
  $('nv-cobro-flete').addEventListener('change',()=>{
+  if(!puedeEditarFlete()){update();return}
   const selected=$('nv-cobro-flete').checked;
   const q=quote();
   if(q.hasFreight&&!selected){
