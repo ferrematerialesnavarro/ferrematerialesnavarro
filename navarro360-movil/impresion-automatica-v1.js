@@ -209,7 +209,6 @@ function resetPrintedSale(job,version,printed=true){
 const REPORTS_ORIGIN='https://navarro-reportes-movil.ferrematerialesnavar.chatgpt.site';
 const REPORTS_CHANNEL='navarro-web-sales-v1';
 const REPORT_PREFIX='navarro-report-pending:';
-const REPORT_SELLER='navarro-report-seller';
 let reportsWindow=null,reportsReady=false,lastReady=0,reportDelivery=null,reportLabel=null,reportsTimer=null;
 function pendingReportKeys(){
  return Object.keys(localStorage).filter(key=>key.startsWith(REPORT_PREFIX));
@@ -319,7 +318,11 @@ window.addEventListener('message',event=>{
   flushReport();
  }
 });
-function reportSeller(){try{return localStorage.getItem(REPORT_SELLER);}catch(_){return null;}}
+function assignedBox(){return automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'';}
+function reportSeller(){
+ const caja=assignedBox();
+ return caja && caja!=='SIN_ASIGNAR' ? caja : 'Invitado';
+}
 const REVIEW_PREFIX='navarro-revision-pendiente:';
 let reviewing=false,reviewUrl=null;
 async function sendReviews(){
@@ -355,7 +358,6 @@ function queueReport(job,meta){
    estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
   if(!automatic&&!reportsReady){
-   record.caja='SIN_ASIGNAR';record.vendedor=null;
    localStorage.setItem(REVIEW_PREFIX+record.id,JSON.stringify(record));sendReviews();return true;
   }
   localStorage.setItem(REPORT_PREFIX+record.id,JSON.stringify(record));
@@ -385,8 +387,7 @@ function finishWithoutPrint(){
 function setupReports(button){
  const controls=document.createElement('div');
  controls.style.cssText='margin:0 0 12px;font:13px system-ui;color:#195233';
- controls.innerHTML='<label>Vendedor <input aria-label="Vendedor para el reporte" maxlength="80" autocomplete="off"></label> <button type="button">Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
- const seller=controls.querySelector('input');
+ controls.innerHTML='<button type="button" hidden>Conectar reportes</button> <button type="button" id="nv-report-retry" hidden>Reintentar envío</button> <button type="button" id="nv-no-print">Finalizar venta sin imprimir</button><div role="status"></div>';
  const refLabel=document.createElement('label');
  refLabel.textContent='Nombre o referencia de cobranza (opcional) ';
  const ref=document.createElement('input');
@@ -404,8 +405,6 @@ function setupReports(button){
  syncRef();
  if(automatic){controls.querySelector('button').hidden=true;collections.hidden=true;}
  reportLabel=controls.querySelector('[role="status"]');
- try{seller.value=localStorage.getItem(REPORT_SELLER)||'';}catch(_){}
- seller.addEventListener('change',()=>{try{localStorage.setItem(REPORT_SELLER,seller.value.trim());}catch(_){}});
  controls.querySelector('button').addEventListener('click',()=>{
   reportsWindow=window.open(REPORTS_ORIGIN+'/','navarro-reportes');
   if(!reportsWindow){reportLabel.textContent='Permite abrir Panel Navarro en otra pestaña para sincronizar.';return;}
