@@ -313,6 +313,15 @@ function mount(){
    target.click();
   });
  }
+ const back=document.createElement('button');
+ back.type='button';
+ back.className='text-button';
+ back.textContent='Volver al carrito';
+ finish.querySelector('h2').after(back);
+ back.addEventListener('click',()=>{
+  finish.close();
+  $('nv-confirmar-carrito')?.focus({preventScroll:true});
+ });
  document.body.appendChild(finish);
  finish.addEventListener('keydown',event=>{
   if(event.key==='Enter' && event.repeat){event.preventDefault();return}
