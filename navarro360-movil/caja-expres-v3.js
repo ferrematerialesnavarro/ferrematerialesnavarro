@@ -179,7 +179,9 @@ function render(){
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
  const guest=esInvitado();
- apply.textContent=guest && method==='cash' && $('nv-cobro-domicilio')?.checked?'Enviar pedido por WhatsApp':'Continuar';
+ const enviarPorWhatsApp=guest && method==='cash' && $('nv-cobro-domicilio')?.checked;
+ $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
+ apply.textContent=enviarPorWhatsApp?'Enviar pedido por WhatsApp':'Continuar';
  const current=guest||method==='credit'?'cobrar':'pagado';
  $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Al continuar: PAGADO':current==='cobrar'?'Al continuar: POR COBRAR':'Estado actual del ticket: sin especificar';
  $('nv-ce-v2-cash-section').hidden=guest||method!=='cash';
@@ -258,6 +260,7 @@ function mount(){
    '</div>'+
    '<strong id="nv-ce-v2-result" role="status">Escribe el efectivo recibido.</strong>'+
    '<p id="nv-ce-v2-ticket-state" class="nv-ce-v2-state"></p>'+
+   '<p id="nv-aviso-enviar" hidden>Cuando se abra WhatsApp, toca Enviar. Necesitamos recibir tu mensaje para enterarnos de tu pedido y empezar a prepararlo.</p>'+
    '<button type="button" id="nv-ce-v2-apply">Continuar</button>'+
 
    '<div class="nv-ce-v2-favorites-title">☆ Productos favoritos</div>'+
