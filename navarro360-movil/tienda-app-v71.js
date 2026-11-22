@@ -86,7 +86,7 @@ const importeFinal=id=>esClavo(id)?clavoImporte(id):((importesCents[id]||0)/100)
 const PRICE_KEY='navarro360_precio_caja_activa_v1';
 function salePrices(){try{return JSON.parse(localStorage.getItem(PRICE_KEY)||'{}')||{}}catch{return {}}}
 function assignedRegister(){
- try{const box=JSON.parse(localStorage.getItem('navarro-ventas-equipo')||'null');return Boolean(box?.caja && /^[a-f0-9]{64}$/.test(box.token))}catch{return false}
+ return window.NAVARRO_PRINT_SILENCIOSA?.vinculado?.()===true;
 }
 function unitCents(id,prices){return Number.isSafeInteger(prices[id])&&prices[id]>0?prices[id]:Math.round((dictionary.get(id)?.price||0)*100)}
 function lineAmount(id,qty,prices){return importeFinal(id)||Math.round(qty*unitCents(id,prices))/100}
