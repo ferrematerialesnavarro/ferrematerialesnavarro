@@ -97,13 +97,18 @@ function quote(){
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
 function textoPedido(q){
- const lines=['FERREMATERIALES NAVARRO','Pedido · Transferencia por verificar',''];
- for(const row of q.rows){
-  lines.push(row.name+' · '+row.id,row.qty+' × '+money(row.unit)+' · Importe '+money(row.cost));
+ const divider='────────────────────';
+ const lines=['*FERREMATERIALES NAVARRO*','TICKET DE PEDIDO',divider];
+ for(const [i,row] of q.rows.entries()){
+  if(i)lines.push('');
+  lines.push('*'+row.name+'*','Código: '+row.id,
+   row.qty+' × '+money(row.unit)+'   |   Importe: '+money(row.cost));
  }
- lines.push('','Subtotal: '+money(q.subtotal),'Flete adicional: '+money(q.flete),'Total: '+money(q.total));
+ lines.push(divider,'Subtotal: '+money(q.subtotal),'Flete adicional: '+money(q.flete),
+  '*TOTAL DEL PEDIDO: '+money(q.total)+'*',divider,
+  'Forma de pago: Transferencia','*POR COBRAR* · Depósito por verificar');
  if(q.delivery.delivery){
-  lines.push('Entrega a domicilio');
+  lines.push('','*ENTREGA A DOMICILIO*');
   if(q.delivery.address)lines.push('Dirección: '+q.delivery.address);
   if(q.delivery.phone)lines.push('Teléfono: '+q.delivery.phone);
  }
