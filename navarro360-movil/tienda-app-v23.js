@@ -80,7 +80,7 @@ const LIMIT=140;
 // NAVARRO_PLOMERIA_V1: módulo de navegación independiente.
 const plomeria=(typeof window.NAVARRO_CREATE_PLOMERIA==='function')?window.NAVARRO_CREATE_PLOMERIA({dictionary,panel:q('#plumbing-panel'),onChange:()=>renderProducts()}):null;
 const electricidad=(typeof window.NAVARRO_CREATE_ELECTRICIDAD==='function')?window.NAVARRO_CREATE_ELECTRICIDAD({dictionary,panel:q('#electric-panel'),isApproved:window.NAVARRO_BUSCADOR_GENERICO?.isApproved,onChange:()=>renderProducts()}):null;
-let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(dictionary.has(k)&&Number.isFinite(n)&&n>0&&n<=9999&&Math.abs(n*1000-Math.round(n*1000))<1e-7)cart[k]=n}}}catch{}
+let pendingExtraCart={};let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(Number.isFinite(n)&&n>0&&n<=9999&&Math.abs(n*1000-Math.round(n*1000))<1e-7){if(dictionary.has(k))cart[k]=n;else if(/^\d{5,30}$/.test(k))pendingExtraCart[k]=n;}}}}catch{}
 let importesCents={};
 try{
  const old=JSON.parse(localStorage.getItem(IMPORTE_KEY)||'{}');
@@ -117,7 +117,7 @@ function cantidadDesdeImporte(id,importePesos){
  return {cantidad,real:cantidad*price,diferencia:Math.abs(cantidad*price-importePesos)};
 }
 const count=()=>Math.round(Object.entries(cart).reduce((s,[id,n])=>s+(id==='00000'?1:n),0)*1000)/1000, subtotal=()=>{const prices=salePrices();return Object.entries(cart).reduce((s,[id,n])=>s+lineAmount(id,n,prices),0)};
-function save(){try{const prices=salePrices();const removed=Object.keys(prices).filter(id=>!cart[id]);if(removed.length){for(const id of removed)delete prices[id];localStorage.setItem(PRICE_KEY,JSON.stringify(prices))}localStorage.setItem('navarro_cart_v1',JSON.stringify(cart));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents));localStorage.setItem(IMPORTE_KEY,JSON.stringify(importesCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':formatearCantidad(count())+' unidades';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
+function save(){try{const prices=salePrices();const removed=Object.keys(prices).filter(id=>!cart[id]);if(removed.length){for(const id of removed)delete prices[id];localStorage.setItem(PRICE_KEY,JSON.stringify(prices))}localStorage.setItem('navarro_cart_v1',JSON.stringify({...pendingExtraCart,...cart}));localStorage.setItem(CLAVO_KEY,JSON.stringify(clavoCents));localStorage.setItem(IMPORTE_KEY,JSON.stringify(importesCents))}catch{}q('#cart-top-n').textContent=count();q('#floating-n').textContent=count()===1?'1 artículo':formatearCantidad(count())+' unidades';q('#floating-cart').hidden=count()===0;if(q('#mobile-count'))q('#mobile-count').textContent='('+count()+')';if(q('#mobile-total'))q('#mobile-total').textContent=money(subtotal());
  const thumbs=q('#mobile-thumbnails'); if(thumbs){thumbs.textContent=count()?count()+' unidades':'';}
 } 
 function toast(msg){let t=document.querySelector('.toast');if(t)t.remove();t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.append(t);setTimeout(()=>t.remove(),2400)}
@@ -381,12 +381,13 @@ window.NAVARRO_NUEVOS_PRODUCTOS_V23=Object.freeze({
    if(!prior||JSON.stringify(prior)!==JSON.stringify(row))changed++;
    nv23Products.set(id,row);
    dictionary.set(id,{id,name,price,unit});
+   if(Object.hasOwn(pendingExtraCart,id)){cart[id]=pendingExtraCart[id];delete pendingExtraCart[id];}
    if(!publicCodes.has(id)){publicList.unshift(row);publicCodes.add(id);}
    else{const idx=publicList.findIndex(x=>x.id===id);if(idx>=0)publicList[idx]=row;}
    if(!window.NAVARRO_EXISTENCIAS)window.NAVARRO_EXISTENCIAS={};
    if(!window.NAVARRO_EXISTENCIAS[id])window.NAVARRO_EXISTENCIAS[id]=[stock,0];
   }
-  if(changed){renderProducts();renderCart();}
+  if(changed){save();renderProducts();renderCart();}
   return changed;
  }
 });
