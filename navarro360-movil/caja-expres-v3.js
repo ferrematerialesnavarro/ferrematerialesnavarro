@@ -263,7 +263,7 @@ function mount(){
    '</div>'+
    '<strong id="nv-ce-v2-result" role="status">Escribe el efectivo recibido.</strong>'+
    '<p id="nv-ce-v2-ticket-state" class="nv-ce-v2-state"></p>'+
-   '<p id="nv-aviso-enviar" hidden>Primero registraremos tu pedido en el panel. Después comparte el ticket en WhatsApp. Si eres de caja, elige el grupo Pedidos.</p>'+
+   '<p id="nv-aviso-enviar" hidden>Envía el ticket por WhatsApp para avisar al negocio y que prepare tu pedido. Si eres de caja, elige el grupo Pedidos.</p>'+
    '<button type="button" id="nv-ce-v2-apply">Continuar</button>'+
 
    '<div class="nv-ce-v2-favorites-title">☆ Productos favoritos</div>'+
@@ -363,10 +363,12 @@ function mount(){
    const message=textoPedido(quote(),view.method.value);
    submitting=true;continueButton.disabled=true;details.inert=true;
    try{
-    const folio=await window.NAVARRO_CONFIRMAR_PEDIDO(view.method.value);
+    const resultado=await window.NAVARRO_CONFIRMAR_PEDIDO(view.method.value);
     if(details.open)details.close();
     const invitado=esInvitado();
-    window.alert(invitado?'Pedido registrado. Envía el ticket al WhatsApp del negocio.':'Pedido registrado. Elige el grupo Pedidos en WhatsApp y toca Enviar.');
+    const folio=resultado.folio||resultado;
+    const estado=resultado.pendiente?'Ticket guardado en este dispositivo. Pendiente de sincronizar con el panel.':'Ticket recibido por el panel.';
+    window.alert(estado+' '+(invitado?'Envía el ticket al WhatsApp del negocio.':'Elige el grupo Pedidos en WhatsApp y toca Enviar.'));
     location.href=(invitado?'https://wa.me/525639129040?text=':'https://wa.me/?text=')+encodeURIComponent(message+'\nFolio: '+folio);
    }catch(error){announce(error.message||'No se pudo confirmar la recepción del pedido.',true)}
    finally{submitting=false;details.inert=false;render()}
