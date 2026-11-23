@@ -307,36 +307,6 @@ function mount(){
  view.method.addEventListener('change',render);
  const cashInput=$('nv-ce-v2-cash');
  const continueButton=$('nv-ce-v2-apply');
- const finish=document.createElement('dialog');
- finish.setAttribute('aria-labelledby','nv-finish-title');
- finish.innerHTML='<h2 id="nv-finish-title">Terminar venta</h2><button type="button" data-target="nv-no-print">Terminar sin imprimir</button> <button type="button" data-target="nv-print-ticket-button">Imprimir ticket</button>';
- finish.style.cssText='border:1px solid #b8d5c0;border-radius:12px;color:#153c29;max-width:92vw';
- const actions=Array.from(finish.querySelectorAll('button'));
- for(const action of actions){
-  action.className='btn btn-whatsapp';
-  action.addEventListener('click',()=>{
-   const target=$(action.dataset.target);
-   if(!target||target.disabled)return;
-   finish.close();
-   target.click();
-  });
- }
- const back=document.createElement('button');
- back.type='button';
- back.className='text-button';
- back.textContent='Volver al carrito';
- finish.querySelector('h2').after(back);
- back.addEventListener('click',()=>{
-  finish.close();
-  $('nv-confirmar-carrito')?.focus({preventScroll:true});
- });
- document.body.appendChild(finish);
- finish.addEventListener('keydown',event=>{
-  if(event.key==='Enter' && event.repeat){event.preventDefault();return}
-  if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key))return;
-  event.preventDefault();
-  actions.find(action=>action!==document.activeElement&&!action.disabled)?.focus();
- });
  details.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.isComposing)return;
   if(event.repeat){event.preventDefault();return}
@@ -350,10 +320,6 @@ function mount(){
   }
  });
  $('nv-ce-v2-cash').addEventListener('input',render);
- const bank=$('nv-guest-transfer');
- const bankPosition=document.createComment('datos bancarios');
- bank.before(bankPosition);
- finish.addEventListener('close',()=>{if(bank.parentNode===finish)bankPosition.after(bank)});
  let submitting=false;
  continueButton.addEventListener('click',async()=>{
   if(submitting)return;
@@ -374,26 +340,10 @@ function mount(){
    finally{submitting=false;details.inert=false;render()}
    return;
   }
-  const transfer=view.method.value==='transfer';
-  if(transfer){
-   const message=encodeURIComponent(textoPedido(quote()));
-   $('nv-proof-link').href='https://wa.me/525639129040?text='+message;
-   $('nv-share-order').href='https://wa.me/?text='+message;
-  }
   applyPayment();
   if(details.open)return;
-  if(transfer){
-   finish.insertBefore(bank,actions[0]);
-   bank.hidden=false;
-  }
-  $('nv-finish-title').textContent=transfer?'Datos para transferencia':'Terminar venta';
-  for(const action of actions){
-   const target=$(action.dataset.target);
-   action.disabled=!target||target.disabled;
-  }
-  finish.showModal();
-  if(transfer)bank.querySelector('input').focus();
-  else actions.find(action=>!action.disabled)?.focus();
+  const finalAction=[$('nv-no-print'),$('nv-print-ticket-button')].find(button=>button&&!button.disabled&&button.getClientRects().length);
+  finalAction?.focus();
  });
  details.addEventListener('click',event=>{
   const b=event.target.closest('button[data-cash]');
@@ -414,7 +364,7 @@ function mount(){
  }
  syncConfirmCart();
  confirmCart?.addEventListener('click',()=>{
-  view.method.value=paymentConfirmation?.method||'cash';
+  view.method.value=paymentConfirmation?.requested||'cash';
   details.showModal();
   render();
   requestAnimationFrame(()=>{
