@@ -352,11 +352,23 @@ async function confirmGuestOrder(method){
    record.id=job.jobId;record.at=job.at;
    pending={signature,record};localStorage.setItem(key,JSON.stringify(pending));
   }
-  await postReview(JSON.stringify(pending.record),pending.record.id);
+  const raw=JSON.stringify(pending.record);
+  let response;
+  try{
+   response=await fetch('https://navarro-recepcion-pedidos.ferrematerialesnavar.chatgpt.site/pedidos',{
+    method:'POST',headers:{'Content-Type':'application/json'},body:raw,
+    credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000)
+   });
+   if(!response.ok)throw Error();
+   const receipt=await response.json();
+   if(!receipt.ok||receipt.id!==pending.record.id)throw Error();
+  }catch{
+   throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No recibimos confirmación del panel. Conservamos tu carrito y su folio para reintentar.');
+  }
   job.jobId=pending.record.id;
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
-  return job.jobId;
+  return {folio:job.jobId};
  }finally{busy=false}
 }
 window.NAVARRO_CONFIRMAR_PEDIDO=confirmGuestOrder;
