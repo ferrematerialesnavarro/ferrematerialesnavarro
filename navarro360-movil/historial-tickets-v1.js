@@ -32,7 +32,7 @@ function validJob(job){
  const flete=Number(job.flete||0);
  if(flete!==0&&flete!==5000)return null;
  const date=new Date(job.at||Date.now());
- return {v:1,jobId:job.jobId,at:isNaN(date.getTime())?new Date().toISOString():date.toISOString(),
+ return {v:1,jobId:job.jobId,folio:/^\d{4,}$/.test(job.folio)?job.folio:null,at:isNaN(date.getTime())?new Date().toISOString():date.toISOString(),
    rows,subtotal,flete,state:['pagado','cobrar'].includes(job.state)?job.state:'none',
    client:clean(job.client,100),phone:clean(job.phone,30),address:clean(job.address,260)};
 }
@@ -84,6 +84,7 @@ function makeRow(entry){
  const d=new Date(entry.receivedAt||job.at);
  left.textContent=isNaN(d.getTime())?'Ticket':d.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
  const right=document.createElement('strong');right.textContent=money(job.subtotal+job.flete);
+ if(job.folio)left.textContent='Folio '+job.folio+' · '+left.textContent;
  heading.append(left,right);wrap.appendChild(heading);
  const text=document.createElement('p');
  const details=[job.rows.length+' artículos',entry.source==='domicilio'?'Pedido a domicilio':'Venta'];
