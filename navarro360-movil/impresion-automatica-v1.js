@@ -362,6 +362,7 @@ async function confirmGuestOrder(method){
    if(!response.ok)throw Error();
    const receipt=await response.json();
    if(!receipt.ok||receipt.id!==pending.record.id)throw Error();
+   job.folio=receipt.folio;
   }catch{
    throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No recibimos confirmación del panel. Conservamos tu carrito y su folio para reintentar.');
   }
@@ -373,7 +374,7 @@ async function confirmGuestOrder(method){
   }
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
-  return {folio:job.jobId};
+  return {folio:job.folio||job.jobId};
  }finally{busy=false}
 }
 window.NAVARRO_CONFIRMAR_PEDIDO=confirmGuestOrder;
