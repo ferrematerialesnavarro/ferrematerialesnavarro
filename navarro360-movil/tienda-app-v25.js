@@ -431,6 +431,16 @@ window.NAVARRO_NUEVOS_PRODUCTOS_V23=Object.freeze({
   save();renderProducts();renderCart();
   return added;
  },
+ migrate:(oldCode,newCode)=>{
+  const oldId=String(oldCode),newId=String(newCode);
+  if(!nv23Products.has(oldId)||!nv23Products.has(newId)||oldId===newId)return false;
+  const qty=cart[oldId]??pendingExtraCart[oldId]??0;
+  if(qty>0)cart[newId]=Math.min(9999,Number((Number(cart[newId]||0)+qty).toFixed(3)));
+  delete cart[oldId];delete pendingExtraCart[oldId];
+  nv23Products.delete(oldId);dictionary.delete(oldId);publicCodes.delete(oldId);
+  const i=publicList.findIndex(p=>p.id===oldId);if(i>=0)publicList.splice(i,1);
+  save();renderProducts();renderCart();return true;
+ },
  get:code=>{const p=nv23Products.get(String(code));return p?{...p}:null},
  remove:code=>{
   const id=String(code);if(!nv23Products.has(id))return false;
