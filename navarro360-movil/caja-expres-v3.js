@@ -96,7 +96,7 @@ function quote(){
  if(!Number.isSafeInteger(total)||total<=0)throw Error('Total de venta no válido.');
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
-function enviarDomicilio(method){return esInvitado() && ['cash','card','transfer','credit'].includes(method) && $('nv-cobro-domicilio')?.checked}
+function enviarDomicilio(method){return ['cash','card','transfer','credit'].includes(method) && $('nv-cobro-domicilio')?.checked}
 function textoPedido(q,method='transfer'){
  const lines=['🏗️ *FERREMATERIALES NAVARRO*',q.delivery.delivery?'🚚 *PEDIDO A DOMICILIO*':'🛒 *PEDIDO*','','🛒 *TABLA DE PRODUCTOS*','```'+'PRODUCTO'.padEnd(21)+'CANT'.padStart(6)+'IMPORTE'.padStart(12),'-'.repeat(39)];
  for(const row of q.rows){
@@ -179,7 +179,7 @@ function render(){
  const cash=$('nv-ce-v2-cash'),method=view.method.value;
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
- const guest=esInvitado();
+ const guest=esInvitado()||enviarDomicilio(method);
  const enviarPorWhatsApp=enviarDomicilio(method);
  $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
  apply.textContent=enviarPorWhatsApp?'Confirmar pedido y abrir WhatsApp':'Continuar';
@@ -263,7 +263,7 @@ function mount(){
    '</div>'+
    '<strong id="nv-ce-v2-result" role="status">Escribe el efectivo recibido.</strong>'+
    '<p id="nv-ce-v2-ticket-state" class="nv-ce-v2-state"></p>'+
-   '<p id="nv-aviso-enviar" hidden>Primero registraremos tu pedido en el panel. Después toca Enviar en WhatsApp para avisar a Ferremateriales Navarro.</p>'+
+   '<p id="nv-aviso-enviar" hidden>Primero registraremos tu pedido en el panel. Después comparte el ticket en WhatsApp. Si eres de caja, elige el grupo Pedidos.</p>'+
    '<button type="button" id="nv-ce-v2-apply">Continuar</button>'+
 
    '<div class="nv-ce-v2-favorites-title">☆ Productos favoritos</div>'+
@@ -340,7 +340,7 @@ function mount(){
  details.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.isComposing)return;
   if(event.repeat){event.preventDefault();return}
-  if(event.target===view.method && !esInvitado() && view.method.value==='cash'){
+  if(event.target===view.method && !esInvitado() && !enviarDomicilio('cash') && view.method.value==='cash'){
    event.preventDefault();cashInput.focus();cashInput.select();
   }else if(event.target===cashInput){
    event.preventDefault();render();
@@ -365,8 +365,9 @@ function mount(){
    try{
     const folio=await window.NAVARRO_CONFIRMAR_PEDIDO(view.method.value);
     if(details.open)details.close();
-    window.alert('Tu pedido ya está registrado. Toca Enviar en WhatsApp para avisar a Ferremateriales Navarro.');
-    location.href='https://wa.me/525639129040?text='+encodeURIComponent(message+'\nFolio: '+folio);
+    const invitado=esInvitado();
+    window.alert(invitado?'Pedido registrado. Envía el ticket al WhatsApp del negocio.':'Pedido registrado. Elige el grupo Pedidos en WhatsApp y toca Enviar.');
+    location.href=(invitado?'https://wa.me/525639129040?text=':'https://wa.me/?text=')+encodeURIComponent(message+'\nFolio: '+folio);
    }catch{window.alert('No se pudo confirmar la recepción en el panel. Conservamos tu carrito. Vuelve a intentarlo.')}
    finally{submitting=false;details.inert=false;render()}
    return;

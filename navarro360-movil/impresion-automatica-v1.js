@@ -339,13 +339,13 @@ async function postReview(raw,id){
 
 }
 async function confirmGuestOrder(method){
- if(pair||busy||!$('nv-cobro-domicilio')?.checked)throw Error('Revisa el pedido antes de confirmar.');
+ if(busy||!$('nv-cobro-domicilio')?.checked)throw Error('Revisa el pedido antes de confirmar.');
  busy=true;
  try{
   const job=buildTicket(),version=saleVersion();
   const labels={cash:'Efectivo al entregar',card:'Llevar terminal para cobrar',transfer:'Transferencia por verificar',credit:'Método por definir'};
   if(!labels[method])throw Error('Selecciona una forma de pago.');
-  const record={caja:'SIN_ASIGNAR',vendedor:'Invitado',estado:'cobrar',metodo:'credit',reference:labels[method],address:job.address,phone:job.phone,subtotal:job.subtotal,flete:job.flete,rows:job.rows.map(({id,name,qty,unit,total})=>({id,name,qty,unit,total}))};
+  const record={caja:assignedBox()||'SIN_ASIGNAR',vendedor:reportSeller(),estado:'cobrar',metodo:'credit',reference:labels[method],address:job.address,phone:job.phone,subtotal:job.subtotal,flete:job.flete,rows:job.rows.map(({id,name,qty,unit,total})=>({id,name,qty,unit,total}))};
   const key='navarro-pedido-invitado-pendiente',signature=JSON.stringify([record,job.address,job.phone]);
   let pending=JSON.parse(localStorage.getItem(key)||'null');
   if(pending?.signature!==signature){
