@@ -352,7 +352,14 @@ async function confirmGuestOrder(method){
    record.id=job.jobId;record.at=job.at;
    pending={signature,record};localStorage.setItem(key,JSON.stringify(pending));
   }
-  await postReview(JSON.stringify(pending.record),pending.record.id);
+  const raw=JSON.stringify(pending.record);
+  try{await postReview(raw,pending.record.id)}
+  catch{
+   reviewUrl=null;
+   await new Promise(resolve=>setTimeout(resolve,1200));
+   try{await postReview(raw,pending.record.id)}
+   catch{reviewUrl=null;throw Error('El panel no confirmó el folio '+pending.record.id+'. El pedido sigue en este dispositivo. Revisa la conexión de Windows y vuelve a intentar con el mismo carrito.')}
+  }
   job.jobId=pending.record.id;
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
