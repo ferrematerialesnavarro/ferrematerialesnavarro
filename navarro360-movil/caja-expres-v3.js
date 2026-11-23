@@ -368,7 +368,7 @@ function mount(){
     const invitado=esInvitado();
     window.alert(invitado?'Pedido registrado. Envía el ticket al WhatsApp del negocio.':'Pedido registrado. Elige el grupo Pedidos en WhatsApp y toca Enviar.');
     location.href=(invitado?'https://wa.me/525639129040?text=':'https://wa.me/?text=')+encodeURIComponent(message+'\nFolio: '+folio);
-   }catch{window.alert('No se pudo confirmar la recepción en el panel. Conservamos tu carrito. Vuelve a intentarlo.')}
+   }catch(error){announce(error.message||'No se pudo confirmar la recepción del pedido.',true)}
    finally{submitting=false;details.inert=false;render()}
    return;
   }
