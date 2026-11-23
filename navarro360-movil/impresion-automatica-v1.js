@@ -366,6 +366,11 @@ async function confirmGuestOrder(method){
    throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No recibimos confirmación del panel. Conservamos tu carrito y su folio para reintentar.');
   }
   job.jobId=pending.record.id;
+  job.at=pending.record.at;
+  job.state='cobrar';
+  if(!window.NAVARRO_HISTORIAL?.record(job,method,'domicilio')){
+   throw Error('Pedido recibido. Conservamos el carrito porque no se pudo guardar el historial local. Reintenta con el mismo folio.');
+  }
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
   return {folio:job.jobId};
