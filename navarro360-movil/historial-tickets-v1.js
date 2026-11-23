@@ -45,10 +45,10 @@ function load(){
 function persist(arr){
  try{localStorage.setItem(KEY,JSON.stringify(arr));return true}catch(_){return false}
 }
-function record(job,paymentMethod){
+function record(job,paymentMethod,source='venta'){
  const fixed=validJob(job);if(!fixed)return false;
  const all=load();if(all.some(x=>x.job.jobId===fixed.jobId))return true;
- const entry={job:fixed,paymentMethod:normalizeMethod(fixed.state,paymentMethod),receivedAt:new Date().toISOString(),copies:0,source:'cola_windows'};
+ const entry={job:fixed,paymentMethod:normalizeMethod(fixed.state,paymentMethod),receivedAt:new Date().toISOString(),copies:0,source};
  const next=[entry,...all].slice(0,MAX);
  if(persist(next)){refreshCount();return true}
  // Safari puede llenar su almacenamiento: conservar por lo menos 1 ticket.
@@ -69,7 +69,7 @@ function markReprint(id){
  const ok=persist(all);if(ok)render();return ok;
 }
 function refreshCount(){
- const el=$('nv-history-open');if(el)el.textContent='🧾 Tickets recientes ('+load().length+')';
+ const el=$('nv-history-open');if(el)el.textContent='🧾 Historial de ventas del dispositivo ('+load().length+')';
 }
 let overlay,items,status;
 function setMessage(message,failed){
@@ -86,25 +86,25 @@ function makeRow(entry){
  const right=document.createElement('strong');right.textContent=money(job.subtotal+job.flete);
  heading.append(left,right);wrap.appendChild(heading);
  const text=document.createElement('p');
- const details=[job.rows.length+' artículos','Cola Windows'];
+ const details=[job.rows.length+' artículos',entry.source==='domicilio'?'Pedido a domicilio':'Venta'];
  if(job.client)details.push(job.client);
  details.push(methodLabel(normalizeMethod(job.state,entry.paymentMethod)));
  if(entry.copies)details.push(entry.copies+' reimpresión(es)');
  text.textContent=details.join(' · ');
  wrap.appendChild(text);
  const actions=document.createElement('div');actions.className='nv-history-actions';
- const copy=document.createElement('button');copy.type='button';copy.textContent='🖨 Reimprimir';
+ const copy=document.createElement('button');copy.type='button';copy.textContent='🖨 Imprimir ticket';
  copy.addEventListener('click',async()=>{
   const printer=window.NAVARRO_PRINT_SILENCIOSA;
   if(!printer?.vinculado?.()){setMessage('Primero vincula la impresora en este navegador.',true);return}
-  if(!window.confirm('¿Enviar nuevamente este ticket a la impresora? Se imprimirá otra copia y el carrito actual NO cambiará.'))return;
+  if(!window.confirm('¿Imprimir el ticket de esta venta?'))return;
   copy.disabled=true;copy.textContent='Enviando…';
   try{
    const result=await printer.reimprimir(job.jobId);
    if(result?.ok){setMessage('✓ Copia enviada a la cola Windows. Confirma que salió el papel.',false);render()}
    else setMessage(result?.error||'No se recibió confirmación de Windows. No se reintentó automáticamente.',true);
   }catch(_){setMessage('No se confirmó la reimpresión. Revisa la impresora antes de repetirla.',true)}
-  finally{copy.disabled=false;copy.textContent='🖨 Reimprimir'}
+  finally{copy.disabled=false;copy.textContent='🖨 Imprimir ticket'}
  });
  actions.appendChild(copy);
  const detailsButton=document.createElement('button');detailsButton.type='button';detailsButton.textContent='Ver artículos';
@@ -114,7 +114,7 @@ function makeRow(entry){
   detailsNode=document.createElement('div');detailsNode.className='nv-history-details';
   for(const r of job.rows){
    const line=document.createElement('div');
-   line.textContent=r.name+' · '+r.qty+' pza/u × '+money(r.unit)+' · '+money(r.total);
+   line.textContent=r.name+' · '+r.id+' · '+r.qty+' pza/u × '+money(r.unit)+' · '+money(r.total);
    detailsNode.appendChild(line);
   }
   if(job.flete){const line=document.createElement('div');line.textContent='Flete adicional · '+money(job.flete);detailsNode.appendChild(line)}
@@ -130,7 +130,7 @@ function render(){
  items.replaceChildren();
  const all=load();refreshCount();
  if(!all.length){
-  const empty=document.createElement('p');empty.textContent='Aún no hay tickets registrados en este dispositivo. Los nuevos aparecerán aquí cuando Windows los acepte.';items.appendChild(empty);return;
+  const empty=document.createElement('p');empty.textContent='Aquí aparecerán las ventas que finalices en este dispositivo.';items.appendChild(empty);return;
  }
  for(const item of all)items.appendChild(makeRow(item));
 }
@@ -139,12 +139,12 @@ function mount(){
  const print=$('nv-print-ticket-button'),bottom=print?.parentElement;
  if(!print||!bottom)return;
  const button=document.createElement('button');button.id='nv-history-open';button.type='button';
- button.textContent='🧾 Tickets recientes (0)';button.className='nv-history-open';
+ button.textContent='🧾 Historial de ventas del dispositivo (0)';button.className='nv-history-open';
  bottom.insertBefore(button,print.nextSibling);
  overlay=document.createElement('div');overlay.id='nv-history-overlay';overlay.hidden=true;
  overlay.innerHTML='<section class="nv-history-box" role="dialog" aria-modal="true" aria-labelledby="nv-history-title">'+
-  '<div class="nv-history-top"><h2 id="nv-history-title">🧾 Tickets recientes</h2><button type="button" id="nv-history-close" aria-label="Cerrar historial">✕</button></div>'+
-  '<p class="nv-history-warning">Guardados solo en este iPhone o navegador. «En cola Windows» no confirma impresión física ni registro en SIFO. No se comparten entre equipos.</p>'+
+  '<div class="nv-history-top"><h2 id="nv-history-title">🧾 Historial de ventas del dispositivo</h2><button type="button" id="nv-history-close" aria-label="Cerrar historial">✕</button></div>'+
+  '<p class="nv-history-warning">Últimas 100 ventas guardadas en este navegador. Puedes imprimir un ticket después de finalizar la venta.</p>'+
   '<div id="nv-history-list"></div><p id="nv-history-status" role="status"></p></section>';
  document.body.appendChild(overlay);
  items=$('nv-history-list');status=$('nv-history-status');
