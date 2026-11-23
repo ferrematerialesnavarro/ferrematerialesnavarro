@@ -391,7 +391,7 @@ window.NAVARRO_NUEVOS_PRODUCTOS_V23=Object.freeze({
    const cat=categories.includes(p.cat)?p.cat:'Todos';
    const unit=['pieza','metro','kilo','litro'].includes(p.unit)?p.unit:'pieza';
    const photo=typeof p.photo==='string'&&p.photo.length<=70000&&/^(?:data:image\/jpeg;base64,[A-Za-z0-9+/=]+|\.\/altas-publicas-v25\/img\/[a-f0-9-]+\.jpg)$/.test(p.photo)?p.photo:'';
-   const row={id,name,display:name,price,cat,unit,img:'',sub:unit==='pieza'?'':'Venta por '+unit,photo,public:true};
+   const row={id,name,display:name,price,cat,unit,img:'',sub:unit==='pieza'?'':'Venta por '+unit,photo,public:true,updatedAt:String(p.updatedAt||p.at||''),uid:String(p.uid||'')};
    const prior=nv23Products.get(id);
    if(!prior||JSON.stringify(prior)!==JSON.stringify(row))changed++;
    nv23Products.set(id,row);
