@@ -346,6 +346,7 @@ async function confirmGuestOrder(method){
   const labels={cash:'Efectivo al entregar',card:'Llevar terminal para cobrar',transfer:'Transferencia por verificar',credit:'Método por definir'};
   if(!labels[method])throw Error('Selecciona una forma de pago.');
   const record={caja:assignedBox()||'SIN_ASIGNAR',vendedor:reportSeller(),estado:'cobrar',metodo:'credit',reference:labels[method],address:job.address,phone:job.phone,subtotal:job.subtotal,flete:job.flete,rows:job.rows.map(({id,name,qty,unit,total})=>({id,name,qty,unit,total}))};
+  if(pair)record.pagoMostrador=method;
   const key='navarro-pedido-invitado-pendiente',signature=JSON.stringify([record,job.address,job.phone]);
   let pending=JSON.parse(localStorage.getItem(key)||'null');
   if(pending?.signature!==signature){
@@ -366,6 +367,10 @@ async function confirmGuestOrder(method){
    throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No recibimos confirmación del panel. Conservamos tu carrito y su folio para reintentar.');
   }
   job.jobId=pending.record.id;
+  job.at=pending.record.at;
+  job.state=pair&&method!=='credit'?'pagado':'cobrar';
+  job.reference=job.state==='pagado'?'Pagado en mostrador. Entregar sin cobrar.':labels[method];
+  if(!window.NAVARRO_HISTORIAL?.record(job,method))throw Error('Pedido recibido. Conservamos el carrito para guardar su ticket en este dispositivo.');
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
   return {folio:job.jobId};
