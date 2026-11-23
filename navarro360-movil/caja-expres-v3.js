@@ -186,7 +186,8 @@ function render(){
  const current=guest||method==='credit'?'cobrar':'pagado';
  $('nv-ce-v2-ticket-state').textContent=current==='pagado'?'Al continuar: PAGADO':current==='cobrar'?'Al continuar: POR COBRAR':'Estado actual del ticket: sin especificar';
  $('nv-ce-v2-cash-section').hidden=guest||method!=='cash';
- $('nv-guest-transfer').hidden=!(guest&&method==='transfer');
+ $('nv-guest-transfer').hidden=method!=='transfer';
+ $('nv-transfer-instructions').hidden=!guest;
  $('nv-proof-link').hidden=enviarPorWhatsApp;
  $('nv-share-order').hidden=enviarPorWhatsApp;
  if(guest && method==='transfer' && q.count){
@@ -255,7 +256,7 @@ function mount(){
    '<p id="nv-ce-v2-split" class="nv-ce-v2-subtotal"></p>'+
    '<label for="nv-ce-v2-method">Método</label>'+
    '<select id="nv-ce-v2-method"><option value="cash">💵 Efectivo</option><option value="transfer">🏦 Transferencia</option><option value="card">💳 Tarjeta de débito o crédito</option><option value="credit">🧾 Por cobrar</option></select>'+
-   '<div id="nv-guest-transfer" hidden><dl><dt>Banco</dt><dd>Banamex</dd><dt>CLABE interbancaria</dt><dd><input readonly aria-label="CLABE interbancaria" value="002320701431657931"></dd><dt>Nombre del beneficiario</dt><dd>Diana Navarro</dd></dl><p>Cuando termines la transferencia, toca el botón y adjunta tu comprobante en el chat de Ferremateriales Navarro.</p><p><a id="nv-proof-link" target="_blank" rel="noopener noreferrer">Enviar pedido y comprobante por WhatsApp</a></p><p><a id="nv-share-order" target="_blank" rel="noopener noreferrer">Compartir pedido en otro chat</a></p><p>Tu pedido queda por cobrar hasta que confirmemos el depósito.</p></div>'+
+   '<div id="nv-guest-transfer" hidden><dl><dt>Banco</dt><dd>Banamex</dd><dt>CLABE interbancaria</dt><dd><input readonly aria-label="CLABE interbancaria" value="002320701431657931"></dd><dt>Nombre del beneficiario</dt><dd>Diana Navarro</dd></dl><div id="nv-transfer-instructions" hidden><p>Cuando termines la transferencia, toca el botón y adjunta tu comprobante en el chat de Ferremateriales Navarro.</p><p><a id="nv-proof-link" target="_blank" rel="noopener noreferrer">Enviar pedido y comprobante por WhatsApp</a></p><p><a id="nv-share-order" target="_blank" rel="noopener noreferrer">Compartir pedido en otro chat</a></p><p>Tu pedido queda por cobrar hasta que confirmemos el depósito.</p></div></div>'+
    '<div id="nv-ce-v2-cash-section">'+
     '<label for="nv-ce-v2-cash">Efectivo entregado (opcional)</label>'+
     '<input id="nv-ce-v2-cash" type="text" inputmode="decimal" autocomplete="off" placeholder="Ej. 500.00" maxlength="12">'+
