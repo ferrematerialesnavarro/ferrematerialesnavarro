@@ -131,7 +131,7 @@ function productResults(){
     const item=dictionary.get(code);
     if (!item)return [];
     const feat=publicList.find(x=>x.id===code);
-    return [{...item,display:displayNames[item.id]||item.name,cat:feat?.cat||'Por código',sub:feat?.sub||'',img:photoFor(item.id)}];
+    return [{...item,display:displayNames[item.id]||item.name,cat:feat?.cat||'Por código',sub:feat?.sub||'',img:photoFor(item.id),photo:feat?.photo||''}];
   }
   if (/^\d+$/.test(code)) {nameMatches=0;return [];} // Código incompleto: nunca adivinar.
   const matchVarios=norm(entered);
