@@ -121,7 +121,8 @@ function textoPedido(q,method='transfer'){
   if(q.delivery.phone)lines.push('📱 Teléfono: '+q.delivery.phone);
  }
  const cash=method==='cash',card=method==='card';
- lines.push('',cash?'💵 *Método de pago: EFECTIVO*':card?'💳 *Método de pago: TARJETA*':method==='credit'?'Método de pago: POR DEFINIR':'💳 *Método de pago: TRANSFERENCIA*','⏳ *ESTADO: POR COBRAR*',cash?'🚚 *COBRAR AL ENTREGAR*':card?'🚚 *IMPORTANTE: LLEVAR TERMINAL PARA COBRAR AL ENTREGAR*':method==='credit'?'Cobro pendiente.':'Depósito por verificar.');
+ const paid=!esInvitado()&&method!=='credit';
+ lines.push('',cash?'💵 *Método de pago: EFECTIVO*':card?'💳 *Método de pago: TARJETA*':method==='credit'?'Método de pago: POR DEFINIR':'💳 *Método de pago: TRANSFERENCIA*',paid?'✅ *ESTADO: PAGADO*':'⏳ *ESTADO: POR COBRAR*',paid?'🚚 *ENTREGAR SIN COBRAR*':cash?'🚚 *COBRAR AL ENTREGAR*':card?'🚚 *IMPORTANTE: LLEVAR TERMINAL PARA COBRAR AL ENTREGAR*':method==='credit'?'Cobro pendiente.':'Depósito por verificar.');
  return lines.join('\n');
 }
 function parseMoney(v){
@@ -179,7 +180,7 @@ function render(){
  const cash=$('nv-ce-v2-cash'),method=view.method.value;
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
- const guest=esInvitado()||enviarDomicilio(method);
+ const guest=esInvitado();
  const enviarPorWhatsApp=enviarDomicilio(method);
  $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
  apply.textContent=enviarPorWhatsApp?'Confirmar pedido y abrir WhatsApp':'Continuar';
@@ -311,7 +312,7 @@ function mount(){
  details.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.isComposing)return;
   if(event.repeat){event.preventDefault();return}
-  if(event.target===view.method && !esInvitado() && !enviarDomicilio('cash') && view.method.value==='cash'){
+  if(event.target===view.method && !esInvitado() && view.method.value==='cash'){
    event.preventDefault();cashInput.focus();cashInput.select();
   }else if(event.target===cashInput){
    event.preventDefault();render();
