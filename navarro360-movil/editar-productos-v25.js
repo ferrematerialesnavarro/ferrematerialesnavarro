@@ -108,8 +108,9 @@
   try{
    const image=await photo(form.elements.photo.files[0]);
    const result=await post({action:'edit',oldCode:editing.code,expectedVersion:editing.version,code,name,price,stock,cat,unit,photo:image});
-   // El código anterior queda como alias. No borramos carritos en curso.
+   // El código anterior queda como alias y el carrito migra al nuevo código.
    store()?.apply([result.product]);
+   if(editing.code!==code)store()?.migrate(editing.code,code);
    if(result.published){dialog.hidden=true;editing=null;window.NAVARRO_PUBLICOS_V25?.recargar();alert('Corrección guardada y enviada a la página pública. El cambio puede tardar en mostrarse.');}
    else{
     editing={code,version:result.product.updatedAt};
