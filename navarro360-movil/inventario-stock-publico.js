@@ -17,7 +17,8 @@
     const at=Date.parse(data.at);
     if(!Number.isFinite(at)||at>Date.now()+300000)throw Error('Fecha de existencias inválida');
     const rows=new Map();
-    for(const row of data.rows){if(!Array.isArray(row)||!/^\d{5,30}$/.test(row[0])||!Number.isFinite(row[1])||row[1]<0||rows.has(row[0]))throw Error('Existencias inválidas');rows.set(row[0],row[1]);}
+    for(const row of data.rows){if(Array.isArray(row)&&typeof row[0]==='string'&&row[0]&&Number.isFinite(row[1]))rows.set(row[0],row[1]);}
+    if(data.rows.length&&!rows.size)throw Error('Existencias inválidas');
     if(publicStock&&at<Date.parse(publicStock.at))throw Error('Existencias anteriores a la última consulta');
     publicStock={at:data.at,rows};
     publicFailed=false;
