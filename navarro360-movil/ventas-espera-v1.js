@@ -32,9 +32,10 @@ function resetMeta(){
 let dialog,entry,status,list,saveSale,saveQuote,busy=false;
 function say(s){status.textContent=s;}
 function print(d){
+ // Safari: quitar el diálogo del plano superior antes de abrir la impresión del sistema.
+ if(dialog.open)dialog.close();
  const result=window.NAVARRO_TICKET_DIRECTO_ESTADO?.imprimirPresupuesto?.(d);
- if(!result?.ok)say(result?.error||'Impresión no disponible. El presupuesto sigue guardado.');
- else say('Presupuesto guardado. Confirma la impresora en el menú del dispositivo.');
+ if(!result?.ok){say((result?.error||'Impresión no disponible.')+' El presupuesto sigue guardado.');if(!dialog.open)dialog.showModal();}
 }
 function save(kind){
  if(busy||!linked())return;
