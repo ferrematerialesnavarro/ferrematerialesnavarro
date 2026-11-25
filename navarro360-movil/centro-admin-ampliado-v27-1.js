@@ -71,7 +71,7 @@ const draftsBox=document.createElement('div');draftsBox.className='nv26-section'
 draftsBox.innerHTML='<h3>Correcciones propuestas</h3><p class="nv26-status">No alteran precios de venta, fotos ni códigos originales. La publicación y migración de códigos deben validarse antes.</p><div class="nv27-actions"><button class="nv27-btn" id="nv27-export" type="button">Exportar propuestas JSON</button><span id="nv27-drafts-count" class="nv26-status"></span></div><div id="nv27-draft-list"></div>';
 panel.appendChild(draftsBox);
 const inventory=section('nv27-inventario','Resumen del inventario');
-inventory.innerHTML+='<p class="nv26-status">Existencias del catálogo cargado; pueden estar desactualizadas. Para guardar un conteo debes utilizar Ajustar stock V22 en una caja autorizada.</p><div class="nv27-kpis"><div class="nv27-kpi"><small>Productos con existencia conocida</small><b id="nv27-stock-known">—</b></div><div class="nv27-kpi"><small>Productos en cero</small><b id="nv27-stock-zero">—</b></div><div class="nv27-kpi"><small>Menos de 5 unidades</small><b id="nv27-stock-low">—</b></div><div class="nv27-kpi"><small>Sin registro local</small><b id="nv27-stock-missing">—</b></div></div><div class="nv27-actions"><button type="button" id="nv27-search-stock" class="nv27-btn">Buscar para ajustar stock</button><button type="button" id="nv27-list-low" class="nv27-btn">Ver artículos con menos de 5</button></div><p class="nv26-status">La existencia puede variar entre cajas y clientes si no hay sincronización activa. Este resumen no representa un conteo en tiempo real.</p>';
+inventory.innerHTML+='<p class="nv26-status">Existencias de la misma fuente que la ficha de tienda; los indicadores cuentan únicamente datos recientes confirmados. Para guardar un conteo debes utilizar Ajustar stock V22 en una caja autorizada.</p><div class="nv27-kpis"><div class="nv27-kpi"><small>Productos con existencia conocida</small><b id="nv27-stock-known">—</b></div><div class="nv27-kpi"><small>Productos en cero</small><b id="nv27-stock-zero">—</b></div><div class="nv27-kpi"><small>Menos de 5 unidades</small><b id="nv27-stock-low">—</b></div><div class="nv27-kpi"><small>Sin registro local</small><b id="nv27-stock-missing">—</b></div></div><div class="nv27-actions"><button type="button" id="nv27-search-stock" class="nv27-btn">Buscar para ajustar stock</button><button type="button" id="nv27-list-low" class="nv27-btn">Ver artículos con menos de 5</button></div><p class="nv26-status">La existencia puede variar entre cajas y clientes si no hay sincronización activa. Este resumen no representa un conteo en tiempo real.</p>';
 const sales=section('nv27-ventas','Ventas y reportes del móvil');
 sales.innerHTML+='<p class="nv26-status">Estos datos proceden únicamente del historial guardado en ESTE navegador (hasta los últimos 100 tickets aceptados por Windows). No representan todas las sucursales ni confirman cobro bancario.</p><div class="nv27-kpis"><div class="nv27-kpi"><small>Tickets de hoy</small><b id="nv27-tickets">—</b></div><div class="nv27-kpi"><small>Marcado pagado hoy</small><b id="nv27-paid">—</b></div><div class="nv27-kpi"><small>Por cobrar hoy</small><b id="nv27-credit">—</b></div><div class="nv27-kpi"><small>Total de tickets hoy</small><b id="nv27-sales-total">—</b></div></div><div class="nv27-actions"><button id="nv27-sales-refresh" class="nv27-btn" type="button">Actualizar resumen</button><button id="nv27-reports-open" class="nv27-btn" type="button">Abrir Panel de Reportes Móvil</button></div><p id="nv27-sales-note" class="nv26-status"></p>';
 const perms=section('nv27-permisos','Dispositivos y permisos');
@@ -113,12 +113,9 @@ function rows(){
  const published=Array.isArray(external)?external.filter(x=>x&&/^\d{5,30}$/.test(String(x.code||''))&&typeof x.name==='string').map(x=>({code:String(x.code),name:x.name,price:Number(x.price),stock:Number(x.stock),origin:'alta',uid:x.uid||''})):[];
  return base.concat(published);
 }
-function stockOf(r){
- const existing=window.NAVARRO_EXISTENCIAS?.[r.code];
- if(r.origin==='alta')return Number.isFinite(r.stock)?r.stock:null;
- const v=Array.isArray(existing)?existing[0]:null;
- return Number.isFinite(v)?v:null;
-}
+let stockRead=()=>({stock:null,confirmed:false});
+function updateStockReader(){stockRead=window.NAVARRO_INVENTARIO_V22?.lectorExistencias?.()||(()=>({stock:null,confirmed:false}));}
+function stockOf(r){return stockRead(r.code).stock;}
 function text(parent,tag,value,klass){
  const el=document.createElement(tag);el.textContent=value;if(klass)el.className=klass;parent.appendChild(el);return el;
 }
@@ -133,6 +130,7 @@ function searchStore(code){
  $('products')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function renderCatalog(){
+ updateStockReader();
  const box=$('nv27-results');box.replaceChildren();
  const q=norm(term),words=q.split(' ').filter(Boolean);
  const listed=rows();
@@ -141,8 +139,8 @@ function renderCatalog(){
   const qty=stockOf(p);
   if(filter==='base'&&p.origin!=='base')continue;
   if(filter==='new'&&p.origin!=='alta')continue;
-  if(filter==='zero'&&qty!==0)continue;
-  if(filter==='low'&&(qty===null||qty>=5))continue;
+  if(filter==='zero'&&(qty!==0||!stockRead(p.code).confirmed))continue;
+  if(filter==='low'&&(qty===null||qty>=5||!stockRead(p.code).confirmed))continue;
   if(words.length&&!words.every(w=>norm(p.name+' '+p.code).includes(w)))continue;
   found.push(p);if(found.length>=120)break;
  }
@@ -151,7 +149,7 @@ function renderCatalog(){
   const row=document.createElement('div');row.className='nv27-row';
   text(row,'strong',p.name);
   const qty=stockOf(p);
-  text(row,'small',p.code+' · '+(Number.isFinite(p.price)?PRICE.format(p.price):'Precio sin confirmar')+' · '+(qty===null?'Existencia sin dato':'Última existencia: '+qty)+' · '+(p.origin==='base'?'Catálogo original':'Alta nueva'));
+  text(row,'small',p.code+' · '+(Number.isFinite(p.price)?PRICE.format(p.price):'Precio sin confirmar')+' · '+(qty===null?'Existencia sin dato':(stockRead(p.code).confirmed?'Disponible: ':'Última existencia: ')+qty)+' · '+(p.origin==='base'?'Catálogo original':'Alta nueva'));
   const actions=document.createElement('div');actions.className='nv27-actions';
   btn(actions,'Ver en tienda',()=>searchStore(p.code));
   if(p.origin==='base'){
@@ -221,10 +219,11 @@ $('nv27-export').addEventListener('click',()=>{
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(uri),3000);
 });
 function renderStock(){
+ updateStockReader();
  let known=0,zero=0,low=0;
  for(const p of ORIGINAL.values()){
   const qty=stockOf(p);
-  if(qty===null)continue;known++;if(qty===0)zero++;if(qty<5)low++;
+  if(qty===null||!stockRead(p.code).confirmed)continue;known++;if(qty===0)zero++;if(qty<5)low++;
  }
  $('nv27-stock-known').textContent=known.toLocaleString('es-MX');
  $('nv27-stock-zero').textContent=zero.toLocaleString('es-MX');
@@ -264,6 +263,7 @@ function beginReview(){
  if(!c?.impresora)reason='Sin impresora registrada en este navegador. Abre la aplicación desde el mismo icono donde está vinculada.';
  authorize().then(()=>{if(tab==='catalogo')renderCatalog();});
  refreshPublic();
+ window.NAVARRO_INVENTARIO_V22?.recargarTodo?.();
  renderSales();renderStock();renderPermissions();renderDrafts();
 }
 $('nv27-find').addEventListener('input',e=>{term=e.target.value.trim();renderCatalog();});
@@ -275,6 +275,7 @@ $('nv27-reports-open').addEventListener('click',()=>window.open('https://navarro
 $('nv27-verify').addEventListener('click',authorize);
 entry.addEventListener('click',()=>{beginReview();selectTab(tab);});
 window.addEventListener('pageshow',()=>{if(!$('nv26-sheet').hidden){beginReview();selectTab(tab);}});
+window.addEventListener('navarro:stock-refresh',()=>{if(!$('nv26-sheet').hidden){if(tab==='inventario')renderStock();if(tab==='catalogo')renderCatalog();}});
 selectTab('resumen');
 window.NAVARRO_CENTRO_AMPLIADO_V27=Object.freeze({version:'27.1',refresh:beginReview,estado:()=>({autorizado:allowed,caja:box||null,originales:ORIGINAL.size,publicados:external.length,propuestas:readDrafts().length})});
 })();

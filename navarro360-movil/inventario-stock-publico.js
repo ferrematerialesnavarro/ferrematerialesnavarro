@@ -23,14 +23,22 @@
     publicStock={at:data.at,rows};
     publicFailed=false;
    }catch{publicFailed=true;}
-   finally{publicLoading=null;paint();}
+   finally{publicLoading=null;paint();notifyStock();}
   })();
   return publicLoading;
  }
  const PAIR_KEY='navarro360_print_bridge_pair_v1';
  const DEVICE_KEY='navarro-inventario-device-v22';
  const BOXES=['COMPUTADORA','PABLO','DIANA','GOLI'];
- let overrides=new Map(),loading=null,verified=false,verifiedUrl='',box='';
+ let overrides=new Map(),loading=null,verified=false,verifiedUrl='',box='',windowsAt=null,windowsFailed=true,windowsUrl='';
+ function selectStock(code,privateRows,publicRows,base,meta){
+ const row=privateRows.get(code),pub=publicRows.get(code),fallback=base?.[code]?.[0];
+ const valid=x=>typeof x==='number'&&Number.isFinite(x);
+ const source=valid(row?.[1])?'windows':valid(pub)?'publico':valid(fallback)?'catalogo':'sin-dato';
+ const raw=source==='windows'?row[1]:source==='publico'?pub:source==='catalogo'?fallback:null;
+ const recent=source==='windows'?meta.windowsFresh:source==='publico'?meta.publicFresh:false;
+ return {stock:raw===null?null:Math.max(0,raw),source,confirmed:!!recent&&raw!==null&&raw>=0,negative:raw!==null&&raw<0,at:source==='windows'?row[3]||meta.windowsAt:source==='publico'?meta.publicAt:null,publicStock:valid(pub)?Math.max(0,pub):null,publicFresh:!!meta.publicFresh};
+}
  const codeRE=/^\d{5,30}$/;
  const uuidRE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
  const hexRE=/^[a-f0-9]{64}$/;
@@ -91,30 +99,30 @@
   box=result.box;verified=true;verifiedUrl=p.url;
   return box;
  }
+
+ function stockReader(){
+  const p=printer(),now=Date.now(),rows=p&&verified&&windowsUrl===p.url?overrides:new Map();
+  const meta={windowsAt,windowsFresh:!!windowsAt&&!windowsFailed&&now-Date.parse(windowsAt)<=120000,publicAt:publicStock?.at??null,publicFresh:!!publicStock&&!publicFailed&&now-Date.parse(publicStock.at)<=600000};
+  const pub=publicStock?.rows||new Map(),base=window.NAVARRO_EXISTENCIAS;
+  return code=>selectStock(String(code),rows,pub,base,meta);
+ }
  function paint(){
-  const eligible=!!printer();
-  const cached=publicStock&&Date.now()-Date.parse(publicStock.at)>600000;
-  const stockDate=publicStock?new Date(publicStock.at).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short',timeZone:'America/Mexico_City'}):STOCK_DATE;
+  const eligible=!!printer(),read=stockReader();
   document.querySelectorAll('[data-inventory-code]').forEach(el=>{
-   const code=el.dataset.inventoryCode,row=eligible?overrides.get(code):null;
-   const live=publicStock?.rows.get(code);
-   const amount=row?.[1]??live??window.NAVARRO_EXISTENCIAS?.[code]?.[0];
-   if(!Number.isFinite(amount)){el.textContent='Existencia por confirmar';return;}
-   const value=Math.max(0,amount).toLocaleString('es-MX',{maximumFractionDigits:6});
-   if(row){
-    el.textContent='Disponible: '+value+' · '+new Date(row[3]).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'});
-   }else{
-    const hasLive=Number.isFinite(live);
-    const prefix=hasLive&&!cached&&!publicFailed?'Disponible: ':'Última existencia registrada: ';
-    el.textContent=prefix+value+' · '+(hasLive?stockDate:STOCK_DATE);
-   }
+   const p=read(el.dataset.inventoryCode);
+   if(p.stock===null){el.textContent='Existencia por confirmar';return;}
+   const value=p.stock.toLocaleString('es-MX',{maximumFractionDigits:6});
+   const date=p.at&&Number.isFinite(Date.parse(p.at))?new Date(p.at).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'}):STOCK_DATE;
+   el.textContent=(p.confirmed?'Disponible: ':'Última existencia registrada: ')+value+' · '+date+(p.negative?' · verificar':'');
   });
   document.querySelectorAll('[data-inventory-edit]').forEach(el=>{el.hidden=!eligible;});
  }
+ function notifyStock(){window.dispatchEvent(new Event('navarro:stock-refresh'));}
  async function refresh(){
   if(loading)return loading;
   loading=(async()=>{
    await ensure();
+   const url=printer()?.url;
    let cursor=null;const incoming=new Map();
    do{
     const page=await post({action:'list',cursor});
@@ -122,8 +130,9 @@
     for(const row of page.rows)if(Array.isArray(row)&&codeRE.test(row[0])&&Number.isFinite(row[1]))incoming.set(row[0],row);
     cursor=page.cursor;
    }while(cursor!==null&&cursor!==undefined);
-   overrides=incoming;paint();
-  })().finally(()=>{loading=null;});
+   if(!url||printer()?.url!==url)throw Error('Cambió la vinculación');
+   overrides=incoming;windowsAt=new Date().toISOString();windowsUrl=url;windowsFailed=false;
+  })().catch(error=>{windowsFailed=true;throw error;}).finally(()=>{loading=null;paint();notifyStock();});
   return loading;
  }
  document.addEventListener('click',async event=>{
@@ -161,5 +170,5 @@
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

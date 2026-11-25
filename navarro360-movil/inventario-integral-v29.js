@@ -3,14 +3,14 @@ function inventoryCore(){
  const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z0-9]+/g,' ').trim();
  const validCode=s=>/^\d{1,30}$/.test(String(s))&&String(s)!=='00';
  const num=v=>typeof v==='number'&&Number.isFinite(v)?v:null;
- function combine(base,extra,stock,oldStock){
+ function combine(base,extra,read){
   const map=new Map();
   for(const r of base)if(Array.isArray(r)&&validCode(r[0])){const code=String(r[0]);map.set(code,{code,name:String(r[1]),price:num(r[2]),origin:'base'});}
   for(const p of extra)if(p&&validCode(p.code)&&!map.has(String(p.code)))map.set(String(p.code),{code:String(p.code),name:String(p.name),price:num(p.price),origin:'alta'});
-  for(const p of map.values()){const live=num(stock.get(p.code));const fallback=num(oldStock?.[p.code]?.[0]);p.stock=live??fallback;p.live=live!==null;}
+  for(const p of map.values())Object.assign(p,read(p.code));
   return [...map.values()];
  }
- function restock(rows,min,target){return rows.filter(p=>p.stock!==null&&p.stock<=min).map(p=>({...p,need:Math.max(0,Math.ceil((target-p.stock)*1000)/1000)})).sort((a,b)=>a.stock-b.stock||a.name.localeCompare(b.name));}
+ function restock(rows,min,target){return rows.filter(p=>p.confirmed===true&&p.stock!==null&&p.stock<=min).map(p=>({...p,need:Math.max(0,Math.ceil((target-p.stock)*1000)/1000)})).sort((a,b)=>a.stock-b.stock||a.name.localeCompare(b.name));}
  function similar(rows,name,code){
   const q=norm(name);if(q.length<4&&String(code||'').length<5)return [];
   const words=new Set(q.split(' ').filter(Boolean));
@@ -42,8 +42,8 @@ if(!sec&&!form)return;
 function rebuild(){
  const api=window.NAVARRO_INVENTARIO_V22;
  const snap=api?.consultaPublica?.();
- const stock=new Map(snap?.rows||[]);
- all=core.combine(base(),publicRows,stock,window.NAVARRO_EXISTENCIAS);
+ const read=api?.lectorExistencias?.()||(()=>({stock:null,confirmed:false,source:'sin-dato'}));
+ all=core.combine(base(),publicRows,read);
  return snap;
 }
 function recordPublic(next,at){
@@ -74,7 +74,7 @@ async function refresh(){
  publicRows=next;publicAt=state.actualizado;publicFresh=true;publicError='';
  recordPublic(next,publicAt||state.ultimaConsulta);
  }catch(e){publicError=String(e.message||'Sin conexión');}
- try{await window.NAVARRO_INVENTARIO_V22?.recargarPublico?.()}catch{}
+ try{await window.NAVARRO_INVENTARIO_V22?.recargarTodo?.()}catch{}
  finally{busy=false;rebuild();render();showSimilar();}
 }
 let area,status,stats,minField,targetField,search,filter,results,historyBox,more,actions;
@@ -83,17 +83,17 @@ function render(){
  if(!area)return;
  const ok=allowed();actions.hidden=!ok;status.textContent=ok?'Caja autorizada · '+(busy?'Consultando…':publicError||('Altas públicas: '+(publicFresh?'consulta correcta':'sin verificar')+' · '+(publicAt||'sin fecha'))):'Verifica la vinculación en Permisos para usar las herramientas.';
  if(!ok){stats.textContent='';results.replaceChildren();historyBox.replaceChildren();return;}
- const snap=rebuild(),fresh=!!snap?.at&&!snap.error&&Date.now()-Date.parse(snap.at)<=600000;
+ rebuild();
  const cfg=settings();const low=cfg?core.restock(all,cfg.min,cfg.target):[];
- const unknown=all.filter(p=>p.stock===null).length;
- stats.textContent=all.length.toLocaleString('es-MX')+' productos · '+all.filter(p=>p.stock===0).length+' agotados · '+low.length+' en nivel bajo o agotados · '+unknown+' sin existencia confirmada. '+(fresh?'Fuente pública consultada: '+new Date(snap.at).toLocaleString('es-MX'):'Existencias anteriores o sin conexión; verificar antes de comprar.')+' Los productos sin dato público usan el catálogo cargado.';
- const q=core.norm(search.value);let list=filter.value==='low'?low:filter.value==='zero'?all.filter(p=>p.stock===0):filter.value==='unknown'?all.filter(p=>p.stock===null):all;
+ const unknown=all.filter(p=>!p.confirmed).length;
+ stats.textContent=all.length.toLocaleString('es-MX')+' productos · '+all.filter(p=>p.confirmed&&p.stock===0).length+' agotados confirmados · '+low.length+' por resurtir · '+unknown+' por verificar. Misma fuente que la ficha: Windows de la caja vinculada, publicación pública y catálogo anterior, en ese orden. Solo existencias recientes y no negativas generan resurtido.';
+ const q=core.norm(search.value);let list=filter.value==='low'?low:filter.value==='zero'?all.filter(p=>p.confirmed&&p.stock===0):filter.value==='unknown'?all.filter(p=>!p.confirmed):all;
  if(q)list=list.filter(p=>core.norm(p.name+' '+p.code).includes(q));
  results.replaceChildren();if(!cfg)el('p','Introduce un mínimo válido y un objetivo mayor al mínimo.',results);
  for(const p of list.slice(0,limit)){
   const r=el('div',undefined,results);r.style.cssText='padding:10px 0;border-bottom:1px solid #dce5ec';
   el('strong',p.name+' · '+p.code,r);
-  el('p',(p.stock===null?'Existencia por confirmar':'Existencia: '+p.stock)+(p.live&&fresh?' · fuente pública reciente':' · verificar')+(p.need!==undefined?' · sugerido: '+p.need:''),r).style.margin='4px 0';
+  el('p',(p.stock===null?'Existencia por confirmar':'Existencia: '+p.stock)+(' · '+(p.source==='windows'?'Windows':p.source==='publico'?'Público':p.source==='catalogo'?'Catálogo anterior':'Sin fuente')+(p.confirmed?'':' · verificar'))+(p.source==='windows'&&p.publicFresh&&p.publicStock!==null&&p.publicStock!==p.stock?' · publicado: '+p.publicStock+' (diferente)':'')+(p.need!==undefined?' · sugerido: '+p.need:''),r).style.margin='4px 0';
   button('Buscar para ajustar stock',r,()=>{if(!allowed())return;$('nv26-close')?.click();const input=$('search')||$('search-mobile');if(input){input.value=p.code;input.dispatchEvent(new Event('input',{bubbles:true}));$('products')?.scrollIntoView({block:'start'});}});
  }
  more.hidden=list.length<=limit;more.textContent='Ver más ('+Math.min(limit,list.length)+' de '+list.length+')';
@@ -106,7 +106,7 @@ function download(name,content,type){const url=URL.createObjectURL(new Blob([con
 function csvCell(v){let s=String(v??'');if(/^[\s]*[=+\-@]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}
 if(sec){
  area=el('section',undefined,sec);area.id='nv29-inventory';area.style.cssText='margin-top:16px;padding:12px;border:1px solid #b7d9c8;border-radius:12px;background:#fff';
- el('h3','Inventario inteligente · V29',area);
+ el('h3','Inventario inteligente · V29.1',area);
  status=el('p','',area);status.setAttribute('role','status');
  stats=el('p','',area);
  actions=el('div',undefined,area);actions.hidden=true;
@@ -116,9 +116,9 @@ if(sec){
  minField=field('Alertar con existencia igual o menor a',saved.min??5);targetField=field('Objetivo de resurtido',saved.target??10);
  for(const f of [minField,targetField])f.addEventListener('change',()=>{if(!allowed())return;const x=settings();if(x&&!persist(SET,x))publicError='No se pudieron guardar los niveles.';limit=60;render()});
  button('Actualizar existencias y catálogo',actions,refresh);
- button('Descargar lista de resurtido CSV',actions,()=>{if(!allowed())return;const cfg=settings();if(!cfg)return;const snap=rebuild();const fresh=snap?.at&&!snap.error&&Date.now()-Date.parse(snap.at)<=600000;const lines=[['Código','Producto','Existencia','Cantidad sugerida','Fuente'],...core.restock(all,cfg.min,cfg.target).map(p=>[p.code,p.name,p.stock,p.need,p.live&&fresh?'Pública reciente':'Verificar existencia'])];download('navarro-resurtido.csv','\uFEFF'+lines.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8')});
+ button('Descargar lista de resurtido CSV',actions,()=>{if(!allowed())return;const cfg=settings();if(!cfg)return;rebuild();const lines=[['Código','Producto','Existencia','Cantidad sugerida','Fuente'],...core.restock(all,cfg.min,cfg.target).map(p=>[p.code,p.name,p.stock,p.need,p.source==='windows'?'Windows':'Pública reciente'])];download('navarro-resurtido.csv','\uFEFF'+lines.map(r=>r.map(csvCell).join(',')).join('\r\n'),'text/csv;charset=utf-8')});
  search=el('input',undefined,actions);search.type='search';search.placeholder='Buscar código o nombre';search.className='nv27-input';search.setAttribute('aria-label','Buscar inventario');
- filter=el('select',undefined,actions);filter.className='nv27-input';filter.setAttribute('aria-label','Filtrar inventario');for(const [v,label] of [['low','Por resurtir'],['zero','Agotados'],['unknown','Por confirmar'],['all','Todos']]){const o=el('option',label,filter);o.value=v;}
+ filter=el('select',undefined,actions);filter.className='nv27-input';filter.setAttribute('aria-label','Filtrar inventario');for(const [v,label] of [['low','Por resurtir'],['zero','Agotados'],['unknown','Por verificar'],['all','Todos']]){const o=el('option',label,filter);o.value=v;}
  for(const f of [search,filter])f.addEventListener('input',()=>{limit=60;render()});
  results=el('div',undefined,actions);more=button('Ver más',actions,()=>{limit+=60;render()});
  el('h3','Historial de cambios observados',actions);
@@ -130,6 +130,7 @@ if(sec){
  $('nv27-verify')?.addEventListener('click',()=>setTimeout(render,1500));
  setInterval(()=>{if(!document.hidden&&!$('nv26-sheet')?.hidden){if(allowed()&&publicFresh)recordPublic(publicRows,publicAt||window.NAVARRO_PUBLICOS_V25?.estado?.().ultimaConsulta);render()}},5000);
  window.addEventListener('online',()=>{if(!$('nv26-sheet')?.hidden)refresh()});
+ window.addEventListener('navarro:stock-refresh',()=>{if(!$('nv26-sheet')?.hidden)render()});
 }
 let similarBox,timer;
 function showSimilar(){
