@@ -1,4 +1,4 @@
-/* NAVARRO 360 V28: Alta de productos con recomendación de fotografías libres, cámara y galería. Protege el guardado V25. */
+/* NAVARRO 360 V28.1: Alta de productos con recomendación de fotografías libres, cámara y galería. Protege el guardado V25. */
 (()=>{'use strict';
  const PAIR_KEY='navarro360_print_bridge_pair_v1', DEVICE_KEY='navarro-inventario-device-v22';
  const BOXES=['Computadora','Pablo','Diana','Goli'];
@@ -275,6 +275,38 @@
    card.appendChild(label);card.addEventListener('click',()=>nv28Pick(p));nv28Results.appendChild(card);
   }
  }
+
+ /* Fuente alternativa cuando Openverse no encuentra resultados o se desconecta.
+    Solo se aceptan archivos de Wikimedia Commons marcados CC0/dominio público. */
+ async function nv28Commons(name){
+  const u=new URL('https://commons.wikimedia.org/w/api.php');
+  for(const [k,v] of Object.entries({
+   action:'query',format:'json',formatversion:'2',generator:'search',
+   gsrsearch:String(name).slice(0,90),gsrnamespace:'6',gsrlimit:'20',
+   prop:'imageinfo',iiprop:'url|extmetadata',iiurlwidth:'400',origin:'*'
+  }))u.searchParams.set(k,v);
+  const res=await fetch(u.href,{credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(9500)});
+  if(!res.ok)throw Error('Wikimedia Commons no respondió');
+  const json=await res.json(),pages=Array.isArray(json?.query?.pages)?json.query.pages:[];
+  return pages.map(page=>{
+   const item=page.imageinfo?.[0];if(!item)return null;
+   const file=String(page.title||'').replace(/^File:/i,'');
+   if(!/\.(?:jpe?g|png|webp)$/i.test(file))return null;
+   const meta=item.extmetadata||{};
+   const terms=String(meta.LicenseShortName?.value||meta.UsageTerms?.value||'');
+   const license=/\bcc0\b/i.test(terms)?'cc0':
+    /\bpublic\s+domain\b|\bPD(?:[-\s]|$)/i.test(terms)?'pdm':'';
+   if(!license)return null;
+   return {title:file,license,url:item.url,thumbnail:item.thumburl||item.url,tags:[]};
+  }).filter(Boolean);
+ }
+ function nv28Best(list,name){
+  return list.filter(p=>p&&['cc0','pdm'].includes(String(p.license||'').toLowerCase())&&
+   p.mature!==true&&(nv28SafeUrl(p.thumbnail)||nv28SafeUrl(p.url)))
+   .map(p=>({p,score:nv28PhotoScore(p,name)}))
+   .filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5).map(x=>x.p);
+ }
+
  async function nv28FindImages(manual){
   if(nv28Searching)return;
   const name=form.elements.name.value.trim();
@@ -291,23 +323,37 @@
    query.searchParams.set('license','cc0,pdm');
    query.searchParams.set('page_size','20');
    query.searchParams.set('mature','false');
-   const response=await fetch(query.href,{method:'GET',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(12000)});
+   const response=await fetch(query.href,{method:'GET',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(7500)});
    if(seq!==nv28Seq)return;
    if(!response.ok)throw Error(response.status===429?'Demasiadas búsquedas; usa Cámara o Galería.':'El buscador no está disponible ahora.');
    const content=await response.json();
    if(!Array.isArray(content.results))throw Error('Respuesta inválida de imágenes');
-   const scored=content.results.filter(p=>p&&['cc0','pdm'].includes(String(p.license||'').toLowerCase())&&p.mature!==true&&
-    (nv28SafeUrl(p.thumbnail)||nv28SafeUrl(p.url)))
-     .map(p=>({p,score:nv28PhotoScore(p,name)}))
-     .filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,5).map(x=>x.p);
+   let scored=nv28Best(content.results,name);
+   if(!scored.length){
+    nv28Notice('Buscando también en Wikimedia Commons...');
+    scored=nv28Best(await nv28Commons(name),name);
+   }
+   if(seq!==nv28Seq)return;
    if(!scored.length){
     nv28Notice('No encontramos fotos suficientemente relacionadas con licencia libre. Te recomendamos tomar una foto real de este producto.');
     return;
    }
    nv28RenderPhotos(scored,name);
-   nv28Notice('Encontramos '+scored.length+' opciones. La primera es la más relacionada por nombre; verifica marca, presentación y medidas.');
+   nv28Notice('Encontramos '+scored.length+' opciones de uso libre. Verifica marca, presentación y medidas.');
   }catch(e){
-   if(seq===nv28Seq)nv28Notice('No se pudieron buscar imágenes: '+String(e.message||'Sin conexión')+'. Puedes tomar una foto o elegir de tu galería.');
+   if(seq===nv28Seq){
+    try{
+     nv28Notice('Revisando otra fuente de fotos libres...');
+     const fallback=nv28Best(await nv28Commons(name),name);
+     if(seq!==nv28Seq)return;
+     if(fallback.length){
+      nv28RenderPhotos(fallback,name);
+      nv28Notice('Encontramos '+fallback.length+' fotografías en Wikimedia Commons. Comprueba que coincidan.');
+      return;
+     }
+    }catch(_){}
+    if(seq===nv28Seq)nv28Notice('No encontramos una foto reutilizable que coincida. Usa la cámara o galería; no se alteró tu producto.');
+   }
   }finally{nv28Searching=false;nv28Search.disabled=false;}
  }
  nv28Search.addEventListener('click',()=>nv28FindImages(true));
