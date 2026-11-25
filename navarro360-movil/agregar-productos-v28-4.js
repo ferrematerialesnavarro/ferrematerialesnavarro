@@ -339,7 +339,7 @@
   const words=nv28Tokens(name).filter(w=>!stop.has(w)&&!/^\d+$/.test(w));
   const generic=words.filter(w=>!nv28BrandNames.includes(w)&&w!=='master');
   const translated=generic.map(w=>nv28Translate[w]||({flexo:'tape measure',flexometro:'tape measure',cinta:'tape',llavero:'keychain',candado:'padlock',combinacion:'combination',lija:'sandpaper',broca:'drill'}[w])||w);
-  return [...new Set([String(name).slice(0,75),generic.slice(0,4).join(' '),translated.slice(0,3).join(' ')].filter(q=>q.length>=3))].slice(0,3);
+  return [...new Set([String(name).slice(0,75),translated.slice(0,3).join(' '),generic.slice(0,4).join(' ')].filter(q=>q.length>=3))].slice(0,3);
  }
  async function nv28SearchOpenverse(term){
   const query=new URL('https://api.openverse.org/v1/images/');
@@ -387,6 +387,7 @@
   const name=form.elements.name.value.trim();
   if(name.length<4){if(manual)nv28Notice('Escribe al menos cuatro letras del producto.');return;}
   const key=nv28Word(name);
+  if(nv28Searching&&key===nv28SearchKey)return;
   if(!manual&&key===nv28SearchKey)return;
   nv28SearchKey=key;
   const seq=++nv28Seq;
@@ -396,7 +397,7 @@
   nv28Results.hidden=true;nv28Results.replaceChildren();
   nv28Notice((localCount?'✓ '+localCount+' fotos similares disponibles. ':'')+'Buscando imágenes libres en internet…');
   let found=[],errors=0;
-  for(const query of nv28Variants(name).slice(0,2)){
+  for(const query of nv28Variants(name).slice(0,3)){
    if(seq!==nv28Seq||mask.hidden)return;
    const attempts=await Promise.allSettled([nv28SearchOpenverse(query),nv28Commons(query)]);
    if(seq!==nv28Seq||mask.hidden)return;
@@ -411,7 +412,7 @@
   if(seq!==nv28Seq||mask.hidden)return;
   if(found.length){
    nv28RenderPhotos(found,name);
-   nv28Notice('✓ '+found.length+' fotos de internet y '+localCount+' similares del catálogo. Compara marca y presentación.');
+   nv28Notice('✓ '+found.length+' fotos libres de internet'+(localCount?' y '+localCount+' similares del catálogo':'')+'. Compara marca y presentación.');
   }else{
    nv28Notice((errors?'No respondió alguna fuente de imágenes. ':'No encontramos fotos de dominio público con ese nombre. ')+
     (localCount?'Puedes elegir una de las fotos similares que aparecen debajo.':
