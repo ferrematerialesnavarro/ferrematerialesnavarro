@@ -28,6 +28,20 @@
  if(anchor)anchor.after(button);else document.body.appendChild(button);
  const status=document.createElement('div');status.setAttribute('role','status');status.style.cssText='font:12px system-ui;color:#805c24;margin:3px 7px';
  button.after(status);
+ const verify=document.createElement('button');verify.type='button';verify.id='nv285-verificar-publico';verify.hidden=true;verify.textContent='Comprobar catálogo público';verify.style.cssText=button.style.cssText;button.after(verify);
+ verify.addEventListener('click',async()=>{
+  if(!credentials()||verify.disabled)return;
+  verify.disabled=true;status.textContent='Consultando la misma fuente pública de los clientes…';
+  try{
+   const api=window.NAVARRO_PUBLICOS_V25;if(!api||!await api.recargar())throw Error(api?.estado()?.error||'No se pudo consultar');
+   const info=api.estado();const code=String(document.getElementById('search')?.value||'').trim();
+   const p=/^\d{5,30}$/.test(code)?api.verificar(code):null;
+   const when=Date.parse(info.ultimaConsulta);const hora=Number.isFinite(when)?new Date(when).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}):'';
+   const details=p?' · '+p.code+' '+p.name+' · '+p.price.toLocaleString('es-MX',{style:'currency',currency:'MXN'}):(/^\d{5,30}$/.test(code)?' · Código no encontrado en las altas públicas (puede pertenecer al catálogo original).':'');
+   status.textContent='Consulta pública correcta · '+info.total+' altas publicadas · '+hora+details;
+  }catch(e){status.textContent='No se pudo verificar la publicación: '+(e.message||'sin conexión');}
+  finally{verify.disabled=false;}
+ });
  const dialog=document.createElement('div');dialog.id='nv25-edit-mask';dialog.hidden=true;
  dialog.style.cssText='position:fixed;inset:0;background:#000b;z-index:2147483644;display:grid;place-items:center;padding:12px';
  const css=document.createElement('style');css.textContent='#nv25-edit-mask[hidden]{display:none!important}#nv25-edit-form{background:#fff;color:#183629;padding:18px;border-radius:15px;width:min(490px,100%);max-height:94vh;overflow:auto;font:14px system-ui}#nv25-edit-form label{display:block;margin:9px 0;font-weight:700}#nv25-edit-form input,#nv25-edit-form select{display:block;box-sizing:border-box;width:100%;padding:10px;border:1px solid #b9d2c6;border-radius:8px;font:15px system-ui;margin-top:5px}#nv25-edit-form button{padding:11px;border-radius:8px;border:1px solid #a8cbb8;font-weight:bold;margin:4px;color:#175b3d;background:#edf7f0}';
@@ -74,7 +88,7 @@
   }catch(e){status.textContent=e.message;}finally{busy=false;button.disabled=false;}
  });
  function editButtons(){
-  button.hidden=!credentials();
+  button.hidden=!credentials();verify.hidden=button.hidden;
   if(button.hidden)return;
   document.querySelectorAll('[data-card]').forEach(card=>{
    const code=card.dataset.card,p=store()?.get(code);
@@ -108,6 +122,7 @@
   try{
    const image=await photo(form.elements.photo.files[0]);
    const result=await post({action:'edit',oldCode:editing.code,expectedVersion:editing.version,code,name,price,stock,cat,unit,photo:image});
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Corrección aceptada por Windows',code,name,before:editing.code,after:code}}));
    // El código anterior queda como alias y el carrito migra al nuevo código.
    store()?.apply([result.product]);
    if(editing.code!==code)store()?.migrate(editing.code,code);

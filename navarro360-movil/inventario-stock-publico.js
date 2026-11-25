@@ -14,7 +14,13 @@
     if(!response.ok)throw Error('Existencias no disponibles');
     const data=await response.json();
     if(!Array.isArray(data.rows))throw Error('Existencias inválidas');
-    if(data.at&&Number.isFinite(Date.parse(data.at)))publicStock={at:data.at,rows:new Map(data.rows)};
+    const at=Date.parse(data.at);
+    if(!Number.isFinite(at)||at>Date.now()+300000)throw Error('Fecha de existencias inválida');
+    const rows=new Map();
+    for(const row of data.rows){if(Array.isArray(row)&&typeof row[0]==='string'&&row[0]&&Number.isFinite(row[1]))rows.set(row[0],row[1]);}
+    if(data.rows.length&&!rows.size)throw Error('Existencias inválidas');
+    if(publicStock&&at<Date.parse(publicStock.at))throw Error('Existencias anteriores a la última consulta');
+    publicStock={at:data.at,rows};
     publicFailed=false;
    }catch{publicFailed=true;}
    finally{publicLoading=null;paint();}
@@ -91,14 +97,16 @@
   const stockDate=publicStock?new Date(publicStock.at).toLocaleString('es-MX',{dateStyle:'short',timeStyle:'short',timeZone:'America/Mexico_City'}):STOCK_DATE;
   document.querySelectorAll('[data-inventory-code]').forEach(el=>{
    const code=el.dataset.inventoryCode,row=eligible?overrides.get(code):null;
-   const amount=row?.[1]??publicStock?.rows.get(code)??window.NAVARRO_EXISTENCIAS?.[code]?.[0];
+   const live=publicStock?.rows.get(code);
+   const amount=row?.[1]??live??window.NAVARRO_EXISTENCIAS?.[code]?.[0];
    if(!Number.isFinite(amount)){el.textContent='Existencia por confirmar';return;}
    const value=Math.max(0,amount).toLocaleString('es-MX',{maximumFractionDigits:6});
    if(row){
     el.textContent='Disponible: '+value+' · '+new Date(row[3]).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'});
    }else{
-    const prefix=publicStock&&!cached&&!publicFailed?'Disponible: ':'Última existencia registrada: ';
-    el.textContent=prefix+value+' · '+stockDate;
+    const hasLive=Number.isFinite(live);
+    const prefix=hasLive&&!cached&&!publicFailed?'Disponible: ':'Última existencia registrada: ';
+    el.textContent=prefix+value+' · '+(hasLive?stockDate:STOCK_DATE);
    }
   });
   document.querySelectorAll('[data-inventory-edit]').forEach(el=>{el.hidden=!eligible;});
@@ -129,7 +137,7 @@
    const code=button.dataset.inventoryEdit;
    if(!codeRE.test(code))throw Error('Código del producto no válido.');
    const row=overrides.get(code);
-   const before=row?.[1]??window.NAVARRO_EXISTENCIAS?.[code]?.[0]??null;
+   const before=row?.[1]??publicStock?.rows.get(code)??window.NAVARRO_EXISTENCIAS?.[code]?.[0]??null;
    const name=button.closest('[data-card]')?.querySelector('h3')?.textContent||code;
    const raw=prompt(name+' · '+code+'\nExistencia registrada: '+(before??'Sin dato')+'\nCantidad física contada:');
    if(raw===null)return;
@@ -139,6 +147,7 @@
    if(!confirm(name+'\n'+(before??'Sin dato')+' → '+qty+'\n¿Guardar el conteo de '+box+'?'))return;
    const version=crypto.randomUUID();
    await post({action:'count',code,qty,previous:row?.[2]??null,version});
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Conteo aceptado por Windows',code,name,before,after:qty,box}}));
    await refresh();alert('Existencia guardada en Windows y disponible para las cuatro cajas.');
   }catch(e){alert(e.message||'No se pudo guardar el conteo.');refresh().catch(()=>{});}
   finally{button.disabled=false;}
@@ -146,9 +155,11 @@
  const products=document.querySelector('#products');
  if(products)new MutationObserver(paint).observe(products,{childList:true});
  window.addEventListener('pageshow',()=>{paint();refreshPublic();if(printer())refresh().catch(()=>{});});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshPublic();if(printer())refresh().catch(()=>{});}});
+ window.addEventListener('online',()=>{refreshPublic();if(printer())refresh().catch(()=>{});});
  paint();
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

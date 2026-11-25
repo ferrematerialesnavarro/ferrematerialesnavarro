@@ -485,6 +485,7 @@
   try{
    const photo=nv28Data||await compress(form.elements.image.files[0]);
    const result=await request({action:'create',code,name,price,stock,cat,unit,photo});
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Alta aceptada por Windows',code,name,after:price}}));
    window.NAVARRO_NUEVOS_PRODUCTOS_V23?.apply([result.product]);
    if(result.published){
     mask.hidden=true;form.reset();preview.hidden=true;generated='';labelSvg='';
