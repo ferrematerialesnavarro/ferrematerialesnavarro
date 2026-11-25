@@ -128,7 +128,7 @@ let printing=false;
 function restoreAfterPrint(){
  if(!printing)return;
  printing=false;
- document.body.classList.remove('nv-direct-airprint');
+ document.body.classList.remove('nv-direct-airprint','nv-budget-print');
  const screen=$('nv-ticket-screen');
  if(screen){screen.hidden=true;screen.setAttribute('aria-hidden','true')}
 }
@@ -163,8 +163,10 @@ function printBudget(d){
  const items=rows.map(p=>'<div class="nv-ticket-item"><div class="nv-ticket-name">'+escapeHTML(p.name)+'</div><div class="nv-ticket-code">'+escapeHTML(p.id==='00000'?'00':p.id)+'</div><div class="nv-ticket-row"><span>'+escapeHTML(p.special?(p.id==='00000'?'Cantidad: 1 · Por importe':qtyFormat.format(p.qty)+' · Por importe'):qtyFormat.format(p.qty)+' × '+money(p.unit))+'</span><strong>'+money(p.total)+'</strong></div></div>').join('');
  paper.innerHTML='<header class="nv-ticket-brand"><div class="nv-ticket-namebrand">FERREMATERIALES<br><b>NAVARRO</b></div><div class="nv-ticket-contact">María Guadalupe Martínez de Hernández Loza 3386<br>WhatsApp: +52 56 3912 9040</div></header><div class="nv-ticket-rule"></div><div class="nv-ticket-center"><b>PRESUPUESTO</b><br>NO ES COMPROBANTE DE PAGO</div><div class="nv-ticket-meta">Folio: '+escapeHTML(d.id)+'</div><div class="nv-ticket-meta">Fecha: '+escapeHTML(dateFormat.format(date))+'</div>'+(d.client?'<div class="nv-ticket-meta">Cliente: '+escapeHTML(d.client)+'</div>':'')+(d.delivery?.phone?'<div class="nv-ticket-meta">Tel.: '+escapeHTML(d.delivery.phone)+'</div>':'')+'<div class="nv-ticket-rule"></div>'+items+'<div class="nv-ticket-rule"></div><div class="nv-ticket-row"><span>Subtotal</span><strong>'+money(d.subtotal)+'</strong></div>'+(d.flete?'<div class="nv-ticket-row"><span>Envío a domicilio</span><strong>'+money(d.flete)+'</strong></div>':'')+'<div class="nv-ticket-total"><span>TOTAL</span><b>'+money(d.subtotal+d.flete)+'</b></div>'+(d.delivery?.address?'<div class="nv-ticket-address">Dirección: '+escapeHTML(d.delivery.address)+'</div>':'')+'<div class="nv-ticket-center nv-ticket-small">Precios y existencias sujetos a confirmación al realizar la compra.</div><div class="nv-ticket-qr">'+qrSvg()+'</div><div class="nv-ticket-center nv-ticket-small">Gracias por su preferencia · NAVARRO 360</div>';
  paper.dataset.paper=$('nv-ticket-paper-size')?.value==='80'?'80':'58';
- printing=true;screen.hidden=false;document.body.classList.add('nv-direct-airprint');
- try{window.print();return {ok:true}}catch(e){restoreAfterPrint();return {ok:false,error:'No se pudo abrir la impresión del sistema.'}}
+ // El presupuesto debe estar realmente visible y dentro del área de impresión.
+ paper.dataset.paper='58';
+ printing=true;screen.hidden=false;screen.setAttribute('aria-hidden','false');document.body.classList.add('nv-budget-print');
+ try{paper.getBoundingClientRect();window.print();return {ok:true}}catch(e){restoreAfterPrint();return {ok:false,error:'No se pudo abrir la impresión del sistema.'}}
 }
 
 function mount(){
@@ -181,7 +183,8 @@ function mount(){
   '#nv-print-ticket-button,#nv-no-print{display:block;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;background:#205e40;color:white;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}',
   '#nv-print-ticket-button:active,#nv-no-print:active{transform:scale(.99)}',
   '#nv-ticket-screen[hidden]{display:none!important}',
-  'body.nv-direct-airprint #nv-ticket-screen{display:block!important;position:absolute!important;left:-10000px!important;top:0!important;inset:auto!important;width:54mm!important;max-width:54mm!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;pointer-events:none!important;visibility:hidden!important;box-shadow:none!important}',
+  '@media screen{body.nv-direct-airprint #nv-ticket-screen{display:block!important;position:absolute!important;left:-10000px!important;top:0!important;inset:auto!important;width:54mm!important;max-width:54mm!important;min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;pointer-events:none!important;visibility:hidden!important;box-shadow:none!important}}',
+  'body.nv-budget-print #nv-ticket-screen{display:flex!important;visibility:visible!important}',
   '#nv-ticket-screen{position:fixed;inset:0;z-index:2147483010;overflow-y:auto;background:#0b1e31db;display:flex;justify-content:center;align-items:flex-start;overscroll-behavior:contain;padding:12px 12px calc(24px + env(safe-area-inset-bottom,0px));box-sizing:border-box;-webkit-overflow-scrolling:touch}',
   '#nv-ticket-panel{width:100%;max-width:440px;background:#e9edeb;border-radius:15px;padding:13px;box-shadow:0 15px 45px #0006;box-sizing:border-box}',
   '.nv-ticket-toolbar{font:14px system-ui;color:#20362b}',
@@ -219,6 +222,11 @@ function mount(){
   '  #nv-ticket-paper{box-shadow:none!important;border:0!important;margin:0!important;padding:1mm!important;max-width:none!important;break-inside:auto!important;color:#000!important}',
   '  #nv-ticket-paper[data-paper="58"]{width:48mm!important;max-width:48mm!important;padding:1mm!important;font-size:13px!important}',
   '  .nv-ticket-item{break-inside:avoid!important}',
+  '  body.nv-budget-print{height:auto!important;min-height:0!important;width:48mm!important;max-width:48mm!important}',
+  '  body.nv-budget-print #nv-ticket-screen,body.nv-budget-print #nv-ticket-panel{display:block!important;visibility:visible!important;position:static!important;inset:auto!important;transform:none!important;width:48mm!important;max-width:48mm!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;border:0!important;background:white!important}',
+  '  body.nv-budget-print #nv-ticket-paper[data-paper="58"]{display:block!important;visibility:visible!important;position:static!important;transform:none!important;box-sizing:border-box!important;width:48mm!important;max-width:48mm!important;height:auto!important;min-height:0!important;margin:0!important;padding:1mm!important;font:12px/1.2 Arial,sans-serif!important;color:#000!important;background:#fff!important}',
+  '  body.nv-budget-print #nv-ticket-paper *{visibility:visible!important;color:#000!important}',
+  '  body.nv-budget-print .nv-ticket-item{padding:3px 0!important}body.nv-budget-print .nv-ticket-rule{margin:4px 0!important}body.nv-budget-print .nv-ticket-qr svg{width:23mm!important;height:23mm!important}',
   '}'
  ].join('\n');
  document.head.appendChild(style);
@@ -254,7 +262,7 @@ function mount(){
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();restoreAfterPrint()}
  },true);
  window.addEventListener('afterprint',restoreAfterPrint);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:8,imprimirPresupuesto:printBudget,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:9,imprimirPresupuesto:printBudget,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
