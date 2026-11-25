@@ -103,15 +103,28 @@
  function loadMotor(){
   if(window.Html5Qrcode)return Promise.resolve();
   if(library)return library;
+  const urls=[
+   'https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js',
+   'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js'
+  ];
   library=new Promise((resolve,reject)=>{
-   const existing=document.querySelector('script[data-nv28-2-motor]');
-   if(existing?.dataset.state==='error')existing.remove();
-   const el=document.createElement('script');
-   el.src=CDN;el.async=true;el.crossOrigin='anonymous';el.dataset.nv282Motor='1';
-   const timer=setTimeout(()=>{el.onload=null;el.onerror=null;reject(Error('El lector no cargó. Comprueba internet.'))},14000);
-   el.onload=()=>{clearTimeout(timer);if(window.Html5Qrcode)resolve();else reject(Error('No se pudo iniciar el motor de cámara.'));};
-   el.onerror=()=>{clearTimeout(timer);el.dataset.state='error';reject(Error('No se pudo descargar el lector de barras.'));};
-   document.head.appendChild(el);
+   let index=0,finished=false;
+   const next=()=>{
+    if(finished)return;
+    if(window.Html5Qrcode){finished=true;resolve();return;}
+    if(index>=urls.length){finished=true;reject(Error('No fue posible cargar ninguno de los dos motores principales. Verifica internet y vuelve a intentarlo.'));return;}
+    const script=document.createElement('script');
+    script.src=urls[index++];script.async=true;script.crossOrigin='anonymous';
+    let ended=false;
+    const timer=setTimeout(()=>{if(ended)return;ended=true;script.onload=null;script.onerror=null;next();},10500);
+    script.onload=()=>{
+     if(ended)return;ended=true;clearTimeout(timer);
+     if(window.Html5Qrcode){finished=true;resolve();}else next();
+    };
+    script.onerror=()=>{if(ended)return;ended=true;clearTimeout(timer);next();};
+    document.head.appendChild(script);
+   };
+   next();
   }).catch(e=>{library=null;throw e});
   return library;
  }
@@ -446,6 +459,9 @@
      try{await scanner.applyVideoConstraints({width:{ideal:1280},height:{ideal:720}});}catch(_){}
     }
     if(token!==epoch||overlay.hidden)return;
+    // Guía visual, añadida únicamente después de iniciar la transmisión.
+    let guide=$('nv28-3-guide');
+    if(!guide){guide=document.createElement('div');guide.id='nv28-3-guide';guide.setAttribute('aria-hidden','true');readerHost.appendChild(guide);}
     syncCameraControls();writeDiag();
     void startAlternative(token);
     readStatus('Lector avanzado activo. Centra las barras; puedes usar zoom, linterna o fotografía.');
