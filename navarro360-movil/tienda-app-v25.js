@@ -310,6 +310,55 @@ window.NAVARRO_CARRITO_EN_VIVO_V66=Object.freeze({
  }
 });
 
+
+/* V29.7: captura y recuperación de borradores con los importes reales en memoria. */
+window.NAVARRO_BORRADOR_CARRITO=Object.freeze({
+ capture(){
+  if(Object.keys(pendingExtraCart).length)throw Error('Espera a que carguen todos los productos del carrito.');
+  const prices=salePrices(),rows=Object.entries(cart).map(([id,qty])=>{
+   const p=dictionary.get(id),unit=unitCents(id,prices),total=Math.round(lineAmount(id,qty,prices)*100);
+   if(!p||!Number.isFinite(qty)||qty<=0||qty>9999||!Number.isSafeInteger(unit)||unit<=0||!Number.isSafeInteger(total)||total<=0)throw Error('Revisa el producto '+id);
+   return {id,name:p.name,qty,unit,total,special:importeFinal(id)>0};
+  });
+  return {cart:{...cart},clavos:{...clavoCents},importes:{...importesCents},prices:{...prices},rows,subtotal:rows.reduce((a,p)=>a+p.total,0)};
+ },
+ restore(d){
+  const isObj=x=>x&&typeof x==='object'&&!Array.isArray(x);
+  if(!isObj(d)||!isObj(d.cart)||Object.keys(pendingExtraCart).length)return {ok:false,reason:'Carrito no disponible'};
+  const next={};
+  for(const [id,qty] of Object.entries(d.cart)){
+   if(!/^\d{5,30}$/.test(id)||!dictionary.has(id)||typeof qty!=='number'||leerCantidad(String(qty))!==qty||(!esImporte(id)&&id!=='00000'&&!Number.isInteger(qty)))return {ok:false,reason:'Producto o cantidad no disponible: '+id};
+   next[id]=qty;
+  }
+  const clean=(obj,kind)=>{
+   const result={};
+   if(obj==null)return result;
+   if(!isObj(obj))throw Error('Importes inválidos');
+   for(const [id,n] of Object.entries(obj)){
+    if(!Object.hasOwn(next,id))continue;
+    if(!Number.isSafeInteger(n)||n<=0||n>99999999||(kind==='clavo'&&!esClavo(id))||(kind==='importe'&&id!=='00000'&&!esImporte(id)))throw Error('Importe no válido para '+id);
+    result[id]=n;
+   }
+   return result;
+  };
+  const prev={cart,clavoCents,importesCents,prices:salePrices()};
+  try{
+   const cl=clean(d.clavos,'clavo'),im=clean(d.importes,'importe'),pr=clean(d.prices,'precio');
+   if(Object.keys(pr).length&&!assignedRegister())throw Error('Vincula una caja para recuperar precios editados.');
+   if(next['00000']&&!im['00000'])throw Error('Falta importe de productos varios.');
+   cart=next;clavoCents=cl;importesCents=im;
+   localStorage.setItem(PRICE_KEY,JSON.stringify(pr));save();
+   const same=(key,expected)=>{const v=JSON.parse(localStorage.getItem(key)||'{}');return Object.keys(v).length===Object.keys(expected).length&&Object.entries(expected).every(([k,n])=>v[k]===n)};
+   if(!same('navarro_cart_v1',next)||!same(CLAVO_KEY,cl)||!same(IMPORTE_KEY,im)||!same(PRICE_KEY,pr))throw Error('No se confirmó el almacenamiento');
+   renderCart();renderProducts();return {ok:true};
+  }catch(e){
+   cart=prev.cart;clavoCents=prev.clavoCents;importesCents=prev.importesCents;
+   try{localStorage.setItem(PRICE_KEY,JSON.stringify(prev.prices));save();renderCart();renderProducts()}catch{}
+   return {ok:false,reason:e.message||'No se restauró el carrito'};
+  }
+ }
+});
+
 /* Escáner: no multiplica clavos, solicita importe. */
 window.NAVARRO_ESCANER_AGREGAR=function(rawCode){
  const code=String(rawCode||'').trim();

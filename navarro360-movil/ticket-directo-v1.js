@@ -152,6 +152,21 @@ function printTicket(){
   window.alert('Este navegador no pudo abrir AirPrint. Abre NAVARRO 360 en Safari para imprimir con Mobility Print.');
  }
 }
+
+function printBudget(d){
+ if(printing)return {ok:false,error:'Ya hay una impresión en curso.'};
+ const screen=$('nv-ticket-screen'),paper=$('nv-ticket-paper');
+ if(!screen||!paper||!d||!Array.isArray(d.rows)||!d.rows.length||!Number.isSafeInteger(d.subtotal)||!Number.isSafeInteger(d.flete))return {ok:false,error:'Presupuesto incompleto.'};
+ const rows=d.rows;
+ if(rows.some(p=>!p||typeof p.name!=='string'||!/^\d{5,30}$/.test(p.id)||!Number.isFinite(p.qty)||p.qty<=0||!Number.isSafeInteger(p.unit)||p.unit<=0||!Number.isSafeInteger(p.total)||p.total<=0)||rows.reduce((n,p)=>n+p.total,0)!==d.subtotal||![0,5000].includes(d.flete))return {ok:false,error:'Revisa los importes guardados.'};
+ const date=new Date(d.at);if(!Number.isFinite(date.getTime()))return {ok:false,error:'Fecha de presupuesto no válida.'};
+ const items=rows.map(p=>'<div class="nv-ticket-item"><div class="nv-ticket-name">'+escapeHTML(p.name)+'</div><div class="nv-ticket-code">'+escapeHTML(p.id==='00000'?'00':p.id)+'</div><div class="nv-ticket-row"><span>'+escapeHTML(p.special?(p.id==='00000'?'Cantidad: 1 · Por importe':qtyFormat.format(p.qty)+' · Por importe'):qtyFormat.format(p.qty)+' × '+money(p.unit))+'</span><strong>'+money(p.total)+'</strong></div></div>').join('');
+ paper.innerHTML='<header class="nv-ticket-brand"><div class="nv-ticket-namebrand">FERREMATERIALES<br><b>NAVARRO</b></div><div class="nv-ticket-contact">María Guadalupe Martínez de Hernández Loza 3386<br>WhatsApp: +52 56 3912 9040</div></header><div class="nv-ticket-rule"></div><div class="nv-ticket-center"><b>PRESUPUESTO</b><br>NO ES COMPROBANTE DE PAGO</div><div class="nv-ticket-meta">Folio: '+escapeHTML(d.id)+'</div><div class="nv-ticket-meta">Fecha: '+escapeHTML(dateFormat.format(date))+'</div>'+(d.client?'<div class="nv-ticket-meta">Cliente: '+escapeHTML(d.client)+'</div>':'')+(d.delivery?.phone?'<div class="nv-ticket-meta">Tel.: '+escapeHTML(d.delivery.phone)+'</div>':'')+'<div class="nv-ticket-rule"></div>'+items+'<div class="nv-ticket-rule"></div><div class="nv-ticket-row"><span>Subtotal</span><strong>'+money(d.subtotal)+'</strong></div>'+(d.flete?'<div class="nv-ticket-row"><span>Envío a domicilio</span><strong>'+money(d.flete)+'</strong></div>':'')+'<div class="nv-ticket-total"><span>TOTAL</span><b>'+money(d.subtotal+d.flete)+'</b></div>'+(d.delivery?.address?'<div class="nv-ticket-address">Dirección: '+escapeHTML(d.delivery.address)+'</div>':'')+'<div class="nv-ticket-center nv-ticket-small">Precios y existencias sujetos a confirmación al realizar la compra.</div><div class="nv-ticket-qr">'+qrSvg()+'</div><div class="nv-ticket-center nv-ticket-small">Gracias por su preferencia · NAVARRO 360</div>';
+ paper.dataset.paper=$('nv-ticket-paper-size')?.value==='80'?'80':'58';
+ printing=true;screen.hidden=false;document.body.classList.add('nv-direct-airprint');
+ try{window.print();return {ok:true}}catch(e){restoreAfterPrint();return {ok:false,error:'No se pudo abrir la impresión del sistema.'}}
+}
+
 function mount(){
  const drawer=$('drawer'),send=$('send-whatsapp'),bottom=send?.parentElement;
  if(!drawer||!send||!bottom)return;
@@ -239,7 +254,7 @@ function mount(){
   if(e.key==='Escape'&&!screen.hidden){e.preventDefault();e.stopImmediatePropagation();restoreAfterPrint()}
  },true);
  window.addEventListener('afterprint',restoreAfterPrint);
- window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:7,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
+ window.NAVARRO_TICKET_DIRECTO_ESTADO=Object.freeze({version:8,imprimirPresupuesto:printBudget,papelPredeterminado:'58mm',independienteDeWhatsApp:true,independienteDeSifo:true,borraCarrito:false,moneda:'MXN'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();
