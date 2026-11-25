@@ -179,6 +179,7 @@ function ensureEditDialog(){
   }
   editDialog.hidden=true;editId='';
   updateQuantity(id,Math.max(0,target));
+  finishMobileSearch();
  });
  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&editDialog&&!editDialog.hidden){e.preventDefault();e.stopImmediatePropagation();closeEdit()}},true);
  return editDialog;
@@ -201,6 +202,7 @@ function openEdit(id){
 function closeEdit(){
  if(!editDialog)return;
  editDialog.hidden=true;editId='';lastTap={code:'',at:0};
+ finishMobileSearch();
 }
 function insertCartButtons(){
  const container=el('cart-items');if(!container)return;
@@ -474,6 +476,53 @@ function rememberLastAdded(before,preferred){
  const chosen=increased.includes(preferred)?preferred:increased.length===1?increased[0]:null;
  if(chosen)try{sessionStorage.setItem(QUICK_LAST_KEY,chosen)}catch{}
 }
+
+// V29.2: búsqueda móvil consecutiva. Solo después de agregar realmente al carrito.
+// La pausa conserva el doble toque (420 ms) y no cambia la lógica de escaneo.
+let mobileSearchRevision=0,mobileSearchPending=null,mobileSearchTimer=0;
+function mobileSearchSnapshot(e,code){
+ const mobile=el('search-mobile'),desktop=el('search');
+ if(!e.isTrusted||!e.detail||!e.target.closest?.('#products')||!mobile?.getClientRects().length)return null;
+ const button=e.target.closest?.('button');
+ if(button&&!button.matches('[data-inc],[data-plus],[data-add],[data-importe-edit]')&&code!=='00000')return null;
+ if(button?.matches('[data-dec],[data-minus],[data-inventory-edit],[data-nv25-edit],.nav-v40-camera'))return null;
+ const query=String(mobile.value||desktop?.value||'').trim();
+ if(!query||/^[+-]\s*\d+$/.test(query))return null;
+ return {code,query,revision:mobileSearchRevision};
+}
+function forgetMobileSearch(){
+ clearTimeout(mobileSearchTimer);mobileSearchTimer=0;mobileSearchPending=null;
+}
+function finishMobileSearch(){
+ const pending=mobileSearchPending;
+ if(!pending)return;
+ if(editDialog&&!editDialog.hidden)return;
+ const mobile=el('search-mobile'),desktop=el('search');
+ if(!mobile||!desktop||pending.revision!==mobileSearchRevision||
+    mobile.value.trim()!==pending.query||desktop.value.trim()!==pending.query||
+    !(readCart()[pending.code]>0)){forgetMobileSearch();return;}
+ forgetMobileSearch();
+ mobile.value='';desktop.value='';
+ // Un único input actualiza resultados, botones y autocompletado en ambas barras.
+ desktop.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function scheduleMobileSearch(snapshot,before){
+ if(!snapshot||snapshot.revision!==mobileSearchRevision||!((readCart()[snapshot.code]||0)>(before[snapshot.code]||0)))return;
+ mobileSearchPending=snapshot;
+ clearTimeout(mobileSearchTimer);
+ mobileSearchTimer=setTimeout(finishMobileSearch,DOUBLE_MS+60);
+}
+function installMobileSearch(){
+ document.addEventListener('input',e=>{
+  if(!['search','search-mobile'].includes(e.target?.id))return;
+  mobileSearchRevision++;forgetMobileSearch();
+ },true);
+ // Si se toca la barra antes de que termine la pausa, queda libre inmediatamente.
+ const next=e=>{if(['search','search-mobile'].includes(e.target?.id))finishMobileSearch()};
+ document.addEventListener('pointerdown',next,true);
+ document.addEventListener('focusin',next,true);
+}
+
 function captureLastAddedClick(e){
  // Se escucha antes de que el carrito original procese la pulsación.
  const target=e.target;
@@ -483,8 +532,8 @@ function captureLastAddedClick(e){
  if(!validId(preferred))return;
  // No tomar como último agregado las pulsaciones de menos, eliminar, foto o lápiz.
  if(target.closest?.('button[data-dec],button[data-minus],button[data-nav-edit],button[data-nav-remove],button.nav-v40-camera'))return;
- const before=readCart();
- setTimeout(()=>rememberLastAdded(before,preferred),0);
+ const before=readCart(),mobileSnapshot=mobileSearchSnapshot(e,preferred);
+ setTimeout(()=>{rememberLastAdded(before,preferred);scheduleMobileSearch(mobileSnapshot,before)},0);
 }
 function quickTarget(cart){
  let last='';try{last=sessionStorage.getItem(QUICK_LAST_KEY)||''}catch{}
@@ -531,6 +580,7 @@ function init(){
  const items=el('cart-items');
  if(!items||!el('send-whatsapp')||!el('clear-cart'))return;
  initialized=true;
+ installMobileSearch();
  document.addEventListener('click',captureLastAddedClick,true);
  document.addEventListener('keydown',applySearchCommand,true);
  showQuickNotice();
