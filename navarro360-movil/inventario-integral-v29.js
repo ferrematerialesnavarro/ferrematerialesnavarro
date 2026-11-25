@@ -12,7 +12,7 @@ function inventoryCore(){
  }
  function restock(rows,min,target){return rows.filter(p=>p.stock!==null&&p.stock<=min).map(p=>({...p,need:Math.max(0,Math.ceil((target-p.stock)*1000)/1000)})).sort((a,b)=>a.stock-b.stock||a.name.localeCompare(b.name));}
  function similar(rows,name,code){
-  const q=norm(name);if(q.length<4&&!code)return [];
+  const q=norm(name);if(q.length<4&&String(code||'').length<5)return [];
   const words=new Set(q.split(' ').filter(Boolean));
   return rows.map(p=>{const n=norm(p.name),w=new Set(n.split(' ').filter(Boolean));const overlap=[...words].filter(x=>w.has(x)).length;const score=code&&p.code===code?2:n===q&&q?1:words.size>=2?overlap/(words.size+w.size-overlap):0;return {p,score};}).filter(x=>x.score>=.55).sort((a,b)=>b.score-a.score||a.p.name.localeCompare(b.p.name)).slice(0,6);
  }
@@ -56,10 +56,10 @@ function recordPublic(next,at){
  if(!persist(KEY,{last:next,at,history:[...delta.reverse(),...history].slice(0,500)}))publicError='No se pudo guardar el historial en este navegador.';
 }
 function observed(e){
- if(!allowed())return;
+ const inv=window.NAVARRO_INVENTARIO_V22?.estado?.();if(!allowed()&&!(inv?.impresora&&inv?.reconocido))return;
  const d=e.detail;if(!d||!core.validCode(d.code)||!['Alta aceptada por Windows','Corrección aceptada por Windows','Conteo aceptado por Windows'].includes(d.type))return;
  const old=read(KEY,{last:null,history:[]}),h=Array.isArray(old.history)?old.history:[];
- const event={at:new Date().toISOString(),code:String(d.code),name:String(d.name||d.code).slice(0,120),type:d.type,before:d.before,after:d.after,box:String(window.NAVARRO_CENTRO_AMPLIADO_V27.estado().caja)};
+ const event={at:new Date().toISOString(),code:String(d.code),name:String(d.name||d.code).slice(0,120),type:d.type,before:d.before,after:d.after,box:String(d.box||window.NAVARRO_CENTRO_AMPLIADO_V27?.estado?.().caja||inv?.caja||'Sin identificar')};
  if(!persist(KEY,{...old,history:[event,...h].slice(0,500)}))publicError='No se pudo guardar el historial en este navegador.';
 }
 window.addEventListener('navarro:v29:confirmed',observed);
@@ -128,7 +128,7 @@ if(sec){
  $('nv26-entry')?.addEventListener('click',()=>{render();refresh()});
  $('nv27-navigation')?.addEventListener('click',e=>{if(e.target.closest('[data-v27-tab="inventario"]')){render();refresh()}});
  $('nv27-verify')?.addEventListener('click',()=>setTimeout(render,1500));
- setInterval(()=>{if(!document.hidden&&!$('nv26-sheet')?.hidden){render()}},5000);
+ setInterval(()=>{if(!document.hidden&&!$('nv26-sheet')?.hidden){if(allowed()&&publicFresh)recordPublic(publicRows,publicAt||window.NAVARRO_PUBLICOS_V25?.estado?.().ultimaConsulta);render()}},5000);
  window.addEventListener('online',()=>{if(!$('nv26-sheet')?.hidden)refresh()});
 }
 let similarBox,timer;

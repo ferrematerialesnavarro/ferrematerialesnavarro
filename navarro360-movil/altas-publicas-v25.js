@@ -36,5 +36,5 @@
  window.addEventListener('online',update);
  window.addEventListener('pageshow',update);
  setInterval(()=>{if(!document.hidden)update();},60000);
- window.NAVARRO_PUBLICOS_V25=Object.freeze({version:25,recargar:update,estado:()=>({listo:ready,actualizado:lastTime,ultimaConsulta:lastSuccess,error:lastError,consultando:!!loading,total:publicRows.size}),verificar:(code)=>{const p=publicRows.get(String(code));return p?{code:p.code,name:p.name,price:p.price,stock:p.stock}:null;}});
+ window.NAVARRO_PUBLICOS_V25=Object.freeze({version:25,recargar:update,estado:()=>({listo:ready,actualizado:lastTime,ultimaConsulta:lastSuccess,error:lastError,consultando:!!loading,total:publicRows.size}),listar:()=>Array.from(publicRows.values(),p=>({...p})),verificar:(code)=>{const p=publicRows.get(String(code));return p?{code:p.code,name:p.name,price:p.price,stock:p.stock}:null;}});
 })();

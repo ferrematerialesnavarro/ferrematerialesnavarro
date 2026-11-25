@@ -147,6 +147,7 @@
    if(!confirm(name+'\n'+(before??'Sin dato')+' → '+qty+'\n¿Guardar el conteo de '+box+'?'))return;
    const version=crypto.randomUUID();
    await post({action:'count',code,qty,previous:row?.[2]??null,version});
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Conteo aceptado por Windows',code,name,before,after:qty,box}}));
    await refresh();alert('Existencia guardada en Windows y disponible para las cuatro cajas.');
   }catch(e){alert(e.message||'No se pudo guardar el conteo.');refresh().catch(()=>{});}
   finally{button.disabled=false;}
@@ -160,5 +161,5 @@
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

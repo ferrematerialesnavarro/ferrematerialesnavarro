@@ -122,6 +122,7 @@
   try{
    const image=await photo(form.elements.photo.files[0]);
    const result=await post({action:'edit',oldCode:editing.code,expectedVersion:editing.version,code,name,price,stock,cat,unit,photo:image});
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Corrección aceptada por Windows',code,name,before:editing.code,after:code}}));
    // El código anterior queda como alias y el carrito migra al nuevo código.
    store()?.apply([result.product]);
    if(editing.code!==code)store()?.migrate(editing.code,code);
