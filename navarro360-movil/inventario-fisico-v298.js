@@ -59,11 +59,19 @@ function product(raw){
 }
 function active(){return ready&&!busy&&!!doc&&activeBox()===box&&panel.open&&!$('nv26-sheet')?.hidden}
 function record(code,n,mode){if(!active())throw Error('Abre el conteo en una caja autorizada');const p=product(code);if(!p)throw Error('Código no registrado');const ref=api().referenciaConteo(p.code);const rows=core.update(doc.rows,p.code,p.name,n,mode,ref);store({...doc,rows});selected=p.code;render();return {ok:true};}
-async function start(){
- ready=false;const b=activeBox();if(!b){say('Verifica los permisos de tu caja.');render();return;}
- busy=true;render();
- try{await api().recargarTodo();if(activeBox()!==b)throw Error('Cambió la caja');box=b;doc=read(b);ready=true;say('Conteo local de '+b+'. Los ajustes solo se aplican al confirmar.');}
- catch(e){say(e.message)}finally{busy=false;render()}
+function start(){
+ if(busy)return;
+ const b=activeBox();if(!b){ready=false;say('Verifica los permisos de tu caja.');render();return;}
+ try{
+  // El borrador es local: no ocultar la cámara mientras Windows responde.
+  box=b;doc=read(b);ready=true;render();say('Conteo local de '+b+'. Consultando existencias…');
+  const current=doc.id;
+  Promise.resolve(api().recargarTodo()).then(()=>{
+   if(ready&&!busy&&box===b&&doc?.id===current&&panel.open) {
+    say('Los ajustes solo se aplican al confirmar.');if(field.value.trim().length>=2)lookup();
+   }
+  }).catch(()=>{if(ready&&box===b&&doc?.id===current)say('Sin conexión: puedes contar; verifica la existencia antes de ajustar.')});
+ }catch(e){ready=false;say(e.message||'No se pudo abrir el conteo');render()}
 }
 async function apply(r){
  if(!active()||r.done)return;
@@ -114,9 +122,15 @@ panel.style.cssText='margin:12px 0;padding:12px;border:1px solid #b7d9c8;border-
 el('summary','Inventario físico con escáner',panel).style.fontWeight='800';
 const status=el('p','Abre para cargar el conteo.',panel);status.setAttribute('role','status');
 const controls=el('div',undefined,panel);controls.hidden=true;
-btn('Escanear materiales',controls,()=>{if(active())window.NAVARRO_ESCANER_CONTEO?.()});
-const form=el('form',undefined,controls);const field=el('input',undefined,form);field.type='text';field.inputMode='search';field.autocomplete='off';field.placeholder='Nombre, medida o código de barras';field.className='nv27-input';field.setAttribute('aria-label','Buscar material para conteo por nombre o código');
-const submit=el('button','Buscar / sumar código',form);submit.type='submit';submit.className='nv27-btn';
+const form=el('form',undefined,controls);form.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0';
+const field=el('input',undefined,form);field.type='text';field.inputMode='search';field.autocomplete='off';field.placeholder='Nombre, medida o código';field.className='nv27-input';field.style.cssText='flex:1 1 140px;min-width:0;width:auto';field.setAttribute('aria-label','Buscar material para conteo por nombre o código');
+const camera=btn('📷 Escáner',form,()=>{
+ if(!active()){say('Abre el conteo en una caja autorizada.');return}
+ if(typeof window.NAVARRO_ESCANER_CONTEO!=='function'){say('No se cargó el escáner. Recarga la página con conexión.');return}
+ window.NAVARRO_ESCANER_CONTEO();
+});
+camera.id='nv298-camera';camera.style.cssText='flex:0 0 auto;background:#205e40;color:#fff;min-height:48px;min-width:100px;border:0;font-size:14px;white-space:nowrap';camera.setAttribute('aria-label','Abrir cámara del inventario físico');
+const submit=el('button','Buscar / sumar código',form);submit.type='submit';submit.className='nv27-btn';submit.style.cssText='flex:1 0 100%';
 const suggestions=el('div',undefined,controls);suggestions.setAttribute('aria-label','Coincidencias de materiales');suggestions.style.cssText='max-height:320px;overflow:auto';
 let searchTimer=0,searchLimit=15;
 function clearLookup(){clearTimeout(searchTimer);field.value='';suggestions.replaceChildren();searchLimit=15;}
@@ -159,8 +173,18 @@ filter.addEventListener('change',render);
 btn('Nuevo conteo',controls,()=>{if(!active())return;if(Object.values(doc.rows).some(r=>!r.done)){say('Confirma o quita los productos pendientes antes de iniciar otro conteo.');return;}if(!confirm('¿Archivar este conteo e iniciar otro?'))return;try{const k=key(box)+'-historial',raw=localStorage.getItem(k),old=raw?JSON.parse(raw):[];if(!Array.isArray(old))throw Error('Historial no válido');localStorage.setItem(k,JSON.stringify([doc,...old].slice(0,30)));store({id:crypto.randomUUID(),at:new Date().toISOString(),rows:{}});render();say('Nuevo conteo iniciado.')}catch(e){say(e.message)}});
 btn('Exportar historial y conteo',controls,()=>{if(!active())return;try{const raw=localStorage.getItem(key(box)+'-historial');const history=raw?JSON.parse(raw):[];const url=URL.createObjectURL(new Blob([JSON.stringify({box,actual:doc,historial:history},null,2)],{type:'application/json'}));const a=el('a',undefined,document.body);a.href=url;a.download='navarro-conteo-'+box+'.json';a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}catch(e){say(e.message)}});
 const results=el('div',undefined,controls);
-panel.addEventListener('toggle',()=>{if(panel.open)start();else{ready=false;clearLookup()}});
-setInterval(()=>{const b=activeBox();panel.hidden=!b;if(box&&b!==box){ready=false;doc=null;box=null;clearLookup();panel.open=false;render()}},1500);
+panel.addEventListener('toggle',()=>{if(panel.open){if(!ready)start()}else{ready=false;clearLookup()}});
+let entered=false;
+function syncEntry(){
+ const b=activeBox(),visible=!!b&&!area.hidden&&!$('nv26-sheet')?.hidden;
+ panel.hidden=!b;
+ if(box&&b!==box){ready=false;doc=null;box=null;clearLookup();panel.open=false;entered=false;render()}
+ if(!visible){entered=false;return}
+ if(!entered){entered=true;panel.open=true;if(!ready)start();}
+}
+$('nv27-navigation')?.addEventListener('click',()=>setTimeout(syncEntry,0));
+setInterval(syncEntry,350);
+setTimeout(syncEntry,0);
 window.NAVARRO_CONTEO_FISICO=Object.freeze({activo:active,buscar:product,sumar:code=>record(code,1,'sum')});
 render();
 })();
