@@ -85,11 +85,12 @@ function put(box,type,r){if(caja()!==box)throw Error('Caja sin autorización');c
  }
  function sameRecord(a,b,type){return a.box===b.box&&(type==='cliente'?a.name===b.name&&a.phone===b.phone:a.customer===b.customer&&a.cents===b.cents&&(type==='venta'||a.method===b.method)&&new Date(a.at).toISOString()===new Date(b.at).toISOString())}
  function moveBody(r,type){return {action:'movimiento',record:{id:r.id,customer:r.customer,kind:type,cents:r.cents,method:type==='venta'?'credit':r.method,ticket:type==='venta'?r.id:null,at:r.at}}}
+ function fresh(){const ctx=context();return !!(ctx&&ctx.key===remoteKey&&remote&&Date.now()-lastSync<30000&&!lastError)}
  function refreshNotice(){
   const e=$('nv30-sync-status');if(!e)return;
-  const ctx=context(),fresh=ctx&&ctx.key===remoteKey&&remote&&Date.now()-lastSync<30000&&!lastError;
-  e.textContent=(syncing?'Sincronizando con Windows…':fresh?'✓ Base compartida conectada':lastError?'Sin conexión o pendiente de revisión: '+lastError:'Esperando conexión con Windows.')+(failedPayment?' · '+failedPayment:'');
-  e.style.color=fresh?'#205e40':'#9a4c12';
+  const connected=fresh();
+  e.textContent=(syncing?'Sincronizando con Windows…':connected?'✓ Base compartida conectada':lastError?'Sin conexión o pendiente de revisión: '+lastError:'Esperando conexión con Windows.')+(failedPayment?' · '+failedPayment:'');
+  e.style.color=connected?'#205e40':'#9a4c12';
  }
  async function sync(){
   const ctx=context();
@@ -99,7 +100,9 @@ function put(box,type,r){if(caja()!==box)throw Error('Caja sin autorización');c
   syncing=(async()=>{
    const check=await request(ctx,{action:'check'});if(check.version!==30)throw Error('Versión de puente no compatible.');
    // Primero registrar los clientes de esta caja; no fusionar homónimos.
-   let data=await snapshot(ctx);
+   let data=await snapshot(ctx);current(ctx);
+   // Recuperar tickets locales asociados a clientes de otras cajas tras reconectar.
+   const prior=remote;remote=data;remoteKey=ctx.key;recover(ctx.box);
    for(const type of ['cliente','venta','abono']){
     const known=new Map(data[type].map(x=>[x.id,x]));
     for(const r of list(ctx.box,type).sort((a,b)=>String(a.at).localeCompare(String(b.at)))){
@@ -116,15 +119,15 @@ function put(box,type,r){if(caja()!==box)throw Error('Caja sin autorización');c
     try{
      const result=await request(ctx,moveBody(r,'abono'));
      if(result.id!==r.id)throw Error('Respuesta de abono incorrecta.');
-     put(ctx.box,'abono',r);localStorage.removeItem(pendingKey(ctx.box));
+     put(ctx.box,'abono',r);if(localStorage.getItem(pendingKey(ctx.box))===pending)localStorage.removeItem(pendingKey(ctx.box));
      failedPayment='Abono confirmado por Windows.';
     }catch(e){
-     if(e.status===409&&e.message==='El abono supera el saldo actual'){localStorage.removeItem(pendingKey(ctx.box));failedPayment='Abono rechazado: el saldo cambió. No se registró.';}
+     if(e.status===409&&e.message==='El abono supera el saldo actual'){if(localStorage.getItem(pendingKey(ctx.box))===pending)localStorage.removeItem(pendingKey(ctx.box));failedPayment='Abono rechazado: el saldo cambió. No se registró.';}
      else throw e;
     }
    }
    data=await snapshot(ctx);current(ctx);
-   const changed=JSON.stringify(data)!==JSON.stringify(remote);
+   const changed=JSON.stringify(data)!==JSON.stringify(prior);
    remote=data;remoteKey=ctx.key;lastSync=Date.now();lastError='';
    if(changed&&area?.dataset.v27Active==='yes'&&!working&&!area.contains(document.activeElement))renderAdmin();
    return true;
@@ -163,7 +166,7 @@ function refreshChoices(box){
  select.value=selected||'';
 }
 function balance(box,id){return c.balances(merged(box,'venta'),merged(box,'abono'),id)}
-function showBalance(){if(!notice)return;try{notice.textContent=selected&&checkoutBox?(lastSync&&Date.now()-lastSync<30000?'Saldo compartido: ':'Saldo pendiente de verificar: ')+money(balance(checkoutBox,selected).saldo):'La venta normal por cobrar sigue disponible sin expediente.'}catch(e){notice.textContent=e.message}}
+function showBalance(){if(!notice)return;try{notice.textContent=selected&&checkoutBox?(fresh()?'Saldo compartido: ':'Saldo pendiente de verificar: ')+money(balance(checkoutBox,selected).saldo):'La venta normal por cobrar sigue disponible sin expediente.'}catch(e){notice.textContent=e.message}}
 function renderCheckout(method){
  if(!ensureCheckout())return;
  const box=caja();wrap.hidden=method!=='credit'||!box;
@@ -172,7 +175,7 @@ function renderCheckout(method){
 }
 function bindCheckout(method){
  if(method!=='credit'){clear();return}
- const box=caja();if(!selected||!box||checkoutBox!==box)return;
+ const box=caja();if(!selected)return;if(!box||checkoutBox!==box)throw Error('La caja del cliente cambió. Selecciona nuevamente el expediente.');
  const r=getClient(box,selected);if(!r)throw Error('El cliente seleccionado ya no existe.');
  const field=$('nv-ticket-client');if(field)field.value=r.name;
 }
@@ -215,7 +218,9 @@ async function pay(box,id,amountField,methodField){
  working=true;
  try{await navigator.locks.request(base(box)+'abonos',async()=>{
   if(caja()!==box)throw Error('Cambió la caja.');
+  const oldPending=!!localStorage.getItem(pendingKey(box));
   if(!await sync())throw Error('No se confirmó el saldo en Windows. No se registró otro abono.');
+  if(oldPending)throw Error('Se revisó el abono pendiente. Consulta el historial antes de registrar otro.');
   if(localStorage.getItem(pendingKey(box)))throw Error('Hay un abono pendiente de confirmar. Pulsa Sincronizar.');
   const b=balance(box,id);if(!c.paymentAllowed(cents,b.saldo,method))throw Error('El importe supera el saldo compartido.');
   if(!confirm('¿Registrar abono recibido de '+money(cents)+' por '+methodName(method)+'? No es una venta nueva.'))return;
@@ -238,7 +243,7 @@ function renderAdmin(){
   const all=clients(box),sales=merged(box,'venta'),payments=merged(box,'abono');
   const total=sales.reduce((n,x)=>n+x.cents,0)-payments.reduce((n,x)=>n+x.cents,0);
   const today=totalsDay(c.day(Date.now()),box);
-  area.querySelector('#nv299-summary').textContent='Saldo '+(lastSync&&Date.now()-lastSync<30000?'compartido':'por verificar')+': '+money(total)+' · '+all.length+' clientes';
+  area.querySelector('#nv299-summary').textContent='Saldo '+(fresh()?'compartido':'por verificar')+': '+money(total)+' · '+all.length+' clientes';
   area.querySelector('#nv299-incoming').textContent='Abonos de hoy: '+money(today.total)+' · Efectivo '+money(today.cash)+' · Tarjeta '+money(today.card)+' · Transferencia '+money(today.transfer);
   rows.replaceChildren();
   const q=term.value.trim().toLocaleLowerCase('es-MX');
