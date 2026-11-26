@@ -30,7 +30,7 @@ function notaPedido(){
  try{if(paymentConfirmation.tag!==fingerprint())return ''}catch{return ''}
  return {card:'IMPORTANTE: llevar terminal para el cobro.',transfer:'Transferencia pendiente de verificar.',cash:'Cobrar en efectivo al entregar.'}[paymentConfirmation.requested]||'';
 }
-function clearPayment(){paymentConfirmation=null;}
+function clearPayment(){paymentConfirmation=null;window.NAVARRO_CLIENTES_V299?.clear?.();}
 function confirmedMethodForTicket(job){
  if(!paymentConfirmation||!job)return null;
  try{
@@ -181,6 +181,7 @@ function render(){
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
  const guest=esInvitado();
+ window.NAVARRO_CLIENTES_V299?.renderCheckout?.(method);
  const enviarPorWhatsApp=enviarDomicilio(method);
  $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
  apply.textContent=enviarPorWhatsApp?'Confirmar pedido y abrir WhatsApp':'Continuar';
@@ -327,6 +328,7 @@ function mount(){
   if(submitting)return;
   render();
   if(continueButton.disabled)return;
+  try{window.NAVARRO_CLIENTES_V299?.bindCheckout?.(view.method.value)}catch(e){announce(e.message,true);return;}
   if(enviarDomicilio(view.method.value)){
    const message=textoPedido(quote(),view.method.value);
    submitting=true;continueButton.disabled=true;details.inert=true;

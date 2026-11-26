@@ -34,7 +34,7 @@ function validJob(job){
  const date=new Date(job.at||Date.now());
  return {v:1,jobId:job.jobId,at:isNaN(date.getTime())?new Date().toISOString():date.toISOString(),
    rows,subtotal,flete,state:['pagado','cobrar'].includes(job.state)?job.state:'none',
-   client:clean(job.client,100),phone:clean(job.phone,30),address:clean(job.address,260)};
+   client:clean(job.client,100),phone:clean(job.phone,30),address:clean(job.address,260),...(job.state==='cobrar'&&typeof job.creditClientId==='string'&&/^[0-9a-z-]{8,80}$/i.test(job.creditClientId)&&['COMPUTADORA','PABLO','DIANA','GOLI'].includes(job.creditBox)?{creditClientId:job.creditClientId,creditBox:job.creditBox}:{})};
 }
 function load(){
  try{
@@ -47,6 +47,7 @@ function persist(arr){
 }
 function record(job,paymentMethod){
  const fixed=validJob(job);if(!fixed)return false;
+ if(fixed.creditClientId){try{if(window.NAVARRO_CLIENTES_V299?.record?.(fixed)!==true)throw Error('registro pendiente');}catch(e){window.alert('Venta recibida. No se pudo asociar el crédito ahora; conserva el ticket y revisa Clientes antes de registrar abonos.');}}
  const all=load();if(all.some(x=>x.job.jobId===fixed.jobId))return true;
  const entry={job:fixed,paymentMethod:normalizeMethod(fixed.state,paymentMethod),receivedAt:new Date().toISOString(),copies:0,source:'cola_windows'};
  const next=[entry,...all].slice(0,MAX);

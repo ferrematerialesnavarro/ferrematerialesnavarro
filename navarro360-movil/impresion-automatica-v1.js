@@ -166,8 +166,9 @@ function buildTicket(){
  const hasFreight=rows.some(r=>r.id==='7777000010');
  const flete=hasFreight?0:(info?Number(info.flete)||0:($('nv-ticket-flete')?.checked?5000:0));
  if(flete!==0&&flete!==5000)throw Error('El flete no es válido');
+ const chosen=window.NAVARRO_CLIENTES_V299?.selection?.(payment);
  return {v:1,jobId:crypto.randomUUID(),at:new Date().toISOString(),
-   rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:[nota,String($('nv-credit-ref')?.value||'').trim()].filter(Boolean).join(' · ').slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
+   ...(chosen?{creditClientId:chosen.id,creditBox:chosen.box}:{}),rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:[nota,String($('nv-credit-ref')?.value||'').trim()].filter(Boolean).join(' · ').slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
 }
 const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
 function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
@@ -343,6 +344,8 @@ async function confirmGuestOrder(method){
  busy=true;
  try{
   const job=buildTicket(),version=saleVersion();
+  const creditChoice=pair&&method==='credit'?window.NAVARRO_CLIENTES_V299?.selection?.('cobrar'):null;
+  if(creditChoice){job.creditClientId=creditChoice.id;job.creditBox=creditChoice.box;}else{delete job.creditClientId;delete job.creditBox;}
   const labels={cash:'Efectivo al entregar',card:'Llevar terminal para cobrar',transfer:'Transferencia por verificar',credit:'Método por definir'};
   if(!labels[method])throw Error('Selecciona una forma de pago.');
   const record={caja:assignedBox()||'SIN_ASIGNAR',vendedor:reportSeller(),estado:'cobrar',metodo:'credit',reference:labels[method],address:job.address,phone:job.phone,subtotal:job.subtotal,flete:job.flete,rows:job.rows.map(({id,name,qty,unit,total})=>({id,name,qty,unit,total}))};
@@ -490,7 +493,7 @@ async function autoPrint(event){
   const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
-   body:JSON.stringify({...job,saleMeta}),signal:ctrl.signal
+   body:JSON.stringify({...job,creditClientId:undefined,creditBox:undefined,saleMeta}),signal:ctrl.signal
   });
   let result={};try{result=await response.json()}catch(_){}
   if(!response.ok||!result.ok)throw Error(result.error||'No se pudo enviar el ticket a Windows');

@@ -79,11 +79,13 @@ function calculate(day){
  const record=getDay(day),cash=cashTickets(day);
  let ins=0,outs=0;
  for(const m of record.moves){if(m.kind==='in')ins+=m.cents;else outs+=m.cents}
+ const credit=window.NAVARRO_CLIENTES_V299?.totalsDay?.(day)||{cash:0};
+ ins+=credit.cash;
  const opening=record.initial??0;
  const expected=opening+cash.cents+ins-outs;
  const difference=record.counted===null?null:record.counted-expected;
  return {day,initial:record.initial,counted:record.counted,moves:record.moves,
-  cash:cash.cents,tickets:cash.count,income:ins,expense:outs,expected,difference};
+  cash:cash.cents,tickets:cash.count,income:ins,creditCash:credit.cash,expense:outs,expected,difference};
 }
 let modal=null,loadedDay='';
 function msg(s,bad=false){
@@ -105,7 +107,7 @@ function render(){
  }
  $('nv-arq-opening').textContent=r.initial===null?'Sin registrar':money(r.initial);
  $('nv-arq-tickets').textContent=money(r.cash)+' · '+r.tickets+' tickets';
- $('nv-arq-ins').textContent=money(r.income);
+ $('nv-arq-ins').textContent=money(r.income)+(r.creditCash?' · Abonos '+money(r.creditCash):'');
  $('nv-arq-outs').textContent=money(r.expense);
  $('nv-arq-expected').textContent=money(r.expected);
  $('nv-arq-counted-saved').textContent=r.counted===null?'Pendiente de contar':money(r.counted);
