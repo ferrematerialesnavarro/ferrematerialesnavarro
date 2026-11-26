@@ -40,7 +40,7 @@ function searchPhysical(raw,base,extras,engine){
 (function(){
 'use strict';
 const core=physicalCore(),$=id=>document.getElementById(id),api=()=>window.NAVARRO_INVENTARIO_V22;
-const area=$('nv29-inventory');if(!area)return;
+const area=$('nv27-inventario');if(!area)return;
 const boxes=['COMPUTADORA','PABLO','DIANA','GOLI'];
 const activeBox=()=>{const a=window.NAVARRO_CENTRO_AMPLIADO_V27?.estado?.(),i=api()?.estado?.();return a?.autorizado&&i?.impresora&&boxes.includes(a.caja)?a.caja:null};
 const key=b=>'navarro360-conteo-fisico-v298-'+b;
@@ -107,7 +107,9 @@ function render(){
   }
  }
 }
-const panel=el('details',undefined,area);panel.id='nv298-physical';panel.hidden=true;
+const panel=el('details');panel.id='nv298-physical';panel.hidden=true;
+// Primer acceso de Inventario, antes del resumen y los listados.
+area.prepend(panel);
 panel.style.cssText='margin:12px 0;padding:12px;border:1px solid #b7d9c8;border-radius:10px;background:#f4faf6';
 el('summary','Inventario físico con escáner',panel).style.fontWeight='800';
 const status=el('p','Abre para cargar el conteo.',panel);status.setAttribute('role','status');
