@@ -92,6 +92,7 @@ try{
  }
 }catch{}
 const importeFinal=id=>esClavo(id)?clavoImporte(id):((importesCents[id]||0)/100);
+const officialPrices=new Map();
 const PRICE_KEY='navarro360_precio_caja_activa_v1';
 function salePrices(){try{return JSON.parse(localStorage.getItem(PRICE_KEY)||'{}')||{}}catch{return {}}}
 function assignedRegister(){
@@ -179,7 +180,7 @@ function renderProducts(){
  const elActive=category==='Electricidad'&&!search.trim();
  if(plomeria)plomeria.render(plActive);
  if(electricidad)electricidad.render(elActive);
- const results=productResults();q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;
+ const results=productResults().map(p=>({...p,price:dictionary.get(p.id)?.price??p.price}));q('#listing-title').textContent=elActive&&electricidad?electricidad.title():plActive&&plomeria?plomeria.title():search?'Resultados de búsqueda':category==='Todos'?'Productos destacados':category==='Construcción'?(subcat==='Todos'?'Materiales para construcción':subcat):category==='Herramientas'&&subcat!=='Todos'?subcat:category;
  q('#results-info').textContent=search.trim()&&nameMatches>results.length?('Mostrando '+results.length+' de '+nameMatches+' productos · Refina la búsqueda o muestra más'):results.length+' producto'+(results.length===1?'':'s')+' · Consulta el catálogo';q('#no-results').hidden=results.length>0||plActive||elActive; if(plActive&&plomeria)q('#results-info').textContent=plomeria.intro();if(elActive&&electricidad)q('#results-info').textContent=electricidad.intro();q('#search-more-wrap').hidden=!(search.trim()&&nameMatches>results.length);
  q('#products').innerHTML=results.map(p=>{
  const n=cart[p.id]||0;
@@ -445,7 +446,7 @@ window.NAVARRO_NUEVOS_PRODUCTOS_V23=Object.freeze({
   for(const p of rows){
    if(!p||typeof p!=='object')continue;
    const id=String(p.code||''),name=String(p.name||'').trim();
-   const price=Number(p.price),stock=Number(p.stock);
+   const price=officialPrices.has(id)?officialPrices.get(id)/100:Number(p.price),stock=Number(p.stock);
    if(!/^\d{5,30}$/.test(id)||name.length<3||!Number.isFinite(price)||price<=0||!Number.isFinite(stock)||stock<0)continue;
    if(dictionary.has(id)&&!nv23Products.has(id))continue;
    const cat=categories.includes(p.cat)?p.cat:'Todos';
@@ -508,6 +509,18 @@ window.NAVARRO_NUEVOS_PRODUCTOS_V23=Object.freeze({
   const i=publicList.findIndex(p=>p.id===id);if(i>=0)publicList.splice(i,1);
   delete cart[id];delete pendingExtraCart[id];
   save();renderProducts();renderCart();return true;
+ }
+});
+window.NAVARRO_PRECIOS_CATALOGO=Object.freeze({
+ get:id=>{const p=dictionary.get(String(id));return p?{id:p.id,name:p.name,cents:Math.round(p.price*100)}:null},
+ apply(rows){
+  let changed=false;const raw=new Map(LIST.map(p=>[String(p[0]),p]));const featured=new Map(publicList.map(p=>[p.id,p]));
+  for(const [id,cents] of rows){
+   officialPrices.set(id,cents);
+   const p=dictionary.get(id);if(!p||Math.round(p.price*100)===cents)continue;
+   p.price=cents/100;if(raw.has(id))raw.get(id)[2]=p.price;if(featured.has(id))featured.get(id).price=p.price;if(nv23Products.has(id))nv23Products.get(id).price=p.price;changed=true;
+  }
+  if(changed){renderProducts();renderCart();}
  }
 });
 q('#year').textContent=new Date().getFullYear();renderFilters();renderProducts();save();

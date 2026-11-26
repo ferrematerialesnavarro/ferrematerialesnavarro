@@ -251,6 +251,7 @@ function resetPrintedSale(job,version,printed=true){
   status('✓ Ticket recibido. El carrito cambió durante la impresión y se conservó.',false);
   return;
  }
+ try{window.NAVARRO_PRECIOS_OFICIALES?.afterSale?.(job,read('navarro360_precio_caja_activa_v1'))}catch(e){status('Venta recibida. No se pudo guardar la decisión de precios; revisa el almacenamiento.',true);}
  const clear=$('clear-cart');
  if(!clear||typeof clear.click!=='function'){
   status('✓ Ticket recibido, pero no se pudo vaciar el carrito. Usa Vaciar carrito.',true);
