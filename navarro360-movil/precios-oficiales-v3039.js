@@ -72,7 +72,27 @@ async function editCard(id,b){
  await setPrice(id,cents,{id:crypto.randomUUID(),expected:version(id)});alert('Precio guardado en Windows. Se sincronizará con las demás cajas y clientes.');
  }catch(e){alert(e.message)}finally{working=false;b.disabled=false;showNext()}
 }
-function buttons(){const eligible=!!creds();document.querySelectorAll('#products article[data-card]').forEach(card=>{const id=card.dataset.card;if(!codeOK(id))return;let b=card.querySelector('[data-nv3039-price]');if(!b&&eligible){b=document.createElement('button');b.type='button';b.dataset.nv3039Price=id;b.textContent='✎ Precio oficial';b.style.cssText='width:100%;padding:7px;min-height:38px;border:1px solid #a9cbb2;border-radius:8px;background:#edf7ef;color:#205e40;font:750 13px system-ui';(card.querySelector('.product-info')||card).append(b)}if(b&&b.hidden===eligible)b.hidden=!eligible;});}
+function buttons(){
+ const eligible=!!creds();
+ document.querySelectorAll('#products article[data-card]').forEach(card=>{
+  const id=card.dataset.card;if(!codeOK(id))return;
+  const price=card.querySelector('.product-bottom .price');if(!price)return;
+  let button=card.querySelector('[data-nv3039-price]');
+  if(!eligible){if(button)button.hidden=true;return;}
+  let row=price.parentElement;
+  if(!row.classList.contains('nv3039-price-row')){
+   row=document.createElement('div');row.className='nv3039-price-row';
+   price.before(row);row.append(price);
+  }
+  if(!button){
+   button=document.createElement('button');button.type='button';button.dataset.nv3039Price=id;
+   button.textContent='✎';button.title='Modificar precio oficial';
+   button.setAttribute('aria-label','Modificar precio oficial de '+(api()?.get(id)?.name||id));
+  }
+  if(button.parentElement!==row)row.append(button);
+  if(button.hidden)button.hidden=false;
+ });
+}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-nv3039-price]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();void editCard(b.dataset.nv3039Price,b)},true);
 const root=$('products');if(root)new MutationObserver(buttons).observe(root,{childList:true});
 window.NAVARRO_PRECIOS_OFICIALES=Object.freeze({afterSale,refresh,estado:()=>({revision:latest.revision,puente:remoteOK,publicado:mirrorRevision>=latest.revision})});
