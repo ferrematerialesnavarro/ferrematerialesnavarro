@@ -168,6 +168,6 @@ function mountAdmin(){
 }
 window.NAVARRO_CLIENTES_V299=Object.freeze({renderCheckout,bindCheckout,selection,clear,record,totalsDay,renderAdmin});
 let lastActive=false,lastBox=null;
-setInterval(()=>{mountAdmin();const box=caja(),isActive=!!area&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden;if(isActive&&(!lastActive||box!==lastBox))renderAdmin();if(!box&&area){area.querySelector('#nv299-private').hidden=true;rows.replaceChildren()}lastActive=isActive;lastBox=box;if($('nv-ce-v2')?.open)renderCheckout($('nv-ce-v2-method')?.value)},600);
+setInterval(()=>{mountAdmin();const box=caja(),isActive=!!area&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden;if(isActive&&(!lastActive||box!==lastBox))renderAdmin();if(!box&&area){area.querySelector('#nv299-private').hidden=true;rows.replaceChildren()}lastActive=isActive;lastBox=box;if($('nv-ce-v2')&&!$('nv-ce-v2').hidden)renderCheckout($('nv-ce-v2-method')?.value)},600);
 window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)&&area?.dataset.v27Active==='yes')renderAdmin()});
 })();

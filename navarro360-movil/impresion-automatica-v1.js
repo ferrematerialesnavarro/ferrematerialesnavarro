@@ -417,6 +417,7 @@ function finishWithoutPrint(){
  if(busy)return;
  busy=true;
  try{
+  window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion?.();
   const job=buildTicket(), version=saleVersion();
   if(job.state==='none')throw Error('Elige PAGADO o POR COBRAR antes de finalizar.');
   const guard='navarro-finalizada-sin-impresion';
@@ -467,7 +468,7 @@ function setupReports(button){
   if(!reportsWindow||reportsWindow.closed||!reportsReady){controls.querySelector('button').click();return;}
   reportDelivery=null;flushReport();
  });
- button.parentElement.insertBefore(controls,button.nextSibling);
+ button.parentElement.insertBefore(controls,button);
  flushReport();
 }
 
@@ -478,7 +479,7 @@ async function autoPrint(event){
  if(busy)return;
  const button=$('nv-print-ticket-button');
  let job;
- try{job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
+ try{window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion?.();job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
  const version=saleVersion();
  // La forma de pago se toma ANTES del envío; NO se añade al trabajo
  // de Windows para conservar el protocolo de la POS-58-Series.
