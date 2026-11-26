@@ -34,7 +34,7 @@ function product(raw){
  for(const c of options){const r=window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(c);if(r)return {code:c,name:r.name};const p=window.NAVARRO_DB?.find(x=>String(x[0])===c);if(p)return {code:c,name:String(p[1])};}
  return null;
 }
-function active(){return ready&&!busy&&!!doc&&activeBox()===box&&panel.open}
+function active(){return ready&&!busy&&!!doc&&activeBox()===box&&panel.open&&!$('nv26-sheet')?.hidden}
 function record(code,n,mode){if(!active())throw Error('Abre el conteo en una caja autorizada');const p=product(code);if(!p)throw Error('Código no registrado');const ref=api().referenciaConteo(p.code);const rows=core.update(doc.rows,p.code,p.name,n,mode,ref);store({...doc,rows});selected=p.code;render();return {ok:true};}
 async function start(){
  ready=false;const b=activeBox();if(!b){say('Verifica los permisos de tu caja.');render();return;}

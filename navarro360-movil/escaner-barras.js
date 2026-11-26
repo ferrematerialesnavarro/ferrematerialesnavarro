@@ -431,6 +431,7 @@ async function open(mode=false){
  }
  ensureOverlay();
  inventoryMode=mode===true;
+ overlay.style.zIndex=inventoryMode?'2147483646':'';
  overlay.querySelector('.nav-scan-head strong').textContent=inventoryMode?'📷 Inventario físico · Solo conteo':'📷 Escáner continuo · iPhone V8';
  overlay.querySelector('.nav-scan-help').textContent=inventoryMode?'Cada código distinto suma una unidad al borrador. Para repetir el mismo producto, pulsa +1. No se modifica el carrito ni las existencias.':'Si la cámara no reconoce las barras, usa una foto o escribe el código. Cada código válido suma una unidad. La cámara permanece abierta para el siguiente producto.';
  var token=++session;
