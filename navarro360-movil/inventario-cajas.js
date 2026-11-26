@@ -30,14 +30,15 @@
   if(device){
    try{await request({...device,action:'check'});return device;}catch(e){if(e.status!==403)throw e;}
   }
-  const box=prompt('Nombre de tu caja: COMPUTADORA, PABLO, DIANA o GOLI')?.trim().toUpperCase();
-  if(!box)return;
-  if(!['COMPUTADORA','PABLO','DIANA','GOLI'].includes(box))throw Error('Selecciona una de las cuatro cajas.');
-  const activation=prompt('Pega el código de un solo uso que generaste para '+box+' en Inventario de las cajas del panel privado.')?.trim();
-  if(!activation)return;
-  device={box,key:crypto.randomUUID()};
-  localStorage.setItem(storage,JSON.stringify(device));
-  await request({...device,action:'activate',activation});return device;
+  const assigned=JSON.parse(localStorage.getItem('navarro-ventas-equipo')||'null')?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||device?.box||'';
+  const box=String(assigned).trim().toUpperCase();
+  if(!['COMPUTADORA','PABLO','DIANA','GOLI'].includes(box))throw Error('Este navegador no tiene asignada una de las cuatro cajas de inventario.');
+  if(!device||device.box!==box){
+   device={box,key:crypto.randomUUID()};
+   localStorage.setItem(storage,JSON.stringify(device));
+  }
+  const {reference}=await request({...device,action:'request'});
+  throw Error('Caja '+box+' detectada. Referencia '+reference+'. Autoriza este equipo una vez en Inventario de las cajas del panel y vuelve a tocar Ajustar stock.');
  }
  document.addEventListener('click',async event=>{
   const button=event.target.closest('[data-inventory-edit]');if(!button)return;
