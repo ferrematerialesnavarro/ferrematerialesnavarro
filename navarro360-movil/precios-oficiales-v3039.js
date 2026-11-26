@@ -22,7 +22,7 @@ const current=id=>latest.rows.find(r=>r[0]===id)?.[1]??api()?.get(id)?.cents;
 async function setPrice(id,cents,request){
  const c=creds();if(!c)throw Error('Solo una caja reconocida puede cambiar el precio oficial.');
  if(!codeOK(id)||!Number.isSafeInteger(cents)||cents<1||cents>99999999)throw Error('Precio inválido.');
- const result=await post(c,{action:'set',code:id,cents,expected:request.expected,id:request.id});accept(result);apply(true);return result;
+ const result=await post(c,{action:'set',code:id,cents,expected:request.expected,id:request.id});if(!accept(result)&&result.revision>=latest.revision)throw Error('Respuesta de precios en conflicto. Revisa la sincronización.');if(cartEmpty())apply();else{const row=latest.rows.find(r=>r[0]===id);if(row)api()?.apply([row]);applied=-1;}return result;
 }
 function afterSale(job,prices){
  const c=creds();if(!c||!job?.jobId)return;
@@ -72,9 +72,9 @@ async function editCard(id,b){
  await setPrice(id,cents,{id:crypto.randomUUID(),expected:version(id)});alert('Precio guardado en Windows. Se sincronizará con las demás cajas y clientes.');
  }catch(e){alert(e.message)}finally{working=false;b.disabled=false;showNext()}
 }
-function buttons(){const eligible=!!creds();document.querySelectorAll('#products article[data-card]').forEach(card=>{const id=card.dataset.card;if(!codeOK(id))return;let b=card.querySelector('[data-nv3039-price]');if(!b&&eligible){b=document.createElement('button');b.type='button';b.dataset.nv3039Price=id;b.textContent='✎ Precio oficial';b.style.cssText='width:100%;padding:7px;min-height:38px;border:1px solid #a9cbb2;border-radius:8px;background:#edf7ef;color:#205e40;font:750 13px system-ui';(card.querySelector('.product-info')||card).append(b)}if(b)b.hidden=!eligible;});}
+function buttons(){const eligible=!!creds();document.querySelectorAll('#products article[data-card]').forEach(card=>{const id=card.dataset.card;if(!codeOK(id))return;let b=card.querySelector('[data-nv3039-price]');if(!b&&eligible){b=document.createElement('button');b.type='button';b.dataset.nv3039Price=id;b.textContent='✎ Precio oficial';b.style.cssText='width:100%;padding:7px;min-height:38px;border:1px solid #a9cbb2;border-radius:8px;background:#edf7ef;color:#205e40;font:750 13px system-ui';(card.querySelector('.product-info')||card).append(b)}if(b&&b.hidden===eligible)b.hidden=!eligible;});}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-nv3039-price]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();void editCard(b.dataset.nv3039Price,b)},true);
 const root=$('products');if(root)new MutationObserver(buttons).observe(root,{childList:true});
 window.NAVARRO_PRECIOS_OFICIALES=Object.freeze({afterSale,refresh,estado:()=>({revision:latest.revision,puente:remoteOK,publicado:mirrorRevision>=latest.revision})});
-apply();buttons();void refresh();setInterval(()=>{if(!document.hidden){apply();buttons();showNext()}},1500);setInterval(()=>{if(!document.hidden)void refresh()},20000);window.addEventListener('online',refresh);window.addEventListener('pageshow',refresh);
+apply(true);buttons();void refresh();setInterval(()=>{if(!document.hidden){apply();buttons();showNext()}},1500);setInterval(()=>{if(!document.hidden)void refresh()},20000);window.addEventListener('online',refresh);window.addEventListener('pageshow',refresh);
 })();
