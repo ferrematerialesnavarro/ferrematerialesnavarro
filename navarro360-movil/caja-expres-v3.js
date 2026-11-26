@@ -295,8 +295,8 @@ function mount(){
 
    '<p id="nv-ce-v2-alert" role="status"></p>'+
   '</section>';
- const finalControls=$('nv-no-print')?.parentElement;
- print.parentElement.insertBefore(details,finalControls?.parentElement===print.parentElement?finalControls:print);
+ const first=$('nv-credit-ref-label')||$('nv-no-print')||print;
+ print.parentElement.insertBefore(details,first.parentElement===print.parentElement?first:print);
  root=details;view={method:$('nv-ce-v2-method')};
  const style=document.createElement('style');style.id='nv-ce-v2-styles';
  style.textContent=[

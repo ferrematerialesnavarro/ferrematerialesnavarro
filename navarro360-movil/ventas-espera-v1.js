@@ -111,11 +111,11 @@ function sync(){
 }
 function mount(){
  if(entry)return true;
- const confirmCart=$('nv-confirmar-carrito');if(!confirmCart||!api()||!delivery()?.snapshot)return false;
+ const print=$('nv-print-ticket-button');if(!print||!api()||!delivery()?.snapshot)return false;
  entry=make('button','Guardar / recuperar');entry.type='button';entry.id='nv-draft-entry';entry.hidden=true;
- confirmCart.after(entry);
+ print.after(entry);
  const style=make('style',undefined,document.head);
- style.textContent='#nv-draft-entry{display:block;width:100%;min-height:42px;margin:0 0 8px;border:1px solid #b7d1c1;border-radius:10px;background:#edf5ef;color:#215c3c;font:750 13px system-ui}#nv-draft-entry[hidden]{display:none!important}#nv-draft-dialog{position:fixed;inset:0;margin:auto;width:min(90vw,420px);max-height:82dvh;overflow:auto;border:1px solid #c5d9ca;border-radius:14px;padding:15px;background:white;color:#183b29;font:14px system-ui}#nv-draft-dialog::backdrop{background:#132a2280}#nv-draft-dialog h3{margin:6px 0 10px}#nv-draft-dialog button{min-height:42px;border:1px solid #c6d9ce;border-radius:9px;background:#edf5ef;color:#20563b;font:750 13px system-ui;padding:7px 10px;margin:3px}#nv-draft-dialog button:disabled{opacity:.45}#nv-draft-dialog .nv-draft-primary{background:#205e40;color:white;width:calc(100% - 6px)}.nv-draft-row{padding:9px 0;border-top:1px solid #dce6de}.nv-draft-row small{display:block;margin:4px 0;color:#53675c}';
+ style.textContent='#nv-draft-entry{display:block;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;background:#205e40;color:white;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}#nv-draft-entry[hidden]{display:none!important}#nv-draft-dialog{position:fixed;inset:0;margin:auto;width:min(90vw,420px);max-height:82dvh;overflow:auto;border:1px solid #c5d9ca;border-radius:14px;padding:15px;background:white;color:#183b29;font:14px system-ui}#nv-draft-dialog::backdrop{background:#132a2280}#nv-draft-dialog h3{margin:6px 0 10px}#nv-draft-dialog button{min-height:42px;border:1px solid #c6d9ce;border-radius:9px;background:#edf5ef;color:#20563b;font:750 13px system-ui;padding:7px 10px;margin:3px}#nv-draft-dialog button:disabled{opacity:.45}#nv-draft-dialog .nv-draft-primary{background:#205e40;color:white;width:calc(100% - 6px)}.nv-draft-row{padding:9px 0;border-top:1px solid #dce6de}.nv-draft-row small{display:block;margin:4px 0;color:#53675c}';
  dialog=make('dialog',undefined,document.body);dialog.id='nv-draft-dialog';
  make('h3','Ventas guardadas y presupuestos',dialog);
  saveSale=button('Guardar venta',dialog,()=>save('venta'));saveSale.className='nv-draft-primary';

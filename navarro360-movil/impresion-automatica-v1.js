@@ -448,7 +448,7 @@ function setupReports(button){
  controls.appendChild(collections);
  refLabel.appendChild(ref);
  controls.appendChild(refLabel);
- const syncRef=()=>{refLabel.hidden=$('nv-ticket-status')?.value!=='cobrar';};
+ const syncRef=()=>{const method=$('nv-ce-v2-method');refLabel.hidden=method?method.value!=='credit':$('nv-ticket-status')?.value!=='cobrar';};
  document.addEventListener('change',syncRef);
  document.addEventListener('input',syncRef);
  syncRef();
@@ -464,12 +464,23 @@ function setupReports(button){
   reportsTimer=setInterval(flushReport,4000);
   flushReport();
  });
- controls.querySelector('#nv-no-print').addEventListener('click',finishWithoutPrint);
+ const finish=controls.querySelector('#nv-no-print');
+ finish.textContent='Terminar sin imprimir';finish.addEventListener('click',finishWithoutPrint);
  controls.querySelector('#nv-report-retry').addEventListener('click',()=>{
   if(!reportsWindow||reportsWindow.closed||!reportsReady){controls.querySelector('button').click();return;}
   reportDelivery=null;flushReport();
  });
- button.parentElement.insertBefore(controls,button);
+ const host=button.parentElement;
+ // Mantener tres acciones consecutivas; referencia antes, configuración y avisos después.
+ refLabel.style.cssText='display:block;margin:8px 0;font:13px system-ui;color:#195233';
+ ref.style.cssText='display:block;width:100%;box-sizing:border-box;min-height:40px;border:1px solid #b7d1c1;border-radius:9px;padding:8px;font:16px system-ui';
+ refLabel.id='nv-credit-ref-label';
+ host.insertBefore(refLabel,button);
+ host.insertBefore(finish,button);
+ const settings=$('nv-printer-settings');
+ if(settings?.parentElement===host)settings.after(controls);else button.after(controls);
+ const css=document.createElement('style');css.textContent='#nv-credit-ref-label[hidden]{display:none!important}#nv-no-print,#nv-print-ticket-button,#nv-draft-entry{background:#205e40!important;color:#fff!important;width:100%;min-height:53px;margin:10px 0 9px;border:0;border-radius:12px;font:850 15px system-ui;cursor:pointer;box-shadow:0 2px 6px #163d2928}#nv-draft-entry[hidden]{display:none!important}';document.head.appendChild(css);
+ setTimeout(syncRef,0);
  flushReport();
 }
 
