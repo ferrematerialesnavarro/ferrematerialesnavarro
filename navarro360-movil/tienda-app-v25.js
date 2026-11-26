@@ -81,11 +81,14 @@ const LIMIT=140;
 const plomeria=(typeof window.NAVARRO_CREATE_PLOMERIA==='function')?window.NAVARRO_CREATE_PLOMERIA({dictionary,panel:q('#plumbing-panel'),onChange:()=>renderProducts()}):null;
 const electricidad=(typeof window.NAVARRO_CREATE_ELECTRICIDAD==='function')?window.NAVARRO_CREATE_ELECTRICIDAD({dictionary,panel:q('#electric-panel'),isApproved:window.NAVARRO_BUSCADOR_GENERICO?.isApproved,onChange:()=>renderProducts()}):null;
 let pendingExtraCart={};let cart={}; try{const v=JSON.parse(localStorage.getItem('navarro_cart_v1')||'{}');if(v&&typeof v==='object'&&!Array.isArray(v)){for(const [k,n] of Object.entries(v)){if(Number.isFinite(n)&&n>0&&n<=9999&&Math.abs(n*1000-Math.round(n*1000))<1e-7){if(dictionary.has(k))cart[k]=n;else if(/^\d{5,30}$/.test(k))pendingExtraCart[k]=n;}}}}catch{}
+// El módulo de impresión se carga después de este archivo. Recuperar importes
+// autorizados ya guardados usando la misma validación de vinculación.
+function storedRegister(){try{const p=JSON.parse(localStorage.getItem('navarro360_print_bridge_pair_v1')||'null');return !!(p&&/^https:\/\/[a-z0-9-]+\.ngrok-free\.(?:dev|app)\/?$/.test(p.url)&&/^[0-9a-f]{64}$/.test(p.token||''))}catch{return false}}
 let importesCents={};
 try{
  const old=JSON.parse(localStorage.getItem(IMPORTE_KEY)||'{}');
  if(old && typeof old==='object' && !Array.isArray(old)){
-  for(const [id,n] of Object.entries(old))if(dictionary.has(id)&&(id==='00000'||esImporte(id))&&!esClavo(id)&&Number.isSafeInteger(n)&&n>0&&n<=99999999)importesCents[id]=n;
+  for(const [id,n] of Object.entries(old))if((cart[id]||pendingExtraCart[id])&&(id==='00000'||esImporte(id)||storedRegister())&&!esClavo(id)&&Number.isSafeInteger(n)&&n>0&&n<=99999999)importesCents[id]=n;
  }
 }catch{}
 const importeFinal=id=>esClavo(id)?clavoImporte(id):((importesCents[id]||0)/100);
@@ -204,7 +207,7 @@ function renderCart(){
  q('#cart-items').innerHTML=entries.length?entries.map(([id,num])=>{
  const p=dictionary.get(id),imp=importeFinal(id),total=lineAmount(id,num,prices);
  if(id==='00000')return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>00 · Cantidad: 1</small><div class="cart-controls"><button type="button" data-varios-edit>✎ Importe</button><button type="button" data-remove="00000">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
- return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio unitario ${money(unitCents(id,prices)/100)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div>${canEdit?`<button type="button" data-price-edit="${esc(id)}">✎ Precio</button>`:""}<button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${esImporte(id)?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
+ return `<div class="cart-line"><strong>${esc(p.name)}</strong><small>${esc(id)} · Precio unitario ${money(unitCents(id,prices)/100)}${imp>0?' · Importe solicitado: '+money(imp):''}</small><div class="cart-controls"><div class="quant"><button type="button" data-dec="${esc(id)}" aria-label="Restar una unidad">−</button><span>${formatearCantidad(num)}</span><button type="button" data-inc="${esc(id)}" aria-label="Sumar una unidad">+</button></div>${canEdit?`<button type="button" data-price-edit="${esc(id)}">✎ Precio</button>`:""}<button type="button" data-qty-edit="${esc(id)}" aria-label="Escribir cantidad">Cantidad</button>${(canEdit||esImporte(id))?`<button type="button" data-importe-edit="${esc(id)}" aria-label="Ingresar importe total en pesos">✎ Importe</button>`:''}<button type="button" data-remove="${esc(id)}">Eliminar</button><span class="line-total">${money(total)}</span></div></div>`;
  }).join(''):'<div class="empty-cart"><span style="font-size:50px">🛒</span><b>Tu carrito está vacío</b><p>Busca materiales y agrega lo que necesitas.</p></div>';
  q('#cart-total').textContent=money(subtotal());renderOrderPreview();q('#send-whatsapp').disabled=!entries.length;q('#clear-cart').hidden=!entries.length;
 }
@@ -225,16 +228,24 @@ function agregarVarios(reemplazar=false){
 function editarClavo(id){return editarImporte(id);}
 function editarImporte(id){
  if(!dictionary.has(id))return false;
- if(!esImporte(id)){window.alert('Este artículo se vende por unidad completa y no admite importe fraccionado.');return false;}
+ const fractional=esImporte(id);
+ if(!fractional&&(!assignedRegister()||!cart[id])){window.alert('Solo una caja vinculada puede editar el importe de este artículo desde el carrito.');return false;}
  const p=dictionary.get(id);
  if(!Number.isFinite(p.price)||p.price<=0){window.alert('No es posible convertir importes porque este artículo no tiene precio base positivo.');return false;}
- const previo=importeFinal(id)||(p.price*(cart[id]||0));
- const entrada=window.prompt('Importe en PESOS de '+p.name+' (ejemplo: 10 o 25.50). Precio base: '+money(p.price),previo?previo.toFixed(2):'');
+ const previo=cart[id]?lineAmount(id,cart[id],salePrices()):0;
+ const mensaje=fractional?'Importe en PESOS de '+p.name+' (ejemplo: 10 o 25.50). Precio base: '+money(p.price):'Importe TOTAL en pesos de '+p.name+'\nCantidad: '+formatearCantidad(cart[id])+' · Se conserva la cantidad física.\nPrecio de catálogo: '+money(p.price);
+ const entrada=window.prompt(mensaje,previo?previo.toFixed(2):'');
  if(entrada===null)return false;
  const val=String(entrada).trim().replace(/\s/g,'').replace(/^\$/,'').replace(',','.');
  if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(val)||Number(val)<=0){window.alert('Importe inválido. Escribe pesos con máximo 2 decimales.');return false;}
  const cents=Math.round(Number(val)*100);
  if(!Number.isSafeInteger(cents)||cents<1||cents>99999999){window.alert('Importe fuera del límite.');return false;}
+ // Para piezas, sacos y tramos, editar el total sin descontar fracciones
+ // ficticias del inventario. En kg, m y L se conserva la conversión actual.
+ if(!fractional){
+  if(!assignedRegister()||!Number.isInteger(cart[id])||cart[id]<1)return false;
+  importesCents[id]=cents;save();renderCart();renderProducts();toast('✓ Importe total: '+money(cents/100));return true;
+ }
  const calc=cantidadDesdeImporte(id,cents/100);
  if(!calc){window.alert('No es posible convertir este importe a una cantidad válida de hasta 3 decimales.');return false;}
  // La diferencia por redondeo de centavos es aceptada por el administrador.
@@ -336,7 +347,7 @@ window.NAVARRO_BORRADOR_CARRITO=Object.freeze({
    if(!isObj(obj))throw Error('Importes inválidos');
    for(const [id,n] of Object.entries(obj)){
     if(!Object.hasOwn(next,id))continue;
-    if(!Number.isSafeInteger(n)||n<=0||n>99999999||(kind==='clavo'&&!esClavo(id))||(kind==='importe'&&id!=='00000'&&!esImporte(id)))throw Error('Importe no válido para '+id);
+    if(!Number.isSafeInteger(n)||n<=0||n>99999999||(kind==='clavo'&&!esClavo(id))||(kind==='importe'&&id!=='00000'&&!esImporte(id)&&!assignedRegister()))throw Error('Importe no válido para '+id);
     result[id]=n;
    }
    return result;
