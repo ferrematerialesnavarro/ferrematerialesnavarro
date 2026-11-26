@@ -110,10 +110,18 @@
   const eligible=!!printer(),read=stockReader();
   document.querySelectorAll('[data-inventory-code]').forEach(el=>{
    const p=read(el.dataset.inventoryCode);
-   if(p.stock===null){el.textContent='Existencia por confirmar';return;}
-   const value=p.stock.toLocaleString('es-MX',{maximumFractionDigits:6});
-   const date=p.at&&Number.isFinite(Date.parse(p.at))?new Date(p.at).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'}):STOCK_DATE;
-   el.textContent=(p.confirmed?'Disponible: ':'Última existencia registrada: ')+value+' · '+date+(p.negative?' · verificar':'');
+   const value=p.stock===null?'Por confirmar':p.stock.toLocaleString('es-MX',{maximumFractionDigits:6});
+   const date=p.stock===null?'':p.at&&Number.isFinite(Date.parse(p.at))?new Date(p.at).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'}):STOCK_DATE;
+   const label=p.stock===null?'Existencia':p.confirmed?'Disponible':'Última existencia registrada';
+   const state=p.stock===null||!p.confirmed||p.negative?'verify':p.stock===0?'empty':'available';
+   const detail=date+(p.negative?' · verificar':'');
+   const signature=JSON.stringify([label,value,detail,state]);
+   if(el.dataset.nvStockSignature===signature&&el.querySelector('.nv-stock-quantity'))return;
+   const heading=document.createElement('span');heading.className='nv-stock-heading';heading.textContent=label+':';
+   const qty=document.createElement('strong');qty.className='nv-stock-quantity';qty.textContent=value;
+   const stamp=document.createElement('small');stamp.className='nv-stock-date';stamp.textContent=detail;stamp.hidden=!detail;
+   el.dataset.nvStockState=state;el.dataset.nvStockSignature=signature;
+   el.replaceChildren(heading,qty,stamp);
   });
   document.querySelectorAll('[data-inventory-edit]').forEach(el=>{el.hidden=!eligible;});
  }

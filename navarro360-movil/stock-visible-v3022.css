@@ -1,0 +1,53 @@
+/* NAVARRO V30.2.2 — destacar existencia, sin modificar su origen o valor */
+#products [data-inventory-code] {
+ display:block!important;
+ margin:7px 0!important;
+ padding:7px 8px!important;
+ border:1px solid #b8d8c1;
+ border-radius:9px;
+ background:#eaf6ed;
+ color:#205e40!important;
+ font-weight:800!important;
+ font-size:16px!important;
+ line-height:1.25!important;
+ overflow-wrap:anywhere;
+ box-sizing:border-box;
+}
+#products [data-inventory-code] .nv-stock-heading {
+ display:block;
+ font-size:13px!important;
+ font-weight:800;
+}
+#products [data-inventory-code] .nv-stock-quantity {
+ display:block;
+ font:900 26px/1.2 system-ui,sans-serif!important;
+ font-variant-numeric:tabular-nums;
+ color:inherit;
+}
+#products [data-inventory-code] .nv-stock-date {
+ display:block;
+ font:600 10px/1.3 system-ui,sans-serif!important;
+ margin-top:2px;
+ color:#52685a;
+}
+#products [data-inventory-code] .nv-stock-date[hidden] {display:none!important}
+#products [data-inventory-code][data-nv-stock-state="empty"] {
+ background:#fff0ee;
+ border-color:#e9b8b2;
+ color:#a12626!important;
+}
+#products [data-inventory-code][data-nv-stock-state="verify"] {
+ background:#fff5df;
+ border-color:#e7d39b;
+ color:#82540d!important;
+}
+#products [data-inventory-code][data-nv-stock-state="verify"] .nv-stock-quantity {font-size:20px!important}
+@keyframes nv-stock-pulse {
+ 0%,100% {opacity:1}
+ 50% {opacity:.65}
+}
+@media (prefers-reduced-motion:no-preference) {
+ #products [data-inventory-code] .nv-stock-quantity {
+   animation:nv-stock-pulse 2s ease-in-out infinite;
+ }
+}
