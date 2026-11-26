@@ -539,7 +539,31 @@ async function reimprimir(id){
   return {ok:false,error:err?.name==='AbortError'?'No se confirmó el envío en 20 segundos. Revisa si se imprimió antes de repetir.':'Falló la comunicación con la impresora; comprueba la conexión.'};
  }finally{clearTimeout(timeout);busy=false;if(button)button.disabled=false}
 }
-window.NAVARRO_PRINT_SILENCIOSA=Object.freeze({version:6,vinculado:()=>!!pair,reimprimir});
+
+/* Presupuestos RAW: ruta exclusiva. Nunca se usa /print, historial ni reportes. */
+const pendingBudgetJobs=new Map();
+async function imprimirPresupuesto(d){
+ if(!pair)return {ok:false,error:'Vincula la impresora de Windows.'};
+ if(busy)return {ok:false,error:'Hay una impresión en curso.'};
+ if(!d||!/^P-[A-Z0-9-]{4,50}$/.test(String(d.id||''))||!Array.isArray(d.rows)||!d.rows.length)return {ok:false,error:'Presupuesto inválido.'};
+ const previous=pendingBudgetJobs.get(d.id);
+ // Conservar el identificador ante una respuesta incierta, evitando duplicados inmediatos.
+ const jobId=previous&&Date.now()-previous.at<300000?previous.jobId:crypto.randomUUID();
+ pendingBudgetJobs.set(d.id,{jobId,at:Date.now()});
+ const job={v:1,jobId,at:new Date().toISOString(),rows:d.rows.map(p=>({id:String(p.id),name:String(p.name).slice(0,200),qty:p.qty,unit:p.unit,total:p.total,special:!!p.special})),subtotal:d.subtotal,flete:d.flete,state:'none',client:String(d.client||'').slice(0,100),address:String(d.delivery?.address||'').slice(0,260),phone:String(d.delivery?.phone||'').slice(0,30)};
+ busy=true;const btn=$('nv-print-ticket-button');if(btn)btn.disabled=true;
+ const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),45000);
+ try{
+  const res=await fetch(pair.url.replace(/\/$/,'')+'/presupuesto',{method:'POST',mode:'cors',cache:'no-store',credentials:'omit',headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},body:JSON.stringify({action:'print',kind:'presupuesto',folio:d.id,job}),signal:ctrl.signal});
+  let r={};try{r=await res.json()}catch{}
+  if(res.status===404)return {ok:false,error:'Instala el complemento de presupuestos V29.7.2 en Windows y reinicia el puente.'};
+  if(!res.ok||r.ok!==true||r.kind!=='presupuesto'||r.recorded!==false)return {ok:false,error:r.error||'Windows no confirmó el presupuesto. No se enviará como venta.'};
+  pendingBudgetJobs.delete(d.id);return {ok:true,queued:true};
+ }catch(e){return {ok:false,error:'No se confirmó la impresión. Revisa la impresora y el puente antes de volver a intentarlo.'};}
+ finally{clearTimeout(timer);busy=false;if(btn)btn.disabled=false;}
+}
+
+window.NAVARRO_PRINT_SILENCIOSA=Object.freeze({version:7,vinculado:()=>!!pair,reimprimir,imprimirPresupuesto});
 function init(){
  receivePair();
  const button=$('nv-print-ticket-button');

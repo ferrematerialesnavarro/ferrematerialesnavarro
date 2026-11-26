@@ -31,11 +31,16 @@ function resetMeta(){
 }
 let dialog,entry,status,list,saveSale,saveQuote,busy=false;
 function say(s){status.textContent=s;}
-function print(d){
- // Safari: quitar el diálogo del plano superior antes de abrir la impresión del sistema.
- if(dialog.open)dialog.close();
- const result=window.NAVARRO_TICKET_DIRECTO_ESTADO?.imprimirPresupuesto?.(d);
- if(!result?.ok){say((result?.error||'Impresión no disponible.')+' El presupuesto sigue guardado.');if(!dialog.open)dialog.showModal();}
+let printingBudget=false;
+async function print(d){
+ if(printingBudget)return;
+ printingBudget=true;say('Enviando presupuesto a la impresora térmica…');
+ try{
+  const result=await window.NAVARRO_PRINT_SILENCIOSA?.imprimirPresupuesto?.(d);
+  if(!result?.ok){say((result?.error||'Impresión directa no disponible.')+' El presupuesto sigue guardado.');return;}
+  say('Presupuesto enviado a la cola de Windows. No se registró como venta.');
+ }catch(e){say('No se pudo confirmar la impresión. El presupuesto sigue guardado.');}
+ finally{printingBudget=false;}
 }
 function save(kind){
  if(busy||!linked())return;
