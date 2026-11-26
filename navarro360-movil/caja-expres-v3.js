@@ -79,7 +79,7 @@ function quote(){
  const rows=[];
  let subtotal=0,hasFreight=false;
  for(const [id,value] of entries){
-  const qty=Number(value),p=db.get(id)||(id==='00000'?{price:20,name:'PRODUCTOS VARIOS'}:null);
+  const qty=Number(value),p=db.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id)||(id==='00000'?{price:20,name:'PRODUCTOS VARIOS'}:null);
   if(!/^\d{5,30}$/.test(id)||!Number.isFinite(qty)||qty<=0||qty>9999||
      !p||!Number.isFinite(p.price)||p.price<=0)throw Error('Revisa el producto '+id+' y su cantidad.');
   const a=Number(cl[id]),b=Number(im[id]),c=Number(ov[id]);
@@ -295,7 +295,8 @@ function mount(){
 
    '<p id="nv-ce-v2-alert" role="status"></p>'+
   '</section>';
- print.parentElement.insertBefore(details,print);
+ const finalControls=$('nv-no-print')?.parentElement;
+ print.parentElement.insertBefore(details,finalControls?.parentElement===print.parentElement?finalControls:print);
  root=details;view={method:$('nv-ce-v2-method')};
  const style=document.createElement('style');style.id='nv-ce-v2-styles';
  style.textContent=[
@@ -340,7 +341,7 @@ function mount(){
    event.preventDefault();continueButton.click();
   }
  });
- $('nv-ce-v2-cash').addEventListener('input',()=>{cashAuto=!cashInput.value.trim();paymentConfirmation=null;if(!cashAuto)render();});
+ $('nv-ce-v2-cash').addEventListener('input',()=>{cashAuto=!cashInput.value.trim();paymentConfirmation=null;if(!cashAuto)render();else $('nv-ce-v2-result').textContent='Se tomará el importe exacto.';});
  cashInput.addEventListener('blur',()=>{if(!cashInput.value.trim()){cashAuto=true;render()}});
  let submitting=false;
  continueButton.addEventListener('click',async()=>{
@@ -387,12 +388,11 @@ function mount(){
  function syncConfirmCart(){
   const has=Object.values(read(CART)).some(qty=>Number(qty)>0);
   details.hidden=!has;
-  if(!has){if(paymentConfirmation||view.method.value!=='cash'||!cashAuto)resetOnNewSale();return}
+  if(!has){resetOnNewSale();return}
   render();
  }
  syncConfirmCart();
  if(cart)new MutationObserver(()=>{
-  paymentConfirmation=null;
   syncConfirmCart();
  }).observe(cart,{childList:true,subtree:false});
  document.addEventListener('change',e=>{if(!root.hidden&&e.target?.id?.startsWith('nv-cobro-'))render()},true);

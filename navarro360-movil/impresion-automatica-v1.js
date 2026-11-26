@@ -145,7 +145,7 @@ function buildTicket(){
  catalog.set('00000',{name:'PRODUCTOS VARIOS',price:20});
  let subtotal=0,rows=[];
  for(const [id,value] of Object.entries(cart)){
-  const qty=Number(value),p=catalog.get(id);
+  const qty=Number(value),p=catalog.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id);
   if(!/^\d{5,30}$/.test(id)||!Number.isFinite(qty)||qty<=0||qty>9999||!p||!Number.isFinite(p.price)||p.price<=0)
    throw Error('Revisa el producto '+id+'. Tiene cantidad o precio incorrecto');
   const x=Number(cl[id]),y=Number(imp[id]),z=Number(over[id]);
@@ -417,7 +417,8 @@ function finishWithoutPrint(){
  if(busy)return;
  busy=true;
  try{
-  window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion?.();
+  if(typeof window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion!=='function')throw Error('Recarga NAVARRO 360 para preparar el pago.');
+  window.NAVARRO_CAJA_EXPRES_V3.prepararFinalizacion();
   const job=buildTicket(), version=saleVersion();
   if(job.state==='none')throw Error('Elige PAGADO o POR COBRAR antes de finalizar.');
   const guard='navarro-finalizada-sin-impresion';
@@ -479,7 +480,7 @@ async function autoPrint(event){
  if(busy)return;
  const button=$('nv-print-ticket-button');
  let job;
- try{window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion?.();job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
+ try{if(typeof window.NAVARRO_CAJA_EXPRES_V3?.prepararFinalizacion!=='function')throw Error('Recarga NAVARRO 360 para preparar el pago.');window.NAVARRO_CAJA_EXPRES_V3.prepararFinalizacion();job=buildTicket()}catch(err){status(err.message||'Carrito no válido',true);return}
  const version=saleVersion();
  // La forma de pago se toma ANTES del envío; NO se añade al trabajo
  // de Windows para conservar el protocolo de la POS-58-Series.
@@ -529,7 +530,7 @@ async function reimprimir(id){
  const ctrl=new AbortController();
  const timeout=setTimeout(()=>ctrl.abort(),20000);
  try{
-  const job={...old,jobId:crypto.randomUUID(),reprintOf:old.jobId};
+  const job={...old,creditClientId:undefined,creditBox:undefined,jobId:crypto.randomUUID(),reprintOf:old.jobId};
   const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
