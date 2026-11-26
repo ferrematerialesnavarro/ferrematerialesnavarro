@@ -149,14 +149,14 @@ function newClient(box){
 }
 
 let selected=null,checkoutBox=null,wrap=null,notice=null,selectedLabel=null,assignButton=null,newButton=null,picker=null,query=null,choices=null,newForm=null,nameField=null,phoneField=null,moreButton=null;
-let choiceSignature='',limit=40,assignedName='',lastMode='',lastChoiceError='';
+let choiceSignature='',limit=12,assignedName='',lastMode='',lastChoiceError='';
 const normSearch=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-MX').trim();
 function visible(node,show){if(node&&node.hidden===show)node.hidden=!show}
 function setText(node,value){if(node&&node.textContent!==value)node.textContent=value}
 function node(tag,txt,parent){const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(parent)parent.appendChild(e);return e}
 function action(txt,parent,fn){const e=node('button',txt,parent);e.type='button';e.addEventListener('click',ev=>{ev.preventDefault();try{fn()}catch(err){setText(notice,err.message||'No se pudo completar la acción.')}});return e}
 function clearAssignedName(){const field=$('nv-ticket-client');if(assignedName&&field?.value===assignedName)field.value='';assignedName=''}
-function closePanels(){visible(picker,false);visible(newForm,false);choiceSignature='';if(query)query.value='';limit=40}
+function closePanels(){visible(picker,false);visible(newForm,false);choiceSignature='';if(query)query.value='';limit=12}
 function clear(){
  selected=null;checkoutBox=null;lastChoiceError='';clearAssignedName();closePanels();
  setText(selectedLabel,'Sin cliente asignado');setText(notice,'');setText(assignButton,'Asignar cliente');
@@ -195,7 +195,7 @@ function openPicker(){
  const box=caja();if(!box)throw Error('Caja no reconocida.');
  if(checkoutBox!==box){clear();checkoutBox=box}
  if(!picker.hidden){closePanels();return}
- visible(newForm,false);visible(picker,true);query.value='';limit=40;choiceSignature='';
+ visible(newForm,false);visible(picker,true);query.value='';limit=12;choiceSignature='';
  refreshChoices(box);scheduleSync();
  // No enfocar automáticamente: en iPhone no abrir teclado ni mover el carrito.
 }
@@ -228,10 +228,10 @@ function ensureCheckout(){
  const remove=action('Quitar cliente',wrap,()=>{const box=caja();clear();checkoutBox=box;showBalance()});remove.id='nv30-remove-client';remove.hidden=true;remove.style.cssText='margin-top:6px';
  picker=node('section',undefined,wrap);picker.hidden=true;picker.style.marginTop='10px';
  query=node('input',undefined,picker);query.type='search';query.autocomplete='off';query.placeholder='Buscar cliente por nombre o teléfono';query.setAttribute('aria-label','Buscar cliente');
- choices=node('div',undefined,picker);choices.style.cssText='max-height:260px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:5px 0';
- query.addEventListener('input',()=>{try{limit=40;refreshChoices(caja(),true)}catch(e){setText(notice,e.message)}});
+ choices=node('div',undefined,picker);choices.id='nv30-client-choices';choices.style.cssText='margin:5px 0';
+ query.addEventListener('input',()=>{try{limit=12;refreshChoices(caja(),true)}catch(e){setText(notice,e.message)}});
  query.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();refreshChoices(caja(),true)}});
- moreButton=action('Mostrar más clientes',picker,()=>{limit+=40;refreshChoices(caja(),true)});moreButton.hidden=true;
+ moreButton=action('Mostrar más clientes',picker,()=>{limit+=12;refreshChoices(caja(),true)});moreButton.hidden=true;
  action('Cerrar lista',picker,closePanels);
  newForm=node('section',undefined,wrap);newForm.hidden=true;newForm.style.marginTop='10px';
  const nl=node('label','Nombre del cliente',newForm);nameField=node('input',undefined,nl);nameField.maxLength=100;nameField.autocomplete='off';

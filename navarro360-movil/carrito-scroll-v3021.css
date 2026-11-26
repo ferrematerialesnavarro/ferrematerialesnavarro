@@ -1,0 +1,60 @@
+/* NAVARRO 360 V30.2.1 — un solo desplazamiento en carrito móvil y PC.
+ * La lista de productos, el pago, los clientes y los botones finales
+ * pertenecen al mismo flujo. El fondo mantiene el bloqueo existente. */
+@media screen {
+ #drawer.drawer {
+   position:fixed;
+   top:0;
+   bottom:0;
+   height:auto;
+   max-height:none;
+   box-sizing:border-box;
+   display:block;
+   overflow-x:hidden;
+   overflow-y:auto;
+   overscroll-behavior-y:contain;
+   -webkit-overflow-scrolling:touch;
+   touch-action:pan-y pinch-zoom;
+   scroll-padding-top:100px;
+   scroll-padding-bottom:24px;
+ }
+ #drawer.drawer > .drawer-head {
+   position:sticky;
+   top:0;
+   z-index:5;
+   background:#fff;
+ }
+ #drawer.drawer > #cart-items,
+ #drawer.drawer > .drawer-bottom {
+   flex:none;
+   height:auto;
+   min-height:0;
+   max-height:none;
+   overflow:visible;
+   box-sizing:border-box;
+ }
+ #drawer.drawer > .drawer-bottom {
+   padding-bottom:calc(24px + env(safe-area-inset-bottom,0px));
+ }
+ #drawer.drawer #nv-ce-v2,
+ #drawer.drawer #nv299-credit-client,
+ #drawer.drawer #nv30-client-choices {
+   height:auto;
+   max-height:none;
+   overflow:visible;
+   overscroll-behavior:auto;
+ }
+ #drawer.drawer #nv30-client-choices { overflow-anchor:none; }
+}
+@media screen and (max-width:700px) {
+ #drawer.drawer {
+   width:100vw;
+   bottom:auto;
+   height:100vh;
+   height:100dvh;
+   max-height:100dvh;
+ }
+ #drawer.drawer > .drawer-head {
+   padding-top:max(20px,env(safe-area-inset-top,0px));
+ }
+}
