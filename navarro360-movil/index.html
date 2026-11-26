@@ -25,7 +25,60 @@
 </style>
 <link rel="stylesheet" href="./carrito-scroll-v3021.css?v=3021">
 <link rel="stylesheet" href="./stock-visible-v3022.css?v=3032">
-<link rel="stylesheet" href="./plomeria-medidas-v3035.css?v=3035">
+<style id="navarro-medidas-v3036">
+/* NAVARRO V30.3.5 — medidas de plomería legibles en PC y móvil. */
+#plumbing-panel .pl-nav-button[data-pl-nav="size"] {
+  min-width:76px!important;
+  min-height:62px!important;
+  padding:10px 16px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  font-size:26px!important;
+  font-weight:850!important;
+  line-height:1.15!important;
+  font-variant-numeric:lining-nums tabular-nums;
+}
+#plumbing-panel .pl-nav-button[data-pl-nav="size"] > span {
+  font-size:inherit!important;
+  font-weight:inherit!important;
+  line-height:inherit!important;
+  white-space:nowrap;
+}
+#plumbing-panel .pl-nav-button[data-pl-nav="size"][data-value="Sin diámetro"] {
+  font-size:16px!important;
+}
+@media(max-width:540px){
+  #plumbing-panel .pl-nav-button[data-pl-nav="size"] {
+    min-width:66px!important;
+    min-height:56px!important;
+    padding:9px 12px!important;
+    font-size:24px!important;
+  }
+}
+
+/* V30.3.6: integrado en HTML para evitar que la app instalada use un CSS antiguo. */
+@media screen and (max-width:700px) {
+ #plumbing-panel .pl-persist-step .pl-nav-buttons > button[data-pl-nav="size"] {
+   min-width:76px!important;
+   min-height:62px!important;
+   padding:9px 12px!important;
+   font-size:28px!important;
+   font-weight:900!important;
+   flex:0 0 auto!important;
+   -webkit-text-size-adjust:100%;
+   text-size-adjust:100%;
+ }
+ #plumbing-panel .pl-persist-step .pl-nav-buttons > button[data-pl-nav="size"] > span {
+   font-size:28px!important;
+   font-weight:900!important;
+   line-height:1.15!important;
+ }
+ #plumbing-panel .pl-persist-step .pl-nav-buttons > button[data-pl-nav="size"][data-value="Sin diámetro"] > span {
+   font-size:16px!important;
+ }
+}
+</style>
 </head>
 <body>
 <div class="preview-banner"><span class="preview-dot"></span> VISTA PREVIA PRIVADA · Precios sujetos a confirmación</div>
@@ -86,7 +139,7 @@
 <script defer src="./reportes-diarios-v1.js?v=1-comparativos-caja"></script>
 <script defer src="./respaldo-datos-v1.js?v=1-resguardar-recuperar"></script>
 
-<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=71').catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=298-conteo"></script><script defer src="./inventario-stock-publico.js?v=3032-stock-completo"></script><script defer src="./agregar-productos-v28-4.js?v=290"></script><script defer src="./escaneo-altas-v28-3.js?v=28-3-profesional-zoom-revision2"></script><script defer src="./editar-productos-v25.js?v=290"></script><script defer src="./centro-admin-movil-v27-1.js?v=271-permanente"></script><script defer src="./centro-admin-ampliado-v27-1.js?v=299-clientes"></script><script defer src="./acceso-admin-v27-2.js?v=272-todas-las-cajas"></script>
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js?v=3036',{updateViaCache:'none'}).catch(()=>{}))}</script><script src="./fotos-recuperadas.js?v=9"></script><script defer src="./escaner-barras.js?v=298-conteo"></script><script defer src="./inventario-stock-publico.js?v=3032-stock-completo"></script><script defer src="./agregar-productos-v28-4.js?v=290"></script><script defer src="./escaneo-altas-v28-3.js?v=28-3-profesional-zoom-revision2"></script><script defer src="./editar-productos-v25.js?v=290"></script><script defer src="./centro-admin-movil-v27-1.js?v=271-permanente"></script><script defer src="./centro-admin-ampliado-v27-1.js?v=299-clientes"></script><script defer src="./acceso-admin-v27-2.js?v=272-todas-las-cajas"></script>
 <script defer src="./inventario-integral-v29.js?v=291-stock-unificado"></script>
 <script defer src="./ventas-espera-v1.js?v=3031-borradores"></script>
 <script defer src="./inventario-fisico-v298.js?v=2984-confirmar"></script>
