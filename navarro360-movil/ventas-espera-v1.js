@@ -29,7 +29,7 @@ function resetMeta(){
  if($('nv-ticket-status'))$('nv-ticket-status').value='none';
  if($('nv-ticket-flete'))$('nv-ticket-flete').checked=false;
 }
-let dialog,entry,status,list,saveSale,saveQuote,busy=false;
+let dialog,entry,status,list,search,saveSale,saveQuote,busy=false;
 function say(s){status.textContent=s;}
 let printingBudget=false;
 async function print(d){
@@ -42,7 +42,7 @@ async function print(d){
  }catch(e){say('No se pudo confirmar la impresión. El presupuesto sigue guardado.');}
  finally{printingBudget=false;}
 }
-function save(kind){
+async function save(kind){
  if(busy||!linked())return;
  busy=true;
  try{
@@ -52,14 +52,24 @@ function save(kind){
   if(!snap.rows.length)throw Error('Agrega productos al carrito.');
   if(before.length>=MAX)throw Error('Hay 30 documentos guardados. Recupera o elimina uno primero.');
   const client=String($('nv-ticket-client')?.value||'').trim().slice(0,100);
-  const id=(kind==='presupuesto'?'P-':'NV-')+crypto.randomUUID().slice(0,12).toUpperCase();
-  const d=makeDraft(kind,snap,info,state,client,id,Date.now());
-  store([d,...before]);
+  const d=makeDraft(kind,snap,info,state,client,'',Date.now());
+  const signature=JSON.stringify([snap,state,client]);
+  const printer=window.NAVARRO_PRINT_SILENCIOSA;
+  if(typeof printer?.reservarFolioBorrador!=='function')throw Error('Recarga NAVARRO 360 para guardar con folio.');
+  say('Asignando folio compartido…');sync();
+  const r=await printer.reservarFolioBorrador(d);
+  if(JSON.stringify([api().capture(),delivery().exportState(),String($('nv-ticket-client')?.value||'').trim().slice(0,100)])!==signature)throw Error('El carrito cambió mientras se asignaba el folio. Revisa antes de guardar.');
+  const current=load();
+  if(current.length>=MAX)throw Error('Hay 30 documentos guardados. Recupera o elimina uno primero.');
+  d.folio=r.folio;d.draftJobId=r.jobId;d.at=r.at;d.id=(kind==='presupuesto'?'P-':'NV-')+r.folio;
+  if(current.some(x=>x.id===d.id||x.draftJobId===d.draftJobId))throw Error('Este documento ya está guardado. Búscalo por su folio.');
+  store([d,...current]);
   const cleared=api().restore({cart:{},clavos:{},importes:{},prices:{}});
-  if(!cleared.ok){store(before);throw Error('No se pudo liberar el carrito. Se conservó la venta actual.');}
-  resetMeta();render();
-  say(kind==='presupuesto'?'Presupuesto guardado. No se registró una venta.':'Venta guardada. Carrito libre para otro cliente.');
-  if(kind==='presupuesto')print(d);else dialog.close();
+  if(!cleared.ok){store(current);throw Error('No se pudo liberar el carrito. Se conservó la venta actual.');}
+  resetMeta();if(search)search.value='';render();
+  try{await printer.confirmarFolioBorrador(r)}catch(e){say('Folio '+d.folio+' guardado localmente. Revisa la conexión con Windows.');return;}
+  say('Folio '+d.folio+' · '+(kind==='presupuesto'?'Presupuesto guardado. No se registró una venta.':'Venta guardada. Carrito libre para otro cliente.'));
+  if(kind==='presupuesto')await print(d);else dialog.close();
  }catch(e){say(e.message||'No se pudo guardar. Revisa el carrito.');}
  finally{busy=false;sync();}
 }
@@ -74,8 +84,8 @@ function recover(d){
    resetMeta();
    if(d.delivery&&!delivery()?.restoreState?.(d.delivery))throw Error('No se recuperaron los datos de entrega.');
    if($('nv-ticket-client'))$('nv-ticket-client').value=String(d.client||'').slice(0,100);
-   // Los presupuestos quedan disponibles para volver a imprimir. Una venta en espera se consume al recuperarla.
-   if(d.kind!=='presupuesto')store(old.filter(x=>x.id!==d.id));
+   // Solo eliminar tras restaurar carrito, entrega y nombre correctamente.
+   store(old.filter(x=>x.id!==d.id));
   }catch(e){
    const undo=api().restore({cart:{},clavos:{},importes:{},prices:{}});
    if(undo.ok)resetMeta();
@@ -88,17 +98,19 @@ function recover(d){
 function render(){
  list.replaceChildren();
  let docs;try{docs=load()}catch(e){say(e.message);return}
- if(!docs.length)make('p','No hay ventas ni presupuestos guardados.',list);
- for(const d of docs){
+ const q=String(search?.value||'').trim().toLocaleLowerCase('es-MX');
+ const filtered=docs.filter(d=>!q||[d.folio,d.id,d.client].some(v=>String(v||'').toLocaleLowerCase('es-MX').includes(q)));
+ if(!filtered.length)make('p',docs.length?'No hay coincidencias con ese folio o cliente.':'No hay ventas ni presupuestos guardados.',list);
+ for(const d of filtered){
   const row=make('div',undefined,list);row.className='nv-draft-row';
   const quote=d.kind==='presupuesto';
-  make('strong',(quote?'Presupuesto':'Venta guardada')+' · '+d.id,row);
+  make('strong',(quote?'Presupuesto':'Venta guardada')+' · Folio '+(d.folio||d.id),row);
   const total=Number.isSafeInteger(d.subtotal)?' · '+money(d.subtotal+(d.flete||0)):'';
   make('small',new Date(d.at).toLocaleString('es-MX')+' · '+Object.keys(d.cart).length+' productos'+total,row);
   const actions=make('div',undefined,row);
   button('Recuperar',actions,()=>recover(d));
-  if(quote)button('Imprimir',actions,()=>{if(linked())print(d)});
-  button('Eliminar',actions,()=>{if(!linked()||!confirm('¿Eliminar este documento guardado?'))return;try{store(load().filter(x=>x.id!==d.id));render();sync()}catch(e){say(e.message)}});
+  if(quote)button('Imprimir',actions,()=>{if(linked()&&!busy)print(d)});
+  button('Eliminar',actions,()=>{if(busy||!linked()||!confirm('¿Eliminar este documento guardado?'))return;try{store(load().filter(x=>x.id!==d.id));render();sync()}catch(e){say(e.message)}});
  }
 }
 function sync(){
@@ -121,9 +133,10 @@ function mount(){
  saveSale=button('Guardar venta',dialog,()=>save('venta'));saveSale.className='nv-draft-primary';
  saveQuote=button('Guardar e imprimir presupuesto',dialog,()=>save('presupuesto'));saveQuote.className='nv-draft-primary';
  status=make('p','',dialog);status.setAttribute('role','status');
+ search=make('input',undefined,dialog);search.type='search';search.placeholder='Buscar por folio o cliente';search.setAttribute('aria-label','Buscar por folio o cliente');search.style.cssText='width:100%;box-sizing:border-box;min-height:44px;border:1px solid #b8d5c0;border-radius:9px;padding:9px;font:16px system-ui;margin:8px 0';search.addEventListener('input',render);
  list=make('div',undefined,dialog);
  button('Cerrar',dialog,()=>dialog.close());
- entry.addEventListener('click',()=>{if(!linked())return;say('');render();sync();dialog.showModal()});
+ entry.addEventListener('click',()=>{if(!linked())return;say('');search.value='';render();sync();dialog.showModal()});
  new MutationObserver(sync).observe($('cart-items'),{childList:true});
  window.addEventListener('pageshow',sync);setInterval(sync,3000);sync();
  window.NAVARRO_VENTAS_ESPERA_V1=true;return true;

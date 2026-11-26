@@ -658,7 +658,43 @@ async function imprimirPresupuesto(d){
  finally{clearTimeout(timer);busy=false;if(btn)btn.disabled=false;}
 }
 
-window.NAVARRO_PRINT_SILENCIOSA=Object.freeze({version:7,vinculado:()=>!!pair,reimprimir,imprimirPresupuesto});
+
+ // Las ventas en espera y los presupuestos reservan en la misma secuencia de Windows,
+ // pero en una cola local independiente a la de ventas finalizadas.
+ const DRAFT_RESERVE='navarro-v303-borrador-pendiente:';
+ async function reservarFolioBorrador(d){
+  const ctx=folioContext();
+  if(!ctx)throw Error('Reconoce esta caja para guardar con folio compartido.');
+  if(!navigator.locks?.request)throw Error('Actualiza Safari o Chrome para guardar con folios seguros.');
+  return navigator.locks.request('navarro-folio-borrador:'+ctx.box,async()=>{
+   const check=await folioRequest(ctx,{action:'check'});
+   if(!check||check.version!==303)throw Error('Instala el módulo de folios V30.3 en Windows y reinicia solo el puente.');
+   localStorage.setItem(FOLIO_ACTIVE,'1');
+   const {id,at,folio,draftJobId,...data}=d;
+   const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(['borrador',data])));
+   const hash=Array.from(new Uint8Array(bytes),n=>n.toString(16).padStart(2,'0')).join('');
+   const key=DRAFT_RESERVE+ctx.box;
+   let p=read(key);
+   if(p.hash!==hash||!p.job||p.saved)p={hash,job:crypto.randomUUID(),at:d.at};
+   const raw=JSON.stringify(p);localStorage.setItem(key,raw);
+   if(localStorage.getItem(key)!==raw)throw Error('No se pudo guardar la reserva local.');
+   const r=await folioRequest(ctx,{action:'reserve',job:p.job,hash,cents:d.subtotal+d.flete});
+   if(r.job!==p.job||!/^[0-9]{4,12}$/.test(r.folio)||Number(r.folio)<1)throw Error('Folio inválido de Windows.');
+   if(r.confirmed)throw Error('El folio ya se guardó. Revisa el recuperador antes de repetir.');
+   return {folio:r.folio,jobId:p.job,at:p.at,box:ctx.box};
+  });
+ }
+ async function confirmarFolioBorrador(reserva){
+  const ctx=folioContext();if(!ctx||reserva.box!==ctx.box)throw Error('Cambió la caja. Se conservó el documento.');
+  const k=DRAFT_RESERVE+ctx.box,p=read(k);
+  if(p.job===reserva.jobId)localStorage.setItem(k,JSON.stringify({...p,saved:true}));
+  // Misma cola duradera de confirmación, sin afectar el carrito ni registrar una venta.
+  const ack=FOLIO_ACK+ctx.box+':'+reserva.jobId;
+  localStorage.setItem(ack,reserva.jobId);
+  try{const r=await folioRequest(ctx,{action:'complete',job:reserva.jobId});if(r.confirmed&&r.job===reserva.jobId)localStorage.removeItem(ack)}catch{}
+ }
+
+window.NAVARRO_PRINT_SILENCIOSA=Object.freeze({version:7,vinculado:()=>!!pair,reimprimir,imprimirPresupuesto,reservarFolioBorrador,confirmarFolioBorrador});
 function init(){
  receivePair();
  const button=$('nv-print-ticket-button');
