@@ -141,8 +141,33 @@
   const data=stockReader()(code),row=overrides.get(code);
   return {stock:data.stock,confirmed:data.confirmed,source:data.source,version:data.source==='windows'?row?.[2]??null:null};
  }
+
+ // Una consulta privada exitosa confirma la versión de escritura incluso si
+ // el producto nunca tuvo un ajuste V22. En ese caso previous=null, igual
+ // que el ajuste manual existente. El catálogo público es solo orientativo.
+ function writableReference(code){
+  const row=overrides.get(code),data=countReference(code);
+  if(row){
+   if(typeof row[2]!=='string'||!row[2])throw Error('Windows no devolvió una versión válida para este producto.');
+   return {stock:row[1],source:'windows',version:row[2],confirmed:true,known:true,negative:row[1]<0};
+  }
+  const raw=publicStock?.rows.get(code)??window.NAVARRO_EXISTENCIAS?.[code]?.[0]??null;
+  return {stock:Number.isFinite(raw)?raw:null,source:data.source,version:null,confirmed:false,known:false,negative:Number.isFinite(raw)&&raw<0};
+ }
  function sameReference(a,b){
-  return !!a&&!!b&&a.confirmed===true&&b.confirmed===true&&a.stock===b.stock&&a.version===b.version&&a.source===b.source;
+  if(!a||!b||a.version!==b.version||a.known!==b.known)return false;
+  // Si no existe ajuste privado, la versión nula protege contra una alta
+  // concurrente. Un cambio visible en la referencia orientativa exige revisar.
+  return a.stock===b.stock;
+ }
+ function verifyCountBox(){
+  const admin=window.NAVARRO_CENTRO_AMPLIADO_V27?.estado?.();
+  if(!admin?.autorizado||String(admin.caja).toUpperCase()!==String(box).toUpperCase()||!BOXES.includes(box))throw Error('Caja sin autorización');
+ }
+ async function preparePhysical(code){
+  if(!codeRE.test(code)||code==='00000')throw Error('Código no válido');
+  await refresh();verifyCountBox();
+  return writableReference(code);
  }
  let counting=false;
  async function applyPhysical(code,qty,reference,name){
@@ -150,18 +175,19 @@
   if(!codeRE.test(code)||code==='00000'||typeof qty!=='number'||!Number.isFinite(qty)||qty<0||qty>100000000||Math.abs(qty*1000-Math.round(qty*1000))>1e-5)throw Error('Cantidad de conteo inválida');
   counting=true;
   try{
-   await refresh();await refreshPublic();
-   const admin=window.NAVARRO_CENTRO_AMPLIADO_V27?.estado?.();
-   if(!admin?.autorizado||admin.caja!==box||!BOXES.includes(box))throw Error('Caja sin autorización');
-   const current=countReference(code);
-   if(!sameReference(reference,current))throw Error('La existencia o su versión cambió. Vuelve a contar el producto con la referencia actual.');
-   if(current.stock===qty)return {ok:true,unchanged:true,box};
+   const current=await preparePhysical(code);
+   if(!sameReference(reference,current))throw Error('La existencia cambió durante la confirmación. Pulsa Confirmar ajuste nuevamente para revisar el valor actual. Tu cantidad sigue guardada.');
+   if(current.known&&current.stock===qty)return {ok:true,unchanged:true,box,stock:qty};
    const version=crypto.randomUUID();
    try{await post({action:'count',code,qty,previous:current.version,version});}
    catch(e){if(!e.status)throw Error('No se confirmó el ajuste. Consulta el stock antes de repetir; el conteo se conserva.');throw e;}
+   // Actualizar la ficha inmediatamente tras la respuesta exitosa de Windows.
+   overrides.set(code,[code,qty,version,new Date().toISOString()]);
+   windowsAt=new Date().toISOString();windowsFailed=false;windowsUrl=printer()?.url||'';
+   paint();notifyStock();
    window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Conteo aceptado por Windows',code,name:String(name||code),before:current.stock,after:qty,box}}));
    try{await refresh()}catch{}
-   return {ok:true,box};
+   return {ok:true,box,stock:qty};
   }finally{counting=false;}
  }
 
@@ -200,5 +226,5 @@
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,referenciaConteo:countReference,aplicarConteo:applyPhysical,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,referenciaConteo:countReference,prepararConteo:preparePhysical,aplicarConteo:applyPhysical,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

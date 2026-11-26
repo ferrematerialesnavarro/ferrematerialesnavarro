@@ -75,16 +75,19 @@ function start(){
 }
 async function apply(r){
  if(!active()||r.done)return;
- if(!r.reference?.confirmed){say('No hay referencia confirmada. Actualiza y vuelve a contar este producto.');return;}
- const delta=core.diff(r);
- if(!confirm(r.name+'\nRegistrado: '+r.reference.stock+'\nFísico: '+r.qty+'\nDiferencia: '+delta+'\n¿Confirmar este conteo?'))return;
- busy=true;render();
+ busy=true;render();say('Consultando Windows para confirmar '+r.name+'…');
  try{
-  const result=await api().aplicarConteo(r.code,r.qty,r.reference,r.name);
+  const current=await api().prepararConteo(r.code);
+  if(activeBox()!==box||!panel.open||area.dataset.v27Active!=='yes'||$('nv26-sheet')?.hidden)throw Error('Vuelve a abrir el conteo para confirmar.');
+  const changed=r.reference?.confirmed&&(r.reference.stock!==current.stock||(r.reference.source==='windows'&&r.reference.version!==current.version));
+  const delta=current.stock===null?'Sin referencia':Math.round((r.qty-current.stock)*1000)/1000;
+  const note=changed?'\nLa existencia cambió desde el conteo. Verifica que la cantidad física siga siendo correcta.':!current.known?'\nLa existencia anterior es orientativa; se registrará tu conteo físico como ajuste.':'';
+  if(!confirm(r.name+'\nRegistrado: '+(current.stock??'Sin dato')+'\nFísico: '+r.qty+'\nDiferencia: '+delta+note+'\n¿Guardar esta cantidad como existencia real?')){say('Cantidad conservada en el borrador.');return;}
+  const result=await api().aplicarConteo(r.code,r.qty,current,r.name);
   if(!result?.ok)throw Error('No se confirmó el ajuste');
-  store({...doc,rows:{...doc.rows,[r.code]:{...r,done:true,appliedAt:new Date().toISOString(),box:result.box}}});
-  say(result.unchanged?'Conteo confirmado, sin ajuste.':'Ajuste aceptado por Windows.');
- }catch(e){say(e.message||'Revisa el stock antes de repetir.');}
+  store({...doc,rows:{...doc.rows,[r.code]:{...r,reference:{...current,confirmed:current.known},done:true,appliedAt:new Date().toISOString(),box:result.box}}});
+  say('✓ '+r.name+' · Stock guardado: '+r.qty+(result.unchanged?' (sin cambio)':''));
+ }catch(e){say(e.message||'No se pudo guardar. Tu cantidad sigue en el borrador.');}
  finally{busy=false;render()}
 }
 async function recount(r){
@@ -109,7 +112,7 @@ function render(){
   el('p','Registrado: '+(r.reference?.stock??'Sin dato')+' · Físico: '+r.qty+' · Diferencia: '+(delta===null?'Por verificar':(delta>0?'+':'')+delta)+(r.done?' · Confirmado':''),row).style.margin='4px 0';
   if(!r.done){
    const edit=btn('Cantidad',row,()=>{if(!active())return;const raw=prompt('Cantidad física de '+r.name,String(r.qty));if(raw===null)return;const n=parse(raw);if(n===null){say('Cantidad inválida');return;}try{record(r.code,n,'set')}catch(e){say(e.message)}});edit.disabled=busy;
-   const applyBtn=btn('Confirmar ajuste',row,()=>apply(r));applyBtn.disabled=busy||!r.reference?.confirmed;
+   const applyBtn=btn('Confirmar ajuste',row,()=>apply(r));applyBtn.disabled=busy;applyBtn.style.cssText='background:#205e40;color:white;border:0';
    const retry=btn('Volver a contar',row,()=>recount(r));retry.disabled=busy;
    const remove=btn('Quitar',row,()=>{if(!active()||!confirm('¿Quitar del borrador? No cambia el stock.'))return;try{const rows={...doc.rows};delete rows[r.code];store({...doc,rows});render()}catch(e){say(e.message)}});remove.disabled=busy;
   }
@@ -153,7 +156,7 @@ function lookup(){
    const raw=prompt(p.name+'\nCódigo: '+p.code+'\nEscribe la cantidad física total (incluye 0 si no hay existencia).',String(doc.rows[p.code]?.qty??''));
    if(raw===null)return;
    const qty=parse(raw);if(qty===null){say('Cantidad inválida. Usa hasta tres decimales.');return}
-   try{record(p.code,qty,'set');clearLookup();say('Cantidad guardada en el borrador. Busca otro material.')}catch(e){say(e.message)}
+   try{record(p.code,qty,'set');clearLookup();say('Cantidad guardada. Pulsa Confirmar ajuste para actualizar el stock.')}catch(e){say(e.message)}
   });
   b.style.cssText='display:block;text-align:left;width:100%;white-space:normal;overflow-wrap:anywhere';
   el('small',p.code+' · '+(ref.confirmed?'Registrado: '+ref.stock:'Existencia por verificar')+(existing?' · Físico: '+existing.qty+(existing.done?' · Confirmado':'') :''),row);
