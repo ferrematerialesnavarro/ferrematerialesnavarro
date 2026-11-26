@@ -57,7 +57,7 @@ function product(raw){
  for(const c of options){const r=window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(c);if(r)return {code:c,name:r.name};const p=window.NAVARRO_DB?.find(x=>String(x[0])===c);if(p)return {code:c,name:String(p[1])};}
  return null;
 }
-function active(){return ready&&!busy&&!!doc&&activeBox()===box&&panel.open&&!$('nv26-sheet')?.hidden}
+function active(){return ready&&!busy&&!!doc&&activeBox()===box&&panel.open&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden}
 function record(code,n,mode){if(!active())throw Error('Abre el conteo en una caja autorizada');const p=product(code);if(!p)throw Error('Código no registrado');const ref=api().referenciaConteo(p.code);const rows=core.update(doc.rows,p.code,p.name,n,mode,ref);store({...doc,rows});selected=p.code;render();return {ok:true};}
 function start(){
  if(busy)return;
@@ -176,7 +176,7 @@ const results=el('div',undefined,controls);
 panel.addEventListener('toggle',()=>{if(panel.open){if(!ready)start()}else{ready=false;clearLookup()}});
 let entered=false;
 function syncEntry(){
- const b=activeBox(),visible=!!b&&!area.hidden&&!$('nv26-sheet')?.hidden;
+ const b=activeBox(),visible=!!b&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden;
  panel.hidden=!b;
  if(box&&b!==box){ready=false;doc=null;box=null;clearLookup();panel.open=false;entered=false;render()}
  if(!visible){entered=false;return}
