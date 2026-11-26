@@ -71,7 +71,7 @@ function showBalance(){if(!notice)return;try{notice.textContent=selected&&checko
 function renderCheckout(method){
  if(!ensureCheckout())return;
  const box=caja();wrap.hidden=method!=='credit'||!box;
- if(wrap.hidden)return;
+ if(wrap.hidden){if(!box){clear();select.replaceChildren();delete select.dataset.sig;notice.textContent=''}return;}
  try{if(checkoutBox!==box){selected=null;checkoutBox=box}refreshChoices(box);showBalance()}catch(e){notice.textContent=e.message}
 }
 function bindCheckout(method){
@@ -132,7 +132,9 @@ function renderAdmin(){
   recover(box);
   const all=clients(box),sales=list(box,'venta'),payments=list(box,'abono');
   const total=sales.reduce((n,x)=>n+x.cents,0)-payments.reduce((n,x)=>n+x.cents,0);
-  area.querySelector('#nv299-summary').textContent='Saldo pendiente: '+money(total)+' · '+all.length+' clientes · Abonos de hoy: '+money(totalsDay(c.day(Date.now()),box).total);
+  const today=totalsDay(c.day(Date.now()),box);
+  area.querySelector('#nv299-summary').textContent='Saldo pendiente: '+money(total)+' · '+all.length+' clientes';
+  area.querySelector('#nv299-incoming').textContent='Abonos de hoy: '+money(today.total)+' · Efectivo '+money(today.cash)+' · Tarjeta '+money(today.card)+' · Transferencia '+money(today.transfer);
   rows.replaceChildren();
   const q=term.value.trim().toLocaleLowerCase('es-MX');
   for(const r of all.filter(x=>!q||[x.name,x.phone].some(v=>String(v||'').toLocaleLowerCase('es-MX').includes(q)))){
@@ -158,6 +160,7 @@ function mountAdmin(){
  status=el('p','',area);status.setAttribute('role','status');
  const priv=el('div',undefined,area);priv.id='nv299-private';priv.hidden=true;
  el('strong','',priv).id='nv299-summary';
+ el('p','',priv).id='nv299-incoming';
  term=el('input',undefined,priv);term.type='text';term.className='nv27-input';term.placeholder='Buscar cliente por nombre o teléfono';term.addEventListener('input',renderAdmin);
  button('+ Nuevo cliente',priv,()=>{try{const box=caja();if(!box)return;const r=newClient(box);if(r){chosen=r.id;renderAdmin()}}catch(e){say(e.message)}});
  button('Exportar respaldo de créditos',priv,()=>{try{const box=caja();if(!box)return;const doc={version:299,box,clientes:clients(box),ventas:list(box,'venta'),abonos:list(box,'abono')};const uri=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:'application/json'}));const a=el('a',undefined,document.body);a.href=uri;a.download='NAVARRO-creditos-'+box+'.json';a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(uri),2000);say('Respaldo privado exportado. No compartas datos de clientes.')}catch(e){say(e.message)}});
