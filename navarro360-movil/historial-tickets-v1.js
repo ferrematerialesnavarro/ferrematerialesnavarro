@@ -32,7 +32,7 @@ function validJob(job){
  const flete=Number(job.flete||0);
  if(flete!==0&&flete!==5000)return null;
  const date=new Date(job.at||Date.now());
- return {v:1,jobId:job.jobId,at:isNaN(date.getTime())?new Date().toISOString():date.toISOString(),
+ return {v:1,jobId:job.jobId,...(typeof job.folio==='string'&&/^[0-9]{4,12}$/.test(job.folio)&&Number(job.folio)>0?{folio:job.folio}:{}),at:isNaN(date.getTime())?new Date().toISOString():date.toISOString(),
    rows,subtotal,flete,state:['pagado','cobrar'].includes(job.state)?job.state:'none',
    client:clean(job.client,100),phone:clean(job.phone,30),address:clean(job.address,260),...(job.state==='cobrar'&&typeof job.creditClientId==='string'&&/^[0-9a-z-]{8,80}$/i.test(job.creditClientId)&&['COMPUTADORA','PABLO','DIANA','GOLI'].includes(job.creditBox)?{creditClientId:job.creditClientId,creditBox:job.creditBox}:{})};
 }
@@ -83,7 +83,7 @@ function makeRow(entry){
  const heading=document.createElement('div');heading.className='nv-history-heading';
  const left=document.createElement('strong');
  const d=new Date(entry.receivedAt||job.at);
- left.textContent=isNaN(d.getTime())?'Ticket':d.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+ left.textContent=(job.folio?'Folio '+job.folio+' · ':'')+(isNaN(d.getTime())?'Ticket':d.toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}));
  const right=document.createElement('strong');right.textContent=money(job.subtotal+job.flete);
  heading.append(left,right);wrap.appendChild(heading);
  const text=document.createElement('p');
@@ -171,6 +171,6 @@ function mount(){
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!overlay.hidden)close()});
  refreshCount();
 }
-window.NAVARRO_HISTORIAL=Object.freeze({version:2,record,get,markReprint,list:()=>load().map(x=>({jobId:x.job.jobId,at:x.receivedAt,total:x.job.subtotal+x.job.flete,copies:x.copies,method:normalizeMethod(x.job.state,x.paymentMethod)}))});
+window.NAVARRO_HISTORIAL=Object.freeze({version:2,record,get,markReprint,list:()=>load().map(x=>({jobId:x.job.jobId,folio:x.job.folio||null,at:x.receivedAt,total:x.job.subtotal+x.job.flete,copies:x.copies,method:normalizeMethod(x.job.state,x.paymentMethod)}))});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount,{once:true});else mount();
 })();

@@ -170,6 +170,72 @@ function buildTicket(){
  return {v:1,jobId:crypto.randomUUID(),at:new Date().toISOString(),
    ...(chosen?{creditClientId:chosen.id,creditBox:chosen.box}:{}),rows,subtotal,flete,state:payment,...(payment==='cobrar'?{reference:[nota,String($('nv-credit-ref')?.value||'').trim()].filter(Boolean).join(' · ').slice(0,100)}:{}),client:String($('nv-ticket-client')?.value||'').trim().slice(0,100),address,phone};
 }
+
+// V30.3: folio humano compartido. UUID se conserva para tickets, stock y reportes.
+const FOLIO_ACTIVE='navarro-v303-folios-activos',FOLIO_PENDING='navarro-v303-folio-pendiente:',FOLIO_ACK='navarro-v303-folio-ack:';
+const FOLIO_BOXES=['COMPUTADORA','PABLO','DIANA','GOLI'];
+function folioContext(){
+ if(!pair)return null;
+ const i=window.NAVARRO_INVENTARIO_V22?.estado?.(),box=String(i?.caja||assignedBox()||'').toUpperCase();
+ if(!FOLIO_BOXES.includes(box))return null;
+ const d=read('navarro-inventario-device-v22');
+ if(!/^[a-f0-9-]{36}$/i.test(d.deviceId||'')||!/^[a-f0-9]{64}$/i.test(d.deviceToken||''))throw Error('La caja requiere reconocimiento de inventario para asignar el folio.');
+ return {box,url:pair.url.replace(/\/$/,''),token:pair.token,deviceId:d.deviceId,deviceToken:d.deviceToken};
+}
+async function folioRequest(ctx,body){
+ const r=await fetch(ctx.url+'/folios-v303',{method:'POST',cache:'no-store',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+ctx.token,'Content-Type':'application/json','ngrok-skip-browser-warning':'true'},body:JSON.stringify({...body,deviceId:ctx.deviceId,deviceToken:ctx.deviceToken}),signal:AbortSignal.timeout(12000)});
+ let x;try{x=await r.json()}catch{}
+ if(r.status===404&&body.action==='check'&&!localStorage.getItem(FOLIO_ACTIVE))return null;
+ if(!r.ok||!x?.ok||x.box!==ctx.box)throw Error(x?.error||'No se confirmó el folio en Windows.');
+ const now=folioContext();if(!now||now.box!==ctx.box||now.token!==ctx.token||now.deviceId!==ctx.deviceId)throw Error('Cambió la caja durante la asignación.');
+ return x;
+}
+async function saleHash(job,method,mode){
+ const {jobId,at,folio,...data}=job;
+ const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify([data,method,mode])));
+ return Array.from(new Uint8Array(b),n=>n.toString(16).padStart(2,'0')).join('');
+}
+async function allocateFolio(job,method,mode){
+ const ctx=folioContext();if(!ctx){if(pair&&localStorage.getItem(FOLIO_ACTIVE))throw Error('Reconoce esta caja antes de finalizar con folio compartido.');return job}
+ const perform=async()=>{
+  const check=await folioRequest(ctx,{action:'check'});if(!check)return job;
+  if(check.version!==303)throw Error('Versión de folios no compatible.');
+  localStorage.setItem(FOLIO_ACTIVE,'1');
+  const hash=await saleHash(job,method,mode),key=FOLIO_PENDING+ctx.box;
+  let pending=read(key);
+  if(pending.job&&pending.hash!==hash){
+   if(!pending.done&&!confirm('Hay una venta anterior con folio reservado. ¿Abandonar ese intento y reservar un folio nuevo? El folio anterior no se reutilizará.'))throw Error('Se conservó la venta pendiente.');
+   pending={};
+  }
+  if(pending.done&&pending.hash===hash)throw Error('Esta venta ya se finalizó. Vacía el carrito antes de una nueva venta.');
+  if(!pending.job){pending={hash,job:job.jobId,at:job.at};localStorage.setItem(key,JSON.stringify(pending))}
+  const r=await folioRequest(ctx,{action:'reserve',job:pending.job,hash,cents:job.subtotal+job.flete});
+  if(!r||r.job!==pending.job||!/^[0-9]{4,12}$/.test(r.folio)||Number(r.folio)<1)throw Error('Folio inválido devuelto por Windows.');
+  if(r.confirmed){localStorage.setItem(key,JSON.stringify({...pending,done:true}));throw Error('Este folio ya fue confirmado. Consulta el historial antes de repetir.');}
+  job.jobId=pending.job;job.at=pending.at;job.folio=r.folio;
+  return job;
+ };
+ if(!navigator.locks?.request)throw Error('Actualiza Safari o Chrome para usar folios seguros.');
+ return navigator.locks.request('navarro-folio:'+ctx.box,perform);
+}
+async function confirmFolio(job){
+ if(!job.folio)return;
+ const ctx=folioContext();if(!ctx)throw Error('Caja sin reconocimiento para confirmar folio.');
+ const key=FOLIO_PENDING+ctx.box,p=read(key);
+ if(p.job===job.jobId)localStorage.setItem(key,JSON.stringify({...p,done:true}));
+ const ackKey=FOLIO_ACK+ctx.box+':'+job.jobId;localStorage.setItem(ackKey,job.jobId);
+ try{const r=await folioRequest(ctx,{action:'complete',job:job.jobId});if(r?.confirmed&&r.job===job.jobId)localStorage.removeItem(ackKey)}catch{}
+}
+function releaseFolio(job){
+ if(!job.folio)return;const ctx=folioContext();if(!ctx)return;const k=FOLIO_PENDING+ctx.box;if(read(k).job===job.jobId)localStorage.removeItem(k);
+}
+let sendingFolios=false;
+async function flushFolios(){
+ if(sendingFolios)return;let ctx;try{ctx=folioContext()}catch{return}if(!ctx)return;
+ sendingFolios=true;try{for(const k of Object.keys(localStorage).filter(k=>k.startsWith(FOLIO_ACK+ctx.box+':')).slice(0,10)){const id=localStorage.getItem(k);const r=await folioRequest(ctx,{action:'complete',job:id});if(r?.confirmed&&r.job===id)localStorage.removeItem(k)}}catch{}finally{sendingFolios=false}
+}
+setInterval(flushFolios,15000);window.addEventListener('online',flushFolios);
+
 const SALE_KEYS=['navarro_cart_v1','navarro_clavos_importe_v1','navarro_importes_cents_v1','navarro360_precio_caja_activa_v1'];
 function saleVersion(){return SALE_KEYS.map(k=>{try{return localStorage.getItem(k)||''}catch(_){return ''}}).join('|')}
 function resetPrintedSale(job,version,printed=true){
@@ -205,7 +271,8 @@ function resetPrintedSale(job,version,printed=true){
   if(field.type==='checkbox')field.checked=false;
   else field.value=id==='nv-ticket-status'?'none':'';
  }
- status(printed?'✓ Ticket enviado a Windows. Carrito limpio para nueva venta.':'Venta finalizada sin imprimir. Carrito limpio para nueva venta.',false);
+ try{releaseFolio(job)}catch{}
+ status((job.folio?'Folio '+job.folio+' · ':'')+(printed?'✓ Ticket enviado a Windows. Carrito limpio para nueva venta.':'Venta finalizada sin imprimir. Carrito limpio para nueva venta.'),false);
 }
 
 const REPORTS_ORIGIN='https://navarro-reportes-movil.ferrematerialesnavar.chatgpt.site';
@@ -356,6 +423,10 @@ async function confirmGuestOrder(method){
    record.id=job.jobId;record.at=job.at;
    pending={signature,record};localStorage.setItem(key,JSON.stringify(pending));
   }
+  job.jobId=pending.record.id;job.at=pending.record.at;
+  job.state=pair&&method!=='credit'?'pagado':'cobrar';
+  job.reference=job.state==='pagado'?'Pagado en mostrador. Entregar sin cobrar.':labels[method];
+  if(pair){await allocateFolio(job,method,'domicilio');if(version!==saleVersion())throw Error('El carrito cambió. Revisa el pedido.');pending.record.id=job.jobId;pending.record.at=job.at;localStorage.setItem(key,JSON.stringify(pending));}
   const raw=JSON.stringify(pending.record);
   let response;
   try{
@@ -374,9 +445,10 @@ async function confirmGuestOrder(method){
   job.state=pair&&method!=='credit'?'pagado':'cobrar';
   job.reference=job.state==='pagado'?'Pagado en mostrador. Entregar sin cobrar.':labels[method];
   if(!window.NAVARRO_HISTORIAL?.record(job,method))throw Error('Pedido recibido. Conservamos el carrito para guardar su ticket en este dispositivo.');
+  await confirmFolio(job);
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
-  return {folio:job.jobId};
+  return {folio:job.folio||job.jobId};
  }finally{busy=false}
 }
 window.NAVARRO_CONFIRMAR_PEDIDO=confirmGuestOrder;
@@ -413,7 +485,7 @@ function queueReport(job,meta){
   return true;
  }catch(_){return false;}
 }
-function finishWithoutPrint(){
+async function finishWithoutPrint(){
  if(busy)return;
  busy=true;
  try{
@@ -426,9 +498,12 @@ function finishWithoutPrint(){
   if(!window.confirm('¿Finalizar esta venta por '+new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format((job.subtotal+job.flete)/100)+' sin imprimir?'))return;
   const method=window.NAVARRO_CAJA_EXPRES_V3?.metodoConfirmado?.(job)||'unknown';
   const meta={caja:automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',vendedor:reportSeller(),paymentMethod:method};
+  await allocateFolio(job,method,'sin-imprimir');
+  if(version!==saleVersion())throw Error('El carrito cambió. Revisa los productos antes de finalizar.');
   localStorage.setItem(guard,version);
   if(!queueReport(job,meta)){localStorage.removeItem(guard);throw Error('No se pudo guardar la venta en este navegador.');}
-  try{window.NAVARRO_HISTORIAL?.record?.(job,method);}catch(_){}
+  if(window.NAVARRO_HISTORIAL?.record?.(job,method)!==true){localStorage.removeItem(guard);throw Error('No se guardó el historial. Reintenta con el mismo folio.');}
+  await confirmFolio(job);
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(guard);
  }catch(err){status(err.message,true);}finally{busy=false;}
@@ -501,8 +576,11 @@ async function autoPrint(event){
  const reportVendor=reportSeller();
  const saleMeta={caja:automatic?.caja||window.NAVARRO_CAJA_IDENTIDAD?.codigo?.()||'SIN_ASIGNAR',paymentMethod:confirmedMethod||'unknown'};
  busy=true;button.disabled=true;const label=button.textContent;button.textContent='⏳ Enviando a impresora…';
- const ctrl=new AbortController();const timeout=setTimeout(()=>ctrl.abort(),20000);
+ const ctrl=new AbortController();let timeout;
  try{
+  await allocateFolio(job,confirmedMethod||'unknown','imprimir');
+  if(version!==saleVersion())throw Error('El carrito cambió. Revisa los productos antes de imprimir.');
+  timeout=setTimeout(()=>ctrl.abort(),20000);
   const response=await fetch(pair.url.replace(/\/$/,'')+'/print',{
    method:'POST',mode:'cors',cache:'no-store',credentials:'omit',
    headers:{'Content-Type':'application/json','Authorization':'Bearer '+pair.token,'ngrok-skip-browser-warning':'true'},
@@ -521,6 +599,7 @@ async function autoPrint(event){
    status('Ticket recibido por Windows, pero no se pudo guardar el historial. Conservamos el carrito para que revises la venta.',true);
    return;
   }
+  await confirmFolio(job);
   resetPrintedSale(job,version);
   if(!queued)status('Ticket recibido, pero no se pudo guardar el envío al panel. Revisa el almacenamiento del navegador.',true);
   else if(result.recorded===false)status('⚠ Ticket aceptado por Windows, pero NO se guardó en el panel de cajas. Revisa el registro en la computadora.',true);
