@@ -7,28 +7,11 @@ if(window.NAVARRO_UX_INTEGRAL_V70)return;
 window.NAVARRO_UX_INTEGRAL_V70=true;
 const $=id=>document.getElementById(id);
 const mx=new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'});
-const chips=[
- ['CPVC','CPVC','#f0bf56'],['PVC','PVC','#dee1e9'],
- ['Hidráulico','HIDRAULICO','#a6d8f5'],['Galvanizado','GALVANIZADO','#b9c5d0'],
- ['Cobre','COBRE','#e9ad88'],['PPR','PPR','#99d6ab'],
- ['Electricidad','CABLE','#f4da78'],['Tornillería','TORNILLO','#d2d9e4'],
- ['Pinturas','PINTURA','#e9c0e6'],['Jardinería','MANGUERA','#aad8a7']
-];
 let map=null,source=null,deliveryTimer=0,photoPending=false,photoListening=false,cartListening=false;
-let selectedMaterial='',selectedDiameter='',selectedType='';
-const DIAMETERS=['1/2','3/4','1','1 1/4','1 1/2','2','2 1/2','3','4'];
-const TYPES=['CODO','TEE','COPLE','REDUCCION','TUBO','TAPON','CONECTOR','VALVULA'];
-const PLUMBING=new Set(['CPVC','PVC','HIDRAULICO','GALVANIZADO','COBRE','PPR']);
 function css(){
  if($('nv70-style'))return;
  const s=document.createElement('style');s.id='nv70-style';
  s.textContent=[
- '#nv70-materials{background:#f6f9f7;border:1px solid #d9e8de;border-radius:16px;padding:12px;margin:10px 0 15px}',
- '#nv70-materials h3{font:850 15px system-ui;color:#1a4231;margin:0 0 9px}',
- '.nv70-scroll{display:flex;gap:7px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:2px 0 8px;scrollbar-width:thin}',
- '.nv70-chip{display:flex;align-items:center;gap:7px;white-space:nowrap;min-height:45px;padding:8px 12px;border:1px solid #d2e0d5;background:#fff;border-radius:11px;font:750 12px system-ui;color:#1d4733;flex-shrink:0}',
- '.nv70-dot{width:16px;height:16px;border:1px solid #8f9c9455;border-radius:5px;display:inline-block}',
- '.nv70-facets{border-top:1px solid #dce9df;padding-top:9px;margin-top:6px}.nv70-facets[hidden]{display:none!important}.nv70-facets b{display:block;font:800 12px system-ui;margin:7px 0;color:#335a43}.nv70-facets .nv70-scroll button{min-height:35px;padding:7px 9px;font-size:11px;background:#fff;color:#264d34;border:1px solid #bed5c7;border-radius:9px;flex-shrink:0}.nv70-facets .nv70-scroll button[aria-pressed=true]{background:#207348;color:white;border-color:#207348}',
  '#nv70-delivery{margin:10px 14px 12px;background:#fff;border:1px solid #d4e5da;border-radius:15px;padding:13px;color:#1d4733;font:13px/1.45 system-ui;box-shadow:0 2px 8px #1028170a}',
  '#nv70-delivery h3{margin:0 0 8px;color:#1b4931;font-size:15px}',
   '.nv70-extra{margin-top:10px;border-top:1px solid #dae9de;padding-top:7px}.nv70-extra summary{list-style:none;display:flex;align-items:center;min-height:44px;cursor:pointer;color:#1f6945;font:800 12.5px system-ui;touch-action:manipulation}.nv70-extra summary::-webkit-details-marker{display:none}.nv70-extra summary:after{content:"▾";margin-left:auto;font-size:16px}.nv70-extra[open] summary:after{content:"▴"}.nv70-extra-content{padding-top:7px}.nv70-shipping-remaining{margin:5px 0;color:#557361;font-weight:600}',
@@ -42,79 +25,9 @@ function css(){
  '.nv70-steps{display:flex;flex-wrap:wrap;gap:6px;margin:11px 0}',
  '.nv70-steps span{border:1px solid #cadccf;border-radius:8px;background:#f3f8f4;padding:5px;font-size:10px;color:#567361}',
  '.nv70-steps .active{background:#e0f3e7;color:#185f3b;border-color:#a6d4b7;font-weight:800}',
- '@media(max-width:460px){#nv70-materials{margin-inline:5px}#nv70-delivery{padding:11px}}'
+ '@media(max-width:460px){#nv70-delivery{padding:11px}}'
  ].join('');
  document.head.appendChild(s);
-}
-function searchField(){
- const inputs=[$('search-mobile'),$('search')].filter(Boolean);
- return inputs.find(el=>{try{return el.getClientRects().length>0}catch(_){return false}})||inputs[0]||null;
-}
-function searchMaterial(query){
- const input=searchField();
- if(!input)return;
- input.value=query;
- input.dispatchEvent(new Event('input',{bubbles:true}));
- try{input.scrollIntoView({block:'center',behavior:'smooth'})}catch(_){}
- try{input.focus({preventScroll:true})}catch(_){input.focus()}
-}
-function facetQuery(){
- return [selectedType,selectedMaterial,selectedDiameter].filter(Boolean).join(' ');
-}
-function setFacetOptions(){
- const panel=$('nv70-facets');
- if(!panel)return;
- panel.hidden=!PLUMBING.has(selectedMaterial);
- if(panel.hidden)return;
- for(const b of panel.querySelectorAll('button[data-size]'))
-  b.setAttribute('aria-pressed',String(b.dataset.size===selectedDiameter));
- for(const b of panel.querySelectorAll('button[data-type]'))
-  b.setAttribute('aria-pressed',String(b.dataset.type===selectedType));
-}
-function nav(){
- if($('nv70-materials'))return true;
- const target=$('filters')||$('products');
- if(!target)return false;
- const box=document.createElement('section');box.id='nv70-materials';
- box.setAttribute('aria-label','Accesos rápidos por material y medida');
- const h=document.createElement('h3');h.textContent='🎨 Encuentra rápido tu material';
- const row=document.createElement('div');row.className='nv70-scroll';
- chips.forEach(([name,query,color])=>{
-  const btn=document.createElement('button');btn.type='button';btn.className='nv70-chip';btn.dataset.query=query;
-  const dot=document.createElement('span');dot.className='nv70-dot';dot.style.background=color;
-  const title=document.createElement('span');title.textContent=name;btn.append(dot,title);row.appendChild(btn);
- });
- const facets=document.createElement('div');facets.id='nv70-facets';facets.className='nv70-facets';facets.hidden=true;
- function rowFor(title,choices,key){
-  const caption=document.createElement('b');caption.textContent=title;
-  const strip=document.createElement('div');strip.className='nv70-scroll';
-  for(const val of choices){
-   const button=document.createElement('button');button.type='button';
-   button.dataset[key]=val;button.setAttribute('aria-pressed','false');button.textContent=val;
-   strip.appendChild(button);
-  }
-  facets.append(caption,strip);
- }
- rowFor('Filtrar por conexión o artículo',TYPES,'type');
- rowFor('Filtrar por diámetro (pulgadas)',DIAMETERS,'size');
- const clear=document.createElement('button');clear.type='button';clear.textContent='↻ Mostrar todas las medidas';clear.dataset.clear='1';
- facets.appendChild(clear);
- box.append(h,row,facets);target.insertAdjacentElement('beforebegin',box);
- box.addEventListener('click',e=>{
-  const button=e.target.closest('button');if(!button)return;
-  if(button.dataset.query){
-   selectedMaterial=button.dataset.query;selectedDiameter='';selectedType='';
-  }else if(button.dataset.size){
-   selectedDiameter=selectedDiameter===button.dataset.size?'':button.dataset.size;
-  }else if(button.dataset.type){
-   selectedType=selectedType===button.dataset.type?'':button.dataset.type;
-  }else if(button.dataset.clear==='1'){
-   selectedDiameter='';selectedType='';
-  }else return;
-  setFacetOptions();
-  searchMaterial(facetQuery());
- });
- return true;
 }
 function products(){
  const data=window.NAVARRO_DB;
@@ -286,11 +199,11 @@ function photos(){
 }
 function start(){
  css();
- nav();delivery();photos();
+ $('nv70-materials')?.remove();delivery();photos();
  let tries=0;
  const retry=setInterval(()=>{
-  nav();delivery();photos();
-  if(++tries>=12||($('nv70-materials')&&$('nv70-delivery')&&photoListening))clearInterval(retry);
+  $('nv70-materials')?.remove();delivery();photos();
+  if(++tries>=12||($('nv70-delivery')&&photoListening))clearInterval(retry);
  },600);
 }
 window.NAVARRO_UX_ESTADO_V70=()=>({version:70,catalogo:window.NAVARRO_DB?.length||0,barra:!!$('nv70-materials'),envios:!!$('nv70-delivery'),sifoConectado:false,estimacion:estimation()});
