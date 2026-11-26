@@ -1,0 +1,30 @@
+/* NAVARRO V30.3.5 — medidas de plomería legibles en PC y móvil. */
+#plumbing-panel .pl-nav-button[data-pl-nav="size"] {
+  min-width:76px!important;
+  min-height:62px!important;
+  padding:10px 16px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+  font-size:26px!important;
+  font-weight:850!important;
+  line-height:1.15!important;
+  font-variant-numeric:lining-nums tabular-nums;
+}
+#plumbing-panel .pl-nav-button[data-pl-nav="size"] > span {
+  font-size:inherit!important;
+  font-weight:inherit!important;
+  line-height:inherit!important;
+  white-space:nowrap;
+}
+#plumbing-panel .pl-nav-button[data-pl-nav="size"][data-value="Sin diámetro"] {
+  font-size:16px!important;
+}
+@media(max-width:540px){
+  #plumbing-panel .pl-nav-button[data-pl-nav="size"] {
+    min-width:66px!important;
+    min-height:56px!important;
+    padding:9px 12px!important;
+    font-size:24px!important;
+  }
+}
