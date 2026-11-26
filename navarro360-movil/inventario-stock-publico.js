@@ -135,6 +135,36 @@
   })().catch(error=>{windowsFailed=true;throw error;}).finally(()=>{loading=null;paint();notifyStock();});
   return loading;
  }
+
+ function countReference(code){
+  code=String(code);
+  const data=stockReader()(code),row=overrides.get(code);
+  return {stock:data.stock,confirmed:data.confirmed,source:data.source,version:data.source==='windows'?row?.[2]??null:null};
+ }
+ function sameReference(a,b){
+  return !!a&&!!b&&a.confirmed===true&&b.confirmed===true&&a.stock===b.stock&&a.version===b.version&&a.source===b.source;
+ }
+ let counting=false;
+ async function applyPhysical(code,qty,reference,name){
+  if(counting)throw Error('Hay otro ajuste en curso');
+  if(!codeRE.test(code)||code==='00000'||typeof qty!=='number'||!Number.isFinite(qty)||qty<0||qty>100000000||Math.abs(qty*1000-Math.round(qty*1000))>1e-5)throw Error('Cantidad de conteo inválida');
+  counting=true;
+  try{
+   await refresh();await refreshPublic();
+   const admin=window.NAVARRO_CENTRO_AMPLIADO_V27?.estado?.();
+   if(!admin?.autorizado||admin.caja!==box||!BOXES.includes(box))throw Error('Caja sin autorización');
+   const current=countReference(code);
+   if(!sameReference(reference,current))throw Error('La existencia o su versión cambió. Vuelve a contar el producto con la referencia actual.');
+   if(current.stock===qty)return {ok:true,unchanged:true,box};
+   const version=crypto.randomUUID();
+   try{await post({action:'count',code,qty,previous:current.version,version});}
+   catch(e){if(!e.status)throw Error('No se confirmó el ajuste. Consulta el stock antes de repetir; el conteo se conserva.');throw e;}
+   window.dispatchEvent(new CustomEvent('navarro:v29:confirmed',{detail:{type:'Conteo aceptado por Windows',code,name:String(name||code),before:current.stock,after:qty,box}}));
+   try{await refresh()}catch{}
+   return {ok:true,box};
+  }finally{counting=false;}
+ }
+
  document.addEventListener('click',async event=>{
   const button=event.target.closest('[data-inventory-edit]');
   if(!button)return;
@@ -170,5 +200,5 @@
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,referenciaConteo:countReference,aplicarConteo:applyPhysical,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

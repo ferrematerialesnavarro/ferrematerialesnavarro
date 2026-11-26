@@ -11,6 +11,7 @@ var session=0,lastCode='',lastProduct=null,sessionUnits=0,sessionCodes=new Set()
 var altLoading=null,altTimer=null,altEpoch=0,altState='sin iniciar';
 var altHits=0,altFrames=0,altCandidate='',altCandidateAt=0,altConfirmations=0,primaryHits=0,diagVisible=false;
 const MIN_BETWEEN_PRODUCTS_MS=750;
+let inventoryMode=false,closing=false;
 var pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function createBarcodeReader(host,formats){
  // Safari iOS puede detectar mal las barras con BarcodeDetector nativo.
@@ -26,6 +27,7 @@ function setStatus(msg,error){
 }
 function productFor(value){
  var code=String(value||'').trim().replace(/[\s-]/g,'');
+ if(inventoryMode)return window.NAVARRO_CONTEO_FISICO?.buscar?.(code)||null;
  if(!/^[0-9]{5,}$/.test(code)||!Array.isArray(window.NAVARRO_DB))return null;
  var candidates=[code];
  if(code.length===13&&code.charAt(0)==='0')candidates.push(code.slice(1));
@@ -76,6 +78,7 @@ function cartFingerprint(){
 }
 async function addFound(p,token){
  if(closed||token!==session)return {ok:false,reason:'Lectura cancelada'};
+ if(inventoryMode){try{return window.NAVARRO_CONTEO_FISICO?.sumar?.(p.code)||{ok:false,reason:'Conteo no disponible'};}catch(e){return {ok:false,reason:e.message||'No se guardó el conteo'};}}
  // El carrito real decide y persiste la cantidad. No fingir toques ni recargar.
  if(typeof window.NAVARRO_ESCANER_AGREGAR==='function'){
   try{
@@ -115,7 +118,7 @@ function ensureOverlay(){
  overlay.querySelector('#nav-scan-sound').addEventListener('click',e=>{const enabled=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',String(enabled));e.currentTarget.textContent=enabled?'🔊 Sonido':'🔇 Silencio';if(enabled)unlockAudio();});
  overlay.querySelector('#nav-scan-take-photo').addEventListener('click',()=>{if(closed||photoBusy)return;unlockAudio();photoStop=stop();setStatus('Cámara pausada. Toma una foto nítida del código.');overlay.querySelector('#nav-scan-photo').click();});
  overlay.querySelector('#nav-scan-photo').addEventListener('change',e=>{void scanPhoto(e.target.files&&e.target.files[0]);});
- overlay.querySelector('#nav-scan-reopen').addEventListener('click',async()=>{await close();await open();});
+ overlay.querySelector('#nav-scan-reopen').addEventListener('click',async()=>{const mode=inventoryMode;await close();await open(mode);});
  overlay.querySelector('#nav-scan-diagnose').addEventListener('click',()=>{diagVisible=!diagVisible;showDiagnostic();});
  overlay.querySelector('#nav-scan-manual').addEventListener('submit',e=>{e.preventDefault();unlockAudio();const input=overlay.querySelector('#nav-scan-manual-code');const code=String(input.value||'').trim().replaceAll(' ','').replaceAll('-','');if(!/^[0-9]{5,}$/.test(code)){setStatus('Escribe un código numérico de al menos 5 dígitos.',true);return;}input.value='';void decoded(code,'manual');});
  overlay.addEventListener('click',e=>{if(e.target===overlay)void close()});
@@ -128,11 +131,13 @@ async function stop(){
  try{await prev.clear()}catch(_){}
 }
 async function close(){
- closed=true;session++;opening=false;busy=false;
+ if(closing)return;
+ closing=true;closed=true;session++;opening=false;busy=false;
  await stop();
  if(photoReader){try{await photoReader.clear()}catch(_){}photoReader=null;}
  if(overlay)overlay.hidden=true;
  document.body.classList.remove('nav-scan-open');
+ inventoryMode=false;closing=false;
 }
 function loadLibrary(){
  if(window.Html5Qrcode)return Promise.resolve();
@@ -164,7 +169,7 @@ function updateProgress(){
 function confirmedAdd(p){
  sessionUnits++;sessionCodes.add(p.code);lastProduct=p;
  updateProgress();
- setStatus('✓ +1 '+p.name+' ('+p.code+'). ✓ Carrito actualizado · 📷 LISTO PARA EL SIGUIENTE CÓDIGO.');
+ setStatus('✓ +1 '+p.name+' ('+p.code+'). '+(inventoryMode?'✓ Conteo guardado':'✓ Carrito actualizado')+' · 📷 LISTO PARA EL SIGUIENTE CÓDIGO.');
  if(navigator.vibrate)try{navigator.vibrate(60)}catch(_){}
  playSuccessSound();
 }
@@ -177,7 +182,7 @@ async function repeatLast(){
  if(closed||token!==session)return;
  busy=false;
  if(result.ok)confirmedAdd(p);
- else setStatus(result.reason+'. Comprueba el carrito antes de reintentar.',true);
+ else setStatus(result.reason+(inventoryMode?'. Revisa el conteo.':'. Comprueba el carrito antes de reintentar.'),true);
  updateProgress();
 }
 async function decoded(value,source='camera'){
@@ -187,7 +192,7 @@ async function decoded(value,source='camera'){
   var code=String(value||'').trim(),now=Date.now();
   if(unknown===code&&now-unknownAt<1800)return;
   unknown=code;unknownAt=now;
-  setStatus('Código no registrado: '+code+'. No se agregó al carrito.',true);
+  setStatus('Código no registrado: '+code+(inventoryMode?'. No se agregó al conteo.':'. No se agregó al carrito.'),true);
   return;
  }
  // Una etiqueta inmóvil nunca suma dos veces. Para repetir el mismo SKU, pulsar +1.
@@ -208,7 +213,7 @@ async function decoded(value,source='camera'){
    const input=overlay?.querySelector('#nav-scan-manual-code');
    if(input){input.value='';try{input.focus({preventScroll:true})}catch(_){input.focus()}}
   }
- }else{lastCode='';setStatus(result.reason+'. Código: '+p.code+'. Comprueba el carrito.',true);}
+ }else{lastCode='';setStatus(result.reason+'. Código: '+p.code+(inventoryMode?'. Revisa el conteo.':'. Comprueba el carrito.'),true);}
  updateProgress();
 }
 function unlockAudio(){
@@ -417,13 +422,17 @@ async function scanPhoto(file){
   const input=overlay?.querySelector('#nav-scan-photo');if(input)input.value='';
  }
 }
-async function open(){
- if(opening||busy||!closed)return;
+async function open(mode=false){
+ if(opening||busy||closing||!closed)return;
+ if(mode&&!window.NAVARRO_CONTEO_FISICO?.activo?.())return;
  if(!window.isSecureContext||!navigator.mediaDevices?.getUserMedia){
   window.alert('Abre la tienda con HTTPS y permite el acceso a la cámara en Safari o Chrome.');
   return;
  }
  ensureOverlay();
+ inventoryMode=mode===true;
+ overlay.querySelector('.nav-scan-head strong').textContent=inventoryMode?'📷 Inventario físico · Solo conteo':'📷 Escáner continuo · iPhone V8';
+ overlay.querySelector('.nav-scan-help').textContent=inventoryMode?'Cada código distinto suma una unidad al borrador. Para repetir el mismo producto, pulsa +1. No se modifica el carrito ni las existencias.':'Si la cámara no reconoce las barras, usa una foto o escribe el código. Cada código válido suma una unidad. La cámara permanece abierta para el siguiente producto.';
  var token=++session;
  opening=true;closed=false;lastCode='';lastProduct=null;sessionUnits=0;sessionCodes=new Set();
  primaryHits=0;altHits=0;altFrames=0;altCandidate='';altConfirmations=0;altState='esperando';diagVisible=false;
@@ -458,7 +467,7 @@ async function open(){
   }
   if(closed||token!==session){await stop();return}
   setupCameraControls();showDiagnostic();void startAlternative(token);
-  setStatus('📷 Lector continuo V8 activo. Escanea un código; se agregará al carrito y la cámara seguirá lista para el siguiente.');
+  setStatus(inventoryMode?'📷 Conteo activo. Escanea materiales; solo se guardan en el borrador.':'📷 Lector continuo V8 activo. Escanea un código; se agregará al carrito y la cámara seguirá lista para el siguiente.');
  }catch(err){
   if(closed||token!==session)return;
   var msg=String(err?.message||err||'');
@@ -490,5 +499,6 @@ function install(){
  new MutationObserver(attach).observe(document.body,{childList:true,subtree:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
+window.NAVARRO_ESCANER_CONTEO=()=>{unlockAudio();return open(true)};
 window.NAVARRO_ESCANER_PROBAR_CODIGO=decoded;
 })();
