@@ -106,9 +106,42 @@
   const pub=publicStock?.rows||new Map(),base=window.NAVARRO_EXISTENCIAS;
   return code=>selectStock(String(code),rows,pub,base,meta);
  }
+
+ // Completar la ficha incluso si otro módulo reconstruye su contenido.
+ // El código proviene de la tarjeta, no del texto ni de una coincidencia por nombre.
+ function ensureCardControls(card){
+  const code=String(card.dataset.card||card.dataset.visualInventoryCode||'');
+  if(!codeRE.test(code)||code==='00000')return;
+  const host=card.querySelector('.product-info,.nav-visual-body');
+  if(!host)return;
+  let label=host.querySelector('[data-inventory-code]');
+  if(!label){
+   label=document.createElement('div');label.className='nv-stock-box';
+   label.dataset.inventoryCode=code;label.textContent='Existencia por confirmar';
+   const anchor=host.querySelector('.product-code,.nav-visual-code');
+   if(anchor)anchor.after(label);else host.prepend(label);
+  }
+  if(label.dataset.inventoryCode!==code){label.dataset.inventoryCode=code;delete label.dataset.nvStockSignature;}
+  let button=host.querySelector('[data-inventory-edit]');
+  if(!button){
+   button=document.createElement('button');button.type='button';
+   button.textContent='Ajustar stock';button.hidden=true;
+   button.dataset.inventoryEdit=code;label.after(button);
+  }
+  if(button.dataset.inventoryEdit!==code)button.dataset.inventoryEdit=code;
+ }
+ function ensureVisibleCards(){
+  document.querySelectorAll('#products article[data-card],.nav-visual-dialog article[data-visual-inventory-code]').forEach(ensureCardControls);
+ }
+ let paintQueued=false;
+ function schedulePaint(){
+  if(paintQueued)return;paintQueued=true;
+  requestAnimationFrame(()=>{paintQueued=false;paint()});
+ }
  function paint(){
+  ensureVisibleCards();
   const eligible=!!printer(),read=stockReader();
-  document.querySelectorAll('[data-inventory-code]').forEach(el=>{
+  document.querySelectorAll('#products [data-inventory-code],.nav-visual-dialog [data-inventory-code]').forEach(el=>{
    const p=read(el.dataset.inventoryCode);
    const value=p.stock===null?'Por confirmar':p.stock.toLocaleString('es-MX',{maximumFractionDigits:6});
    const date=p.stock===null?'':p.at&&Number.isFinite(Date.parse(p.at))?new Date(p.at).toLocaleDateString('es-MX',{timeZone:'America/Mexico_City'}):STOCK_DATE;
@@ -123,7 +156,7 @@
    el.dataset.nvStockState=state;el.dataset.nvStockSignature=signature;
    el.replaceChildren(heading,qty,stamp);
   });
-  document.querySelectorAll('[data-inventory-edit]').forEach(el=>{el.hidden=!eligible;});
+  document.querySelectorAll('#products [data-inventory-edit],.nav-visual-dialog [data-inventory-edit]').forEach(el=>{if(el.hidden===eligible)el.hidden=!eligible;});
  }
  function notifyStock(){window.dispatchEvent(new Event('navarro:stock-refresh'));}
  async function refresh(){
@@ -211,7 +244,7 @@
    if(!codeRE.test(code))throw Error('Código del producto no válido.');
    const row=overrides.get(code);
    const before=row?.[1]??publicStock?.rows.get(code)??window.NAVARRO_EXISTENCIAS?.[code]?.[0]??null;
-   const name=button.closest('[data-card]')?.querySelector('h3')?.textContent||code;
+   const name=button.closest('[data-card],[data-visual-inventory-code]')?.querySelector('h3,.nav-visual-product-name')?.textContent||code;
    const raw=prompt(name+' · '+code+'\nExistencia registrada: '+(before??'Sin dato')+'\nCantidad física contada:');
    if(raw===null)return;
    const value=raw.trim().replace(',','.');
@@ -226,7 +259,13 @@
   finally{button.disabled=false;}
  },true);
  const products=document.querySelector('#products');
- if(products)new MutationObserver(paint).observe(products,{childList:true});
+ if(products)new MutationObserver(records=>{
+  // No repintar por nuestros propios textos/animaciones ni por cambios de fotos.
+  const changed=records.some(r=>r.target===products||Array.from(r.addedNodes).some(n=>n.nodeType===1&&(n.matches?.('article[data-card],.product-info')||n.querySelector?.('article[data-card],.product-info')))||Array.from(r.removedNodes).some(n=>n.nodeType===1&&(n.matches?.('[data-inventory-code],[data-inventory-edit],.product-info')||n.querySelector?.('[data-inventory-code],[data-inventory-edit]'))));
+  if(changed)schedulePaint();
+ }).observe(products,{childList:true,subtree:true});
+ window.addEventListener('navarro:visual-products',schedulePaint);
+ window.addEventListener('storage',e=>{if(!e.key||e.key===PAIR_KEY||e.key===DEVICE_KEY)schedulePaint()});
  window.addEventListener('pageshow',()=>{paint();refreshPublic();if(printer())refresh().catch(()=>{});});
  document.addEventListener('visibilitychange',()=>{if(!document.hidden){refreshPublic();if(printer())refresh().catch(()=>{});}});
  window.addEventListener('online',()=>{refreshPublic();if(printer())refresh().catch(()=>{});});
@@ -234,5 +273,5 @@
  refreshPublic();
  if(printer())refresh().catch(()=>{});
  setInterval(()=>{if(document.hidden)return;refreshPublic();if(printer())refresh().catch(()=>{});},30000);
- window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,referenciaConteo:countReference,prepararConteo:preparePhysical,aplicarConteo:applyPhysical,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
+ window.NAVARRO_INVENTARIO_V22=Object.freeze({version:22,pintar:schedulePaint,referenciaConteo:countReference,prepararConteo:preparePhysical,aplicarConteo:applyPhysical,lectorExistencias:stockReader,recargarTodo:()=>Promise.allSettled([refreshPublic(),...(printer()?[refresh()]:[])]),recargarPublico:refreshPublic,consultaPublica:()=>({at:publicStock?.at??null,error:publicFailed,rows:Array.from(publicStock?.rows||[])}),estado:()=>({impresora:!!printer(),reconocido:verified,caja:box||null,publico:{actualizado:publicStock?.at??null,error:publicFailed,consultando:!!publicLoading}})});
 })();

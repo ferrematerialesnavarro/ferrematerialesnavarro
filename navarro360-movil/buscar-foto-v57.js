@@ -189,6 +189,7 @@ function renderResults(ranked,eligible,exactSku){
  function makeCard(hit,number){
   const product=catalog.get(hit.code);
   const card=el('article','nav-visual-item');
+  card.dataset.visualInventoryCode=String(hit.code);
   showPic(card,hit.code);
   const body=el('div','nav-visual-body');
   body.append(el('span','nav-visual-rank',hit.exact?'✓ Código reconocido en la foto':hit.learned?'✓ Seleccionado antes en este dispositivo':number?'Coincidencia visual '+number:'Variante parecida'));
@@ -220,6 +221,7 @@ function renderResults(ranked,eligible,exactSku){
    let shown=0;
    const batch=()=>{
     for(const hit of group.items.slice(shown,shown+20))more.append(makeCard(hit));
+    window.dispatchEvent(new Event('navarro:visual-products'));
     shown=Math.min(group.items.length,shown+20);
     if(shown<group.items.length){
      const remaining=el('button','nav-visual-variants','Mostrar otras '+(group.items.length-shown)+' variantes');
@@ -237,6 +239,7 @@ function renderResults(ranked,eligible,exactSku){
   list.append(section);
  });
  host.append(list);
+ window.dispatchEvent(new Event('navarro:visual-products'));
  if(groups.length>5){
   const moreGroups=el('button','nav-visual-more','No veo mi producto · Ver otras '+(groups.length-5)+' familias');
   moreGroups.type='button';
