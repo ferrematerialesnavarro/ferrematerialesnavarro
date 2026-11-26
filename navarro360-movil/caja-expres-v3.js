@@ -196,7 +196,7 @@ function render(){
  const amount=parseMoney(cash.value);
  const result=$('nv-ce-v2-result'),apply=$('nv-ce-v2-apply');
  const guest=esInvitado();
- window.NAVARRO_CLIENTES_V299?.renderCheckout?.(method);
+ try{window.NAVARRO_CLIENTES_V299?.renderCheckout?.(method)}catch(e){announce('No se pudo mostrar Clientes: '+e.message,true)}
  const enviarPorWhatsApp=enviarDomicilio(method);
  $('nv-aviso-enviar').hidden=!enviarPorWhatsApp;
  apply.hidden=!enviarPorWhatsApp&&!guest;

@@ -131,7 +131,7 @@ function put(box,type,r){if(caja()!==box)throw Error('Caja sin autorización');c
    remote=data;remoteKey=ctx.key;lastSync=Date.now();lastError='';
    if(changed&&area?.dataset.v27Active==='yes'&&!working&&!area.contains(document.activeElement))renderAdmin();
    return true;
-  })().catch(e=>{lastError=e.message||'No se pudo sincronizar.';lastSync=0;return false}).finally(()=>{syncing=null;refreshNotice()});
+  })().catch(e=>{lastError=e.message||'No se pudo sincronizar.';lastSync=0;return false}).finally(()=>{syncing=null;refreshNotice();onCreditSync()});
   refreshNotice();return syncing;
  }
  function scheduleSync(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>{void sync()},150)}
@@ -147,50 +147,135 @@ function newClient(box){
  if(same.length){if(confirm('Ya existe '+name+'. ¿Usar ese expediente?'))return same[0];return null}
  const r={id:crypto.randomUUID(),box,name,phone,at:new Date().toISOString()};put(box,'cliente',r);scheduleSync();return r;
 }
-let selected=null,checkoutBox=null,wrap=null,select=null,notice=null;
-function clear(){selected=null;checkoutBox=null;if(select)select.value='';}
-function ensureCheckout(){
- const method=$('nv-ce-v2-method');if(!method)return false;if(wrap)return true;
- wrap=document.createElement('div');wrap.id='nv299-credit-client';wrap.hidden=true;wrap.style.cssText='margin:8px 0;padding:8px;border:1px solid #b8d5c0;border-radius:9px;background:#fff';
- const label=document.createElement('label');label.textContent='Cliente del crédito (opcional)';label.htmlFor='nv299-client-select';wrap.append(label);
- select=document.createElement('select');select.id='nv299-client-select';wrap.append(select);
- const btn=document.createElement('button');btn.type='button';btn.textContent='+ Nuevo cliente';btn.style.marginTop='6px';wrap.append(btn);
- notice=document.createElement('small');notice.style.display='block';wrap.append(notice);
- select.addEventListener('change',()=>{selected=select.value||null;showBalance()});
- btn.addEventListener('click',()=>{try{const box=caja();if(!box)return;const r=newClient(box);if(r){selected=r.id;checkoutBox=box;refreshChoices(box);showBalance()}}catch(e){notice.textContent=e.message}});
- method.after(wrap);return true;
+
+let selected=null,checkoutBox=null,wrap=null,notice=null,selectedLabel=null,assignButton=null,newButton=null,picker=null,query=null,choices=null,newForm=null,nameField=null,phoneField=null,moreButton=null;
+let choiceSignature='',limit=40,assignedName='',lastMode='',lastChoiceError='';
+const normSearch=x=>String(x||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('es-MX').trim();
+function visible(node,show){if(node&&node.hidden===show)node.hidden=!show}
+function setText(node,value){if(node&&node.textContent!==value)node.textContent=value}
+function node(tag,txt,parent){const e=document.createElement(tag);if(txt!==undefined)e.textContent=txt;if(parent)parent.appendChild(e);return e}
+function action(txt,parent,fn){const e=node('button',txt,parent);e.type='button';e.addEventListener('click',ev=>{ev.preventDefault();try{fn()}catch(err){setText(notice,err.message||'No se pudo completar la acción.')}});return e}
+function clearAssignedName(){const field=$('nv-ticket-client');if(assignedName&&field?.value===assignedName)field.value='';assignedName=''}
+function closePanels(){visible(picker,false);visible(newForm,false);choiceSignature='';if(query)query.value='';limit=40}
+function clear(){
+ selected=null;checkoutBox=null;lastChoiceError='';clearAssignedName();closePanels();
+ setText(selectedLabel,'Sin cliente asignado');setText(notice,'');setText(assignButton,'Asignar cliente');
 }
-function refreshChoices(box){
- const arr=clients(box),sig=JSON.stringify(arr.map(x=>[x.id,x.name,x.phone]));
- if(select.dataset.sig!==sig){select.replaceChildren();const o=document.createElement('option');o.value='';o.textContent='Sin cliente asignado';select.append(o);for(const r of arr){const o=document.createElement('option');o.value=r.id;o.textContent=r.name+(r.phone?' · '+r.phone:'');select.append(o)}select.dataset.sig=sig}
- select.value=selected||'';
+function pick(r,box){
+ if(caja()!==box||!r||!c.validId(r.id))throw Error('La caja cambió. Vuelve a seleccionar el cliente.');
+ selected={id:r.id,name:r.name,phone:r.phone||''};checkoutBox=box;
+ clearAssignedName();closePanels();showBalance();
+}
+function showBalance(){
+ if(!notice)return;
+ setText(selectedLabel,selected?selected.name:'Sin cliente asignado');
+ setText(assignButton,selected?'Cambiar cliente':'Asignar cliente');
+ visible($('nv30-remove-client'),!!selected);
+ if(!selected){setText(notice,lastChoiceError||'Puedes elegir un cliente existente o registrar uno nuevo.');return;}
+ try{const b=balance(checkoutBox,selected.id);setText(notice,(fresh()?'Saldo compartido: ':'Saldo por verificar: ')+money(b.saldo));}
+ catch(e){setText(notice,'Cliente seleccionado. Saldo por verificar.');}
+}
+function refreshChoices(box,force=false){
+ if(!picker||picker.hidden||!box||checkoutBox!==box)return;
+ const arr=clients(box),q=normSearch(query.value),filtered=arr.filter(r=>!q||normSearch(r.name+' '+(r.phone||'')).includes(q));
+ const shown=filtered.slice(0,limit),sig=JSON.stringify([q,filtered.length,shown.map(r=>[r.id,r.name,r.phone])]);
+ if(!force&&sig===choiceSignature)return;
+ choiceSignature=sig;
+ const fragment=document.createDocumentFragment();
+ if(!shown.length)node('p',fresh()?'No hay clientes que coincidan.':'No hay resultados disponibles. Comprueba la sincronización.',fragment);
+ for(const r of shown){
+  const item=action(r.name,fragment,()=>pick(r,box));item.className='nv30-client-option';
+  if(r.phone)node('small',r.phone,item);
+ }
+ choices.replaceChildren(fragment);
+ visible(moreButton,filtered.length>shown.length);
 }
 function balance(box,id){return c.balances(merged(box,'venta'),merged(box,'abono'),id)}
-function showBalance(){if(!notice)return;try{notice.textContent=selected&&checkoutBox?(fresh()?'Saldo compartido: ':'Saldo pendiente de verificar: ')+money(balance(checkoutBox,selected).saldo):'La venta normal por cobrar sigue disponible sin expediente.'}catch(e){notice.textContent=e.message}}
+function openPicker(){
+ const box=caja();if(!box)throw Error('Caja no reconocida.');
+ if(checkoutBox!==box){clear();checkoutBox=box}
+ if(!picker.hidden){closePanels();return}
+ visible(newForm,false);visible(picker,true);query.value='';limit=40;choiceSignature='';
+ refreshChoices(box);scheduleSync();
+ // No enfocar automáticamente: en iPhone no abrir teclado ni mover el carrito.
+}
+function openNew(){
+ const box=caja();if(!box)throw Error('Caja no reconocida.');
+ if(checkoutBox!==box){clear();checkoutBox=box}
+ if(!newForm.hidden){closePanels();return}
+ visible(picker,false);visible(newForm,true);nameField.value='';phoneField.value='';
+}
+function createFromFields(){
+ const box=caja();if(!box||checkoutBox!==box)throw Error('Caja no reconocida.');
+ const name=c.clean(nameField.value,100),phone=c.clean(phoneField.value,30);
+ if(name.length<2)throw Error('Escribe el nombre del cliente.');
+ if(phone&&!/^[+\d()\s.-]{5,30}$/.test(phone))throw Error('Teléfono no válido.');
+ const same=clients(box).filter(r=>normSearch(r.name)===normSearch(name)&&(r.phone||'')===phone);
+ if(same.length===1){pick(same[0],box);return}
+ if(same.length>1){openPicker();query.value=name;refreshChoices(box,true);throw Error('Hay varios clientes con ese nombre. Selecciona el expediente correcto.')}
+ const r={id:crypto.randomUUID(),box,name,phone,at:new Date().toISOString()};put(box,'cliente',r);pick(r,box);scheduleSync();
+}
+function ensureCheckout(){
+ const method=$('nv-ce-v2-method');if(!method)return false;if(wrap?.isConnected)return true;
+ wrap=node('div');wrap.id='nv299-credit-client';wrap.hidden=true;
+ wrap.style.cssText='margin:8px 0;padding:10px;border:1px solid #b8d5c0;border-radius:10px;background:#fff;min-width:0';
+ node('strong','Cliente del crédito',wrap);
+ selectedLabel=node('p','Sin cliente asignado',wrap);selectedLabel.style.cssText='margin:5px 0;font-weight:750;overflow-wrap:anywhere';
+ const actions=node('div',undefined,wrap);actions.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+ assignButton=action('Asignar cliente',actions,openPicker);
+ newButton=action('Cliente nuevo',actions,openNew);
+ for(const e of [assignButton,newButton])e.style.cssText='flex:1 1 120px;background:#205e40;color:white;min-height:44px;font-size:14px';
+ const remove=action('Quitar cliente',wrap,()=>{const box=caja();clear();checkoutBox=box;showBalance()});remove.id='nv30-remove-client';remove.hidden=true;remove.style.cssText='margin-top:6px';
+ picker=node('section',undefined,wrap);picker.hidden=true;picker.style.marginTop='10px';
+ query=node('input',undefined,picker);query.type='search';query.autocomplete='off';query.placeholder='Buscar cliente por nombre o teléfono';query.setAttribute('aria-label','Buscar cliente');
+ choices=node('div',undefined,picker);choices.style.cssText='max-height:260px;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;margin:5px 0';
+ query.addEventListener('input',()=>{try{limit=40;refreshChoices(caja(),true)}catch(e){setText(notice,e.message)}});
+ query.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();refreshChoices(caja(),true)}});
+ moreButton=action('Mostrar más clientes',picker,()=>{limit+=40;refreshChoices(caja(),true)});moreButton.hidden=true;
+ action('Cerrar lista',picker,closePanels);
+ newForm=node('section',undefined,wrap);newForm.hidden=true;newForm.style.marginTop='10px';
+ const nl=node('label','Nombre del cliente',newForm);nameField=node('input',undefined,nl);nameField.maxLength=100;nameField.autocomplete='off';
+ const pl=node('label','Teléfono (opcional)',newForm);phoneField=node('input',undefined,pl);phoneField.type='tel';phoneField.maxLength=30;phoneField.autocomplete='off';
+ action('Guardar y asignar',newForm,createFromFields).style.cssText='width:100%;background:#205e40;color:white;margin:7px 0';
+ action('Cancelar',newForm,closePanels);
+ for(const e of [nameField,phoneField])e.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();ev.stopPropagation();if(e===nameField)phoneField.focus();else try{createFromFields()}catch(err){setText(notice,err.message)}}});
+ notice=node('small','',wrap);notice.setAttribute('role','status');notice.style.cssText='display:block;margin-top:7px;overflow-wrap:anywhere';
+ const css=node('style',undefined,document.head);css.textContent='#nv299-credit-client [hidden]{display:none!important}#nv299-credit-client .nv30-client-option{display:block;text-align:left;width:100%;margin:4px 0;min-height:44px;font-size:14px;white-space:normal}#nv299-credit-client .nv30-client-option small{display:block;font-weight:400}';
+ method.after(wrap);return true;
+}
 function renderCheckout(method){
+ // No recrear controles ni consultar el almacenamiento en cada intervalo.
+ if(method!=='credit'){if(wrap&&!wrap.hidden){clear();visible(wrap,false)}lastMode=method;return}
+ const box=caja();if(!box){if(wrap&&!wrap.hidden){clear();visible(wrap,false)}lastMode='';return}
  if(!ensureCheckout())return;
- const box=caja();wrap.hidden=method!=='credit'||!box;
- if(wrap.hidden){if(!box){clear();select.replaceChildren();delete select.dataset.sig;notice.textContent=''}return;}
- try{if(checkoutBox!==box){selected=null;checkoutBox=box}refreshChoices(box);showBalance()}catch(e){notice.textContent=e.message}
+ const changed=checkoutBox!==box||lastMode!=='credit';
+ if(checkoutBox!==box){clear();checkoutBox=box}
+ visible(wrap,true);lastMode='credit';
+ if(changed){showBalance();scheduleSync()}
+}
+function onCreditSync(){
+ if(!wrap||wrap.hidden||lastMode!=='credit')return;
+ const box=caja();if(!box||checkoutBox!==box)return;
+ try{showBalance();refreshChoices(box)}catch(e){setText(notice,e.message)}
 }
 function bindCheckout(method){
  if(method!=='credit'){clear();return}
- const box=caja();if(!selected)return;if(!box||checkoutBox!==box)throw Error('La caja del cliente cambió. Selecciona nuevamente el expediente.');
- const r=getClient(box,selected);if(!r)throw Error('El cliente seleccionado ya no existe.');
- const field=$('nv-ticket-client');if(field)field.value=r.name;
+ if(!selected)return;
+ const box=caja();if(!box||checkoutBox!==box)throw Error('La caja del cliente cambió. Selecciona nuevamente el expediente.');
+ const field=$('nv-ticket-client');if(!field)throw Error('No se encontró el nombre del cliente en el ticket.');
+ field.value=selected.name;assignedName=selected.name;
 }
-// Solo entregar metadatos de un cliente elegido de forma expresa en Por cobrar.
 function selection(state){
- const box=caja();if(state!=='cobrar'||!box||box!==checkoutBox||!selected)return null;
- const r=getClient(box,selected);if(!r||String($('nv-ticket-client')?.value||'').trim()!==r.name)return null;
- return {id:r.id,box};
+ if(state!=='cobrar'||!selected)return null;
+ const box=caja();if(!box||box!==checkoutBox)throw Error('La caja del cliente cambió. Selecciona nuevamente el expediente.');
+ if(String($('nv-ticket-client')?.value||'').trim()!==selected.name)throw Error('Revisa el cliente asignado antes de finalizar.');
+ return {id:selected.id,box};
 }
 function record(job){
  if(!job||job.state!=='cobrar'||!job.creditClientId||!c.validId(job.jobId))return true;
- const box=caja();if(!box||job.creditBox!==box)return false;
- const r=getClient(box,job.creditClientId);const total=job.subtotal+job.flete;
- if(!r||!c.moneyOk(total))return false;
- const item={id:job.jobId,customer:r.id,box,cents:total,at:new Date(job.at).toISOString()};
+ const box=caja();if(!box||job.creditBox!==box||!c.validId(job.creditClientId))return false;
+ const total=job.subtotal+job.flete;if(!c.moneyOk(total)||!Number.isFinite(Date.parse(job.at)))return false;
+ const item={id:job.jobId,customer:job.creditClientId,box,cents:total,at:new Date(job.at).toISOString()};
  const k=base(box)+'venta:'+item.id,old=localStorage.getItem(k);
  if(old!==null){const v=JSON.parse(old);return v.customer===item.customer&&v.cents===item.cents}
  put(box,'venta',item);scheduleSync();return true;
@@ -280,7 +365,7 @@ function mountAdmin(){
 }
 window.NAVARRO_CLIENTES_V299=Object.freeze({renderCheckout,bindCheckout,selection,clear,record,totalsDay,renderAdmin});
 let lastActive=false,lastBox=null;
-setInterval(()=>{mountAdmin();const box=caja(),isActive=!!area&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden;if(isActive&&(!lastActive||box!==lastBox)){renderAdmin();scheduleSync();}if(!box){remote=null;remoteKey='';lastSync=0;if(area){area.querySelector('#nv299-private').hidden=true;rows.replaceChildren();refreshNotice()}}lastActive=isActive;lastBox=box;if($('nv-ce-v2')&&!$('nv-ce-v2').hidden)renderCheckout($('nv-ce-v2-method')?.value)},600);
+setInterval(()=>{mountAdmin();const box=caja(),isActive=!!area&&area.dataset.v27Active==='yes'&&!$('nv26-sheet')?.hidden;if(isActive&&(!lastActive||box!==lastBox)){renderAdmin();scheduleSync();}if(!box){remote=null;remoteKey='';lastSync=0;if(area){area.querySelector('#nv299-private').hidden=true;rows.replaceChildren();refreshNotice()}}lastActive=isActive;lastBox=box;if($('nv-ce-v2')&&!$('nv-ce-v2').hidden)renderCheckout($('nv-ce-v2-method')?.value);else if(wrap&&!wrap.hidden){clear();visible(wrap,false);lastMode=''}},600);
 window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)){scheduleSync();if(area?.dataset.v27Active==='yes'&&!working&&!area.contains(document.activeElement))renderAdmin()}});
 setInterval(()=>{if(!document.hidden&&context())void sync()},15000);
 window.addEventListener('online',scheduleSync);setTimeout(scheduleSync,1200);
