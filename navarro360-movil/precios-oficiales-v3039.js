@@ -63,37 +63,43 @@ async function decide(save){
  finally{working=false;keep.disabled=false;revert.disabled=!!read(shownKey)?.request;setTimeout(showNext,80)}
 }
 async function editCard(id,b){
- if(working||!creds()||!codeOK(id))return;working=true;b.disabled=true;
+ if(working||!creds()||!codeOK(id))return;working=true;b.setAttribute('aria-busy','true');
  try{const c=creds(),x=await post(c,{action:'check'});accept(x);const p=api()?.get(id);if(!p)throw Error('Producto no disponible.');
  const old=current(id),raw=prompt('Precio OFICIAL de '+p.name+' (se aplica a todas las cajas y clientes)',(old/100).toFixed(2));if(raw===null)return;
  const v=raw.trim().replace(',','.');if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(v)||Number(v)<=0)throw Error('Precio inválido');
  const cents=Math.round(Number(v)*100);if(cents===old)return;
  if(!confirm('¿Cambiar precio oficial de '+money(old)+' a '+money(cents)+' para todos los clientes?'))return;
  await setPrice(id,cents,{id:crypto.randomUUID(),expected:version(id)});alert('Precio guardado en Windows. Se sincronizará con las demás cajas y clientes.');
- }catch(e){alert(e.message)}finally{working=false;b.disabled=false;showNext()}
+ }catch(e){alert(e.message)}finally{working=false;b.removeAttribute('aria-busy');showNext()}
 }
 function buttons(){
  const eligible=!!creds();
  document.querySelectorAll('#products article[data-card]').forEach(card=>{
-  const id=card.dataset.card;if(!codeOK(id))return;
+  const id=card.dataset.card;
   const price=card.querySelector('.product-bottom .price');if(!price)return;
-  let button=card.querySelector('[data-nv3039-price]');
-  if(!eligible){if(button)button.hidden=true;return;}
-  let row=price.parentElement;
-  if(!row.classList.contains('nv3039-price-row')){
-   row=document.createElement('div');row.className='nv3039-price-row';
-   price.before(row);row.append(price);
+  const allowed=eligible&&codeOK(id);
+  // No insertar botones, contenedores ni cambiar las dimensiones originales.
+  if(allowed){
+   if(price.dataset.nv3041Price!==id)price.dataset.nv3041Price=id;
+   if(price.getAttribute('role')!=='button')price.setAttribute('role','button');
+   if(price.tabIndex!==0)price.tabIndex=0;
+   price.title='Toca el precio para modificarlo';
+   price.setAttribute('aria-label','Modificar precio oficial: '+price.textContent);
+  }else if(price.hasAttribute('data-nv3041-price')){
+   delete price.dataset.nv3041Price;
+   price.removeAttribute('role');price.removeAttribute('tabindex');price.removeAttribute('title');price.removeAttribute('aria-label');
   }
-  if(!button){
-   button=document.createElement('button');button.type='button';button.dataset.nv3039Price=id;
-   button.textContent='✎';button.title='Modificar precio oficial';
-   button.setAttribute('aria-label','Modificar precio oficial de '+(api()?.get(id)?.name||id));
-  }
-  if(button.parentElement!==row)row.append(button);
-  if(button.hidden)button.hidden=false;
  });
 }
-document.addEventListener('click',e=>{const b=e.target.closest('[data-nv3039-price]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();void editCard(b.dataset.nv3039Price,b)},true);
+function activatePrice(e){
+ if(e.type==='keydown'&&(e.repeat||!['Enter',' '].includes(e.key)))return;
+ const price=e.target.closest?.('#products [data-nv3041-price]');
+ if(!price||!creds()||!codeOK(price.dataset.nv3041Price))return;
+ e.preventDefault();e.stopImmediatePropagation();
+ void editCard(price.dataset.nv3041Price,price);
+}
+document.addEventListener('click',activatePrice,true);
+document.addEventListener('keydown',activatePrice,true);
 const root=$('products');if(root)new MutationObserver(buttons).observe(root,{childList:true});
 window.NAVARRO_PRECIOS_OFICIALES=Object.freeze({afterSale,refresh,estado:()=>({revision:latest.revision,puente:remoteOK,publicado:mirrorRevision>=latest.revision})});
 apply(true);buttons();void refresh();setInterval(()=>{if(!document.hidden){apply();buttons();showNext()}},1500);setInterval(()=>{if(!document.hidden)void refresh()},20000);window.addEventListener('online',refresh);window.addEventListener('pageshow',refresh);

@@ -441,6 +441,7 @@ function captureQuantityClicks(e){
  // Los clics .click() del escáner y teclado tienen detail=0 y no deben abrir este diálogo.
  if(e.detail===0||e.isTrusted===false)return;
  const target=e.target,remove=target.closest?.('[data-nav-remove]');
+ if(target.closest?.('[data-nv3041-price]')){lastTap={code:'',at:0};return;}
  if(remove)return;
  const edit=target.closest?.('button[data-nav-edit]');
  if(edit){
@@ -526,6 +527,7 @@ function installMobileSearch(){
 function captureLastAddedClick(e){
  // Se escucha antes de que el carrito original procese la pulsación.
  const target=e.target;
+ if(target.closest?.('[data-nv3041-price]'))return;
  const card=target.closest?.('[data-card]');
  const increment=target.closest?.('button[data-inc],button[data-add],button[data-plus]');
  const preferred=String(card?.dataset.card||increment?.dataset.inc||increment?.dataset.add||increment?.dataset.plus||'');
