@@ -22,7 +22,9 @@ const current=id=>latest.rows.find(r=>r[0]===id)?.[1]??api()?.get(id)?.cents;
 async function setPrice(id,cents,request){
  const c=creds();if(!c)throw Error('Solo una caja reconocida puede cambiar el precio oficial.');
  if(!codeOK(id)||!Number.isSafeInteger(cents)||cents<1||cents>99999999)throw Error('Precio inválido.');
- const result=await post(c,{action:'set',code:id,cents,expected:request.expected,id:request.id});if(!accept(result)&&result.revision>=latest.revision)throw Error('Respuesta de precios en conflicto. Revisa la sincronización.');if(cartEmpty())apply();else{const row=latest.rows.find(r=>r[0]===id);if(row)api()?.apply([row]);applied=-1;}return result;
+ const previous=current(id);
+ const result=await post(c,{action:'set',code:id,cents,expected:request.expected,id:request.id});if(!accept(result)&&result.revision>=latest.revision)throw Error('Respuesta de precios en conflicto. Revisa la sincronización.');if(cartEmpty())apply();else{const row=latest.rows.find(r=>r[0]===id);if(row)api()?.apply([row]);applied=-1;}
+ window.dispatchEvent(new CustomEvent('navarro:precio-oficial-confirmado',{detail:{id:request.id,code:id,before:previous,after:cents,box:c.box,at:new Date().toISOString()}}));return result;
 }
 function afterSale(job,prices){
  const c=creds();if(!c||!job?.jobId)return;

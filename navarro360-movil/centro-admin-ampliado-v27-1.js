@@ -54,7 +54,7 @@ if(sections[0])sections[0].dataset.v27Section='resumen';
 if(sections[1])sections[1].dataset.v27Section='publicacion';
 if(sections[2])sections[2].dataset.v27Section='publicacion';
 const menu=document.createElement('nav');menu.id='nv27-navigation';menu.setAttribute('aria-label','Secciones del Centro');
-const tabNames=[['resumen','Resumen'],['catalogo','Catálogo'],['inventario','Inventario'],['publicacion','Publicación'],['ventas','Ventas'],['clientes','Clientes'],['permisos','Permisos']];
+const tabNames=[['resumen','Resumen'],['catalogo','Catálogo'],['inventario','Inventario'],['compras','Compras y control'],['publicacion','Publicación'],['ventas','Ventas'],['clientes','Clientes'],['permisos','Permisos']];
 for(const [key,label] of tabNames){
  const btn=document.createElement('button');btn.type='button';btn.className='nv27-tab';btn.dataset.v27Tab=key;btn.setAttribute('aria-selected',String(key===tab));btn.textContent=label;
  btn.addEventListener('click',()=>selectTab(key));menu.appendChild(btn);
@@ -75,6 +75,7 @@ inventory.innerHTML+='<p class="nv26-status">Existencias de la misma fuente que 
 const sales=section('nv27-ventas','Ventas y reportes del móvil');
 sales.innerHTML+='<p class="nv26-status">Estos datos proceden únicamente del historial guardado en ESTE navegador (hasta los últimos 100 tickets aceptados por Windows). No representan todas las sucursales ni confirman cobro bancario.</p><div class="nv27-kpis"><div class="nv27-kpi"><small>Tickets de hoy</small><b id="nv27-tickets">—</b></div><div class="nv27-kpi"><small>Marcado pagado hoy</small><b id="nv27-paid">—</b></div><div class="nv27-kpi"><small>Por cobrar hoy</small><b id="nv27-credit">—</b></div><div class="nv27-kpi"><small>Total de tickets hoy</small><b id="nv27-sales-total">—</b></div></div><div class="nv27-actions"><button id="nv27-sales-refresh" class="nv27-btn" type="button">Actualizar resumen</button><button id="nv27-reports-open" class="nv27-btn" type="button">Abrir Panel de Reportes Móvil</button></div><p id="nv27-sales-note" class="nv26-status"></p>';
 const clientes=section('nv27-clientes','Clientes y créditos');
+section('nv27-compras','Compras y control');
 const perms=section('nv27-permisos','Dispositivos y permisos');
 perms.innerHTML+='<p class="nv26-status">Cajas previstas: Computadora, Pablo, Diana y Goli. El servidor debe reconocer la identidad registrada; solo escribir el nombre de una caja no concede permisos.</p><div class="nv27-kpis"><div class="nv27-kpi"><small>Dispositivo</small><b id="nv27-device">Sin confirmar</b></div><div class="nv27-kpi"><small>Permiso para editar</small><b id="nv27-access">Bloqueado</b></div></div><p id="nv27-auth-status" role="status"></p><div class="nv27-actions"><button class="nv27-btn" id="nv27-verify" type="button">Comprobar vinculación</button></div><p class="nv26-status">Dar de alta o revocar dispositivos requiere una herramienta administrativa segura en Windows. Esta página no modifica el registro de permisos.</p>';
 const modal=document.createElement('div');modal.id='nv27-modal';modal.hidden=true;
@@ -88,6 +89,7 @@ function selectTab(next){
  if(next==='inventario')renderStock();
  if(next==='ventas')renderSales();
  if(next==='clientes')window.NAVARRO_CLIENTES_V299?.renderAdmin?.();
+ if(next==='compras')window.NAVARRO_COMPRAS_V3042?.render?.();
  if(next==='permisos')renderPermissions();
 }
 function snapshotCredentials(){
