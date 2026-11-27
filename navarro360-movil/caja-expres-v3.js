@@ -65,12 +65,20 @@ function countCurrent(){
  const ids=Object.keys(read(CART));
  return ids.filter(id=>id!=='00000'&&mapCatalog().has(id)).slice(0,100);
 }
+function checkoutProduct(id,fallback){
+ const api=window.NAVARRO_PRECIOS_CATALOGO;
+ if(typeof api?.get==='function'){
+  const p=api.get(id);
+  return p&&Number.isSafeInteger(p.cents)&&p.cents>0?{name:p.name,price:p.cents/100}:null;
+ }
+ return fallback.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id)||null;
+}
 function quote(){
  // La gratuidad puede retirar el producto FLETE. Primero aplicar la regla,
  // despues tomar el carrito actual para calcular cambio exacto.
  const billing=window.NAVARRO_COBRANZA_ENTREGA;
  if(typeof billing?.snapshot!=='function')throw Error('Abre el carrito y revisa el recuadro de domicilio.');
- let delivery,fee;try{delivery=billing.snapshot();fee=Number(delivery.flete)}catch(_){throw Error('Revisa los datos del domicilio o el flete.')}
+ let delivery,fee;try{delivery=billing.snapshot();fee=Number(delivery.flete)}catch(e){throw Error(e?.message||'Revisa los datos del domicilio o el flete.')}
  if(!Number.isSafeInteger(fee)||![0,5000].includes(fee))throw Error('Flete incorrecto. Revisa tu venta.');
  const entries=Object.entries(read(CART)),db=mapCatalog();
  const cl=read(CLAVOS),im=read(IMPORTES),ov=read(PRECIOS);
@@ -79,7 +87,7 @@ function quote(){
  const rows=[];
  let subtotal=0,hasFreight=false;
  for(const [id,value] of entries){
-  const qty=Number(value),p=db.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id)||(id==='00000'?{price:20,name:'PRODUCTOS VARIOS'}:null);
+  const qty=Number(value),p=checkoutProduct(id,db)||(id==='00000'?{price:20,name:'PRODUCTOS VARIOS'}:null);
   if(!/^\d{5,30}$/.test(id)||!Number.isFinite(qty)||qty<=0||qty>9999||
      !p||!Number.isFinite(p.price)||p.price<=0)throw Error('Revisa el producto '+id+' y su cantidad.');
   const a=Number(cl[id]),b=Number(im[id]),c=Number(ov[id]);

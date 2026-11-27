@@ -30,20 +30,22 @@ function quote(){
  const cart=getObject('navarro_cart_v1'),clavos=getObject('navarro_clavos_importe_v1');
  const amounts=getObject('navarro_importes_cents_v1'),prices=getObject('navarro360_precio_caja_activa_v1');
  const map=pricesMap();
- let subtotal=0,subtotalProductos=0,valid=true,hasFreight=false,hasItems=false;
+ let subtotal=0,subtotalProductos=0,valid=true,hasFreight=false,hasItems=false,invalidCode='';
  for(const [id,q] of Object.entries(cart)){
-  const qty=Number(q),base=map.get(id);hasItems=true;
-  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(base)||base<=0){valid=false;continue}
+  const qty=Number(q),api=window.NAVARRO_PRECIOS_CATALOGO;
+  const p=typeof api?.get==='function'?api.get(id):null;
+  const base=typeof api?.get==='function'?(p?p.cents/100:NaN):(window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id)?.price??map.get(id));hasItems=true;
+  if(!Number.isFinite(qty)||qty<=0||!Number.isFinite(base)||base<=0){valid=false;invalidCode ||= id;continue}
   const c=Number(clavos[id]),v=Number(amounts[id]),override=Number(prices[id]);
   const special=Number.isSafeInteger(c)&&c>0?c:(Number.isSafeInteger(v)&&v>0?v:0);
   const unit=Number.isSafeInteger(override)&&override>0?override:Math.round(base*100);
   const itemTotal=special||Math.round(qty*unit);
-  if(!Number.isSafeInteger(itemTotal)||itemTotal<=0){valid=false;continue}
+  if(!Number.isSafeInteger(itemTotal)||itemTotal<=0){valid=false;invalidCode ||= id;continue}
   subtotal+=itemTotal;
   if(id==='7777000010')hasFreight=true;
   else subtotalProductos+=itemTotal;
  }
- return {subtotal,subtotalProductos,valid,hasFreight,hasItems};
+ return {subtotal,subtotalProductos,valid,hasFreight,hasItems,invalidCode};
 }
 let mounted=false;
 let manualOverride=null,removingFreight=false;
@@ -122,7 +124,7 @@ function update(){
 function snapshot(){
  update();
  const q=quote();
- if(!q.valid)throw Error('Hay productos con precios incorrectos. Revisa el carrito.');
+ if(!q.valid)throw Error('Revisa el producto '+q.invalidCode+': falta un precio válido o la cantidad es incorrecta.');
  if(envioGratis(q.subtotalProductos)&&q.hasFreight)
   throw Error('Este pedido tiene envío gratis. Quita el producto FLETE antes de imprimir.');
  const address=String($('nv-cobro-address')?.value||$('nv70-address')?.value||'').trim().slice(0,260);

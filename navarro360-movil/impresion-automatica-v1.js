@@ -133,6 +133,14 @@ function setupPairUI(button){
  document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!overlay.hidden)close()});
  refreshPairUI();
 }
+function checkoutProduct(id,fallback){
+ const api=window.NAVARRO_PRECIOS_CATALOGO;
+ if(typeof api?.get==='function'){
+  const p=api.get(id);
+  return p&&Number.isSafeInteger(p.cents)&&p.cents>0?{name:p.name,price:p.cents/100}:null;
+ }
+ return fallback.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id)||null;
+}
 function buildTicket(){
  // La validación del domicilio puede quitar FLETE del carrito al alcanzar $1,000.
  // Debe ejecutarse ANTES de fotografiar las líneas que se imprimen.
@@ -145,7 +153,7 @@ function buildTicket(){
  catalog.set('00000',{name:'PRODUCTOS VARIOS',price:20});
  let subtotal=0,rows=[];
  for(const [id,value] of Object.entries(cart)){
-  const qty=Number(value),p=catalog.get(id)||window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id);
+  const qty=Number(value),p=checkoutProduct(id,catalog);
   if(!/^\d{5,30}$/.test(id)||!Number.isFinite(qty)||qty<=0||qty>9999||!p||!Number.isFinite(p.price)||p.price<=0)
    throw Error('Revisa el producto '+id+'. Tiene cantidad o precio incorrecto');
   const x=Number(cl[id]),y=Number(imp[id]),z=Number(over[id]);

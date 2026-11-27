@@ -45,7 +45,10 @@ function collect(){
  if(!db)return {error:'El catálogo no terminó de cargar. Vuelve a abrir el carrito.'};
  const rows=[];let subtotal=0;
  for(const [id,q] of Object.entries(items)){
-  const qty=Number(q),p=db.get(id);
+  const qty=Number(q),api=window.NAVARRO_PRECIOS_CATALOGO;
+  const current=typeof api?.get==='function'?api.get(id):null;
+  const added=typeof api?.get==='function'?null:window.NAVARRO_NUEVOS_PRODUCTOS_V23?.get?.(id);
+  const p=typeof api?.get==='function'?(current?{name:current.name,base:current.cents/100}:null):(added?{name:added.name,base:added.price}:db.get(id));
   if(!/^\d{5,}$/.test(id)||!Number.isFinite(qty)||qty<=0||qty>9999)
    return {error:'Existe una cantidad incorrecta en el carrito. Revísala antes de imprimir.'};
   if(!p||!Number.isFinite(p.base)||p.base<=0)
