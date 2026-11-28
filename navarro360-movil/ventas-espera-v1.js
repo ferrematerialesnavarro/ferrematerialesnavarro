@@ -63,6 +63,8 @@ async function saveShared(kind,ctx,snap,info,state,client){
   say('Reservando folio compartido…');const r=await printer.reservarFolioBorrador(d);
   if(currentSignature()!==sig)throw Error('El carrito cambió. Revisa antes de guardar.');
   d.folio=r.folio;d.draftJobId=r.jobId;d.at=r.at;d.id=(kind==='presupuesto'?'P-':'NV-')+r.folio;
+  // El carrito puede conservar precios temporales de renglones ya eliminados.
+  for(const k of ['prices','clavos','importes'])d[k]=Object.fromEntries(Object.entries(d[k]||{}).filter(([id])=>Object.hasOwn(d.cart,id)));
   p={signature:sig,doc:d,reservation:r};journal(ctx,'save',p);
  }
  say('Guardando en la computadora principal…');const result=await call(ctx,{action:'save',doc:p.doc});
@@ -70,8 +72,9 @@ async function saveShared(kind,ctx,snap,info,state,client){
  if(currentSignature()!==sig)throw Error('Documento guardado en Windows; el carrito cambió y se conservó. No lo dupliques.');
  const cleared=api().restore({cart:{},clavos:{},importes:{},prices:{}});
  if(!cleared.ok)throw Error('Documento guardado en Windows; no se pudo vaciar el carrito. No dupliques la venta.');
- unjournal(ctx,'save');resetMeta();
+ resetMeta();
  try{await window.NAVARRO_PRINT_SILENCIOSA?.confirmarFolioBorrador?.(p.reservation)}catch{}
+ unjournal(ctx,'save');
  say('Folio '+p.doc.folio+' guardado en las cuatro cajas. No se registró una venta.');
  remoteDocs=[{...p.doc,sourceBox:ctx.box},...remoteDocs.filter(x=>x.draftJobId!==p.doc.draftJobId)];remoteBox=ctx.key;remoteOnline=true;render();
  if(kind==='presupuesto')await print(p.doc);else dialog.close();
@@ -84,11 +87,18 @@ async function recoverShared(d){
   if(Object.keys(api().capture().cart).length)throw Error('Primero termina o guarda el carrito actual.');
   let p=pending(ctx,'take');
   if(p&&p.job!==d.draftJobId)throw Error('Hay una recuperación pendiente. Reintenta ese folio primero.');
-  if(!p){p={job:d.draftJobId,folio:d.folio,operation:crypto.randomUUID()};journal(ctx,'take',p)}
+  if(!p){
+   if(Array.isArray(d.rows)&&d.rows.some(r=>!window.NAVARRO_PRECIOS_CATALOGO?.get?.(r.id)))throw Error('Hay un producto aún no disponible en esta caja. Actualiza el catálogo antes de recuperar.');
+   p={job:d.draftJobId,folio:d.folio,operation:crypto.randomUUID()};journal(ctx,'take',p)
+  }
   const x=await call(ctx,{action:'take',job:p.job,operation:p.operation});
   if(x.state!=='recuperado'||x.doc?.draftJobId!==p.job)throw Error('Respuesta de recuperación inválida.');
   if(Object.keys(api().capture().cart).length)throw Error('La recuperación quedó reservada para esta caja. Vacía el carrito y reintenta el folio.');
-  const doc=x.doc,result=api().restore(doc);if(!result.ok)throw Error(result.reason||'No se pudo restaurar. Reintenta el folio pendiente.');
+  const doc=x.doc;
+  // Mantener el precio del documento aunque otra caja haya actualizado el oficial.
+  const restored={...doc,prices:{...doc.prices}};
+  for(const row of doc.rows){const p=window.NAVARRO_PRECIOS_CATALOGO?.get?.(row.id);if(!p)throw Error('Falta el producto '+row.id+'. Actualiza el catálogo y reintenta el folio pendiente.');if(p.cents!==row.unit)restored.prices[row.id]=row.unit;}
+  const result=api().restore(restored);if(!result.ok)throw Error(result.reason||'No se pudo restaurar. Reintenta el folio pendiente.');
   try{resetMeta();if(doc.delivery&&!delivery()?.restoreState?.(doc.delivery))throw Error('Datos de entrega no restaurados');if($('nv-ticket-client'))$('nv-ticket-client').value=String(doc.client||'').slice(0,100);unjournal(ctx,'take')}
   catch(e){const undo=api().restore({cart:{},clavos:{},importes:{},prices:{}});if(undo.ok)resetMeta();throw Error('Recuperación pendiente. '+(undo.ok?'Reintenta el mismo folio.':'Revisa el carrito antes de reintentar.'))}
   remoteDocs=remoteDocs.filter(x=>x.draftJobId!==p.job);dialog.close();
@@ -101,6 +111,20 @@ async function deleteShared(d){
  catch(e){say(e.message)}finally{busy=false;sync();void refreshShared()}
 }
 
+async function reconcileSave(){
+ if(busy)return;busy=true;sync();
+ const ctx=context();
+ try{
+  if(!ctx)throw Error('Caja no reconocida.');
+  const p=pending(ctx,'save');if(!p)return;
+  if(Object.keys(api().capture().cart).length&&currentSignature()===p.signature)throw Error('El carrito original sigue abierto. Pulsa el mismo botón Guardar venta o Guardar e imprimir presupuesto.');
+  const r=await call(ctx,{action:'save',doc:p.doc});
+  if(!['guardado','recuperado','eliminado'].includes(r.state)||r.doc?.draftJobId!==p.doc.draftJobId)throw Error('No se confirmó el documento.');
+  if(!confirm('Folio '+p.doc.folio+' confirmado en Windows ('+r.state+'). ¿Quitar solamente el aviso pendiente y conservar el carrito actual?'))return;
+  try{await window.NAVARRO_PRINT_SILENCIOSA?.confirmarFolioBorrador?.(p.reservation)}catch{}
+  unjournal(ctx,'save');say('Guardado verificado. El carrito actual no se modificó.');
+ }catch(e){say(e.message)}finally{busy=false;sync();void refreshShared()}
+}
 function makeDraft(kind,snap,info,state,client,id,at){
  if(!['venta','presupuesto'].includes(kind)||!snap.rows.length||!Number.isSafeInteger(snap.subtotal)||snap.subtotal<=0||![0,5000].includes(info.flete))throw Error('Revisa el carrito y sus importes.');
  return {id,at,kind,...snap,delivery:state,client,payment:'none',flete:info.flete};
@@ -184,7 +208,7 @@ function render(){
  let docs;try{docs=load()}catch(e){say(e.message);return}
  const ctx=context(),shared=ctx&&remoteBox===ctx.key?remoteDocs:[];
  make('p',remoteOnline?'Base compartida conectada · '+shared.length+' documentos':'Documentos locales · conexión compartida sin confirmar',list);
- if(ctx){try{const p=pending(ctx,'take');if(p){const row=make('div',undefined,list);make('strong','Recuperación pendiente · Folio '+p.folio,row);button('Reintentar recuperación',row,()=>recoverShared({draftJobId:p.job,folio:p.folio}));}}catch(e){say(e.message)}}
+ if(ctx){try{const pendingSave=pending(ctx,'save');if(pendingSave){const r=make('div',undefined,list);make('strong','Guardado pendiente · Folio '+pendingSave.doc.folio,r);button('Verificar guardado',r,reconcileSave);}const p=pending(ctx,'take');if(p){const row=make('div',undefined,list);make('strong','Recuperación pendiente · Folio '+p.folio,row);button('Reintentar recuperación',row,()=>recoverShared({draftJobId:p.job,folio:p.folio}));}}catch(e){say(e.message)}}
  docs=[...shared.map(d=>({...d,shared:true})),...docs];
  const q=String(search?.value||'').trim().toLocaleLowerCase('es-MX');
  const filtered=docs.filter(d=>!q||[d.folio,d.id,d.client].some(v=>String(v||'').toLocaleLowerCase('es-MX').includes(q)));
