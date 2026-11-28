@@ -34,7 +34,8 @@
  function selectStock(code,privateRows,publicRows,base,meta){
  const row=privateRows.get(code),pub=publicRows.get(code),fallback=base?.[code]?.[0];
  const valid=x=>typeof x==='number'&&Number.isFinite(x);
- const source=valid(row?.[1])?'windows':valid(pub)?'publico':valid(fallback)?'catalogo':'sin-dato';
+ // Un registro privado antiguo no debe ocultar una publicación reciente.
+ const source=valid(row?.[1])&&meta.windowsFresh?'windows':valid(pub)&&meta.publicFresh?'publico':valid(row?.[1])?'windows':valid(pub)?'publico':valid(fallback)?'catalogo':'sin-dato';
  const raw=source==='windows'?row[1]:source==='publico'?pub:source==='catalogo'?fallback:null;
  const recent=source==='windows'?meta.windowsFresh:source==='publico'?meta.publicFresh:false;
  return {stock:raw===null?null:Math.max(0,raw),source,confirmed:!!recent&&raw!==null&&raw>=0,negative:raw!==null&&raw<0,at:source==='windows'?row[3]||meta.windowsAt:source==='publico'?meta.publicAt:null,publicStock:valid(pub)?Math.max(0,pub):null,publicFresh:!!meta.publicFresh};

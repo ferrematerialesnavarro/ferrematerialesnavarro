@@ -102,7 +102,7 @@ async function recoverShared(d){
   try{resetMeta();if(doc.delivery&&!delivery()?.restoreState?.(doc.delivery))throw Error('Datos de entrega no restaurados');if($('nv-ticket-client'))$('nv-ticket-client').value=String(doc.client||'').slice(0,100);unjournal(ctx,'take')}
   catch(e){const undo=api().restore({cart:{},clavos:{},importes:{},prices:{}});if(undo.ok)resetMeta();throw Error('Recuperación pendiente. '+(undo.ok?'Reintenta el mismo folio.':'Revisa el carrito antes de reintentar.'))}
   remoteDocs=remoteDocs.filter(x=>x.draftJobId!==p.job);dialog.close();
- }catch(e){if(e.status===409||e.status===404){try{unjournal(ctx,'take')}catch{}}say(e.message||'No se confirmó la recuperación. Reintenta el folio pendiente.');}
+ }catch(e){if(e.status===409){say('El servidor informó un conflicto. Conservamos el folio pendiente hasta verificarlo.');}say(e.message||'No se confirmó la recuperación. Reintenta el folio pendiente.');}
  finally{busy=false;sync();void refreshShared()}
 }
 async function deleteShared(d){

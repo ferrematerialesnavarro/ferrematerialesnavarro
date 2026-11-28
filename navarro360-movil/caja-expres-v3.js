@@ -153,6 +153,11 @@ function buildShareTicket(q,method,guest,folio){
  if(!q?.rows?.length||!Number.isSafeInteger(q.total)||q.total<=0||!folio)throw Error('No se pudo preparar el ticket.');
  return {text:textoPedido(q,method,guest)+'\nFolio: '+String(folio),guest,folio:String(folio),at:new Date().toISOString()};
 }
+function guardarTicketPedido(job,method,guest){
+ const q={rows:job.rows.map(r=>({...r,cost:r.total})),subtotal:job.subtotal,flete:job.flete,total:job.subtotal+job.flete,delivery:{delivery:true,address:job.address,phone:job.phone}};
+ const t=buildShareTicket(q,method,guest,job.folio||job.jobId);
+ rememberShare(t);return t;
+}
 function shareUI(){
  if(shareDialog)return;
  const el=(tag,text,parent)=>{const x=document.createElement(tag);if(text!==undefined)x.textContent=text;if(parent)parent.append(x);return x};
@@ -424,7 +429,8 @@ function mount(){
     const resultado=await window.NAVARRO_CONFIRMAR_PEDIDO(method);
     const folio=resultado?.folio;
     if(!folio)throw Error('No se recibió el folio. Revisa Tickets recientes antes de repetir.');
-    const t=buildShareTicket(q,method,guest,folio);
+    const saved=shareTicket?.folio===String(folio)&&shareTicket.guest===guest?shareTicket:null;
+    const t=saved||buildShareTicket(q,method,guest,folio);
     rememberShare(t);showShare(t);
    }catch(error){
     announce(error.message||'No se pudo confirmar la recepción del pedido. El carrito se conserva.',true);
@@ -480,6 +486,6 @@ function init(){
  let attempts=0;
  const timer=setInterval(()=>{if(mount()||++attempts>=20)clearInterval(timer)},350);
 }
-window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:5,modo:'carrito-visible',prepararFinalizacion:prepareFinalPayment,calcular:quote,calcularDinero:parseMoney,notaPedido,metodoConfirmado:confirmedMethodForTicket,limpiarMetodo:clearPayment});
+window.NAVARRO_CAJA_EXPRES_V3=Object.freeze({version:5,modo:'carrito-visible',prepararFinalizacion:prepareFinalPayment,calcular:quote,calcularDinero:parseMoney,notaPedido,metodoConfirmado:confirmedMethodForTicket,limpiarMetodo:clearPayment,guardarTicketPedido});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

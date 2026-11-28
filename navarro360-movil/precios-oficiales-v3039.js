@@ -32,9 +32,9 @@ function afterSale(job,prices){
  const k=QUEUE+c.box+':'+job.jobId+':'+row.id;if(localStorage.getItem(k)!==null)continue;
  localStorage.setItem(k,JSON.stringify({code:row.id,name:row.name,cents:n,old:current(row.id),box:c.box,job:job.jobId,request:null}));
  }
- setTimeout(showNext,400);
+ postponed=false;setTimeout(showNext,400);
 }
-let dlg,description,notice,keep,revert;
+let dlg,description,notice,keep,revert,later,postponed=false;
 function initDialog(){
  if(dlg)return;
  dlg=document.createElement('dialog');dlg.id='nv3039-decision';dlg.style.cssText='width:min(90vw,440px);border:1px solid #bcd1c1;border-radius:16px;padding:18px;color:#18382a;font:16px system-ui;background:white';
@@ -42,18 +42,20 @@ function initDialog(){
  description=document.createElement('p');notice=document.createElement('p');notice.setAttribute('role','status');dlg.append(description,notice);
  keep=document.createElement('button');keep.type='button';keep.textContent='Conservar precio oficial';keep.style.cssText='width:100%;background:#205e40;color:white;padding:13px;margin:5px 0;border-radius:9px;border:0;font-weight:800';
  revert=document.createElement('button');revert.type='button';revert.textContent='Revertir al precio oficial';revert.style.cssText='width:100%;padding:13px;margin:5px 0;border-radius:9px;border:1px solid #adc5b5;font-weight:800';
- dlg.append(keep,revert);document.body.append(dlg);
- dlg.addEventListener('cancel',e=>e.preventDefault());keep.onclick=()=>decide(true);revert.onclick=()=>decide(false);
+ later=document.createElement('button');later.type='button';later.textContent='Decidir después';later.style.cssText='width:100%;padding:12px;margin:5px 0;border:1px solid #adc5b5;border-radius:9px;background:white;font-weight:750';
+ const defer=()=>{if(working)return;postponed=true;dlg.close();shownKey='';};later.onclick=defer;
+ dlg.append(keep,revert,later);document.body.append(dlg);
+ dlg.addEventListener('cancel',e=>{e.preventDefault();defer()});keep.onclick=()=>decide(true);revert.onclick=()=>decide(false);
 }
 function showNext(){
- if(working||dlg?.open||!cartEmpty())return;const c=creds();if(!c)return;
+ if(working||postponed||dlg?.open||!cartEmpty()||document.querySelector('dialog[open]'))return;const c=creds();if(!c)return;
  const key=Object.keys(localStorage).find(k=>k.startsWith(QUEUE+c.box+':'));if(!key)return;const p=read(key);if(!p||!codeOK(p.code))return;
  initDialog();shownKey=key;description.textContent=p.name+' · Precio oficial actual: '+money(current(p.code))+' · Precio cobrado: '+money(p.cents)+'. El ticket finalizado no cambiará.';notice.textContent='';revert.disabled=!!p.request;dlg.showModal();
 }
 async function decide(save){
  if(working)return;const p=read(shownKey);if(!p)return;
  if(!save&&p.request){notice.textContent='Primero confirma el resultado del cambio pendiente.';return}
- working=true;keep.disabled=revert.disabled=true;
+ working=true;keep.disabled=revert.disabled=later.disabled=true;
  try{
   if(save){
    const c=creds();if(!c||c.box!==p.box)throw Error('La caja cambió.');
@@ -61,8 +63,8 @@ async function decide(save){
    try{await setPrice(p.code,p.cents,p.request)}catch(e){if(e.status===409){p.request=null;localStorage.setItem(shownKey,JSON.stringify(p));}throw e}
   }
   localStorage.removeItem(shownKey);dlg.close();shownKey='';
- }catch(e){notice.textContent=e.message+' Reintenta sin duplicar el cambio.'}
- finally{working=false;keep.disabled=false;revert.disabled=!!read(shownKey)?.request;setTimeout(showNext,80)}
+ }catch(e){notice.textContent=e.message+' Reintenta sin duplicar el cambio o elige Decidir después. La decisión quedará pendiente.'}
+ finally{working=false;keep.disabled=later.disabled=false;revert.disabled=!!read(shownKey)?.request;setTimeout(showNext,80)}
 }
 async function editCard(id,b){
  if(working||!creds()||!codeOK(id))return;working=true;b.setAttribute('aria-busy','true');

@@ -429,7 +429,8 @@ async function confirmGuestOrder(method){
   if(pair)record.pagoMostrador=method;
   const key='navarro-pedido-invitado-pendiente',signature=JSON.stringify([record,job.address,job.phone]);
   let pending=JSON.parse(localStorage.getItem(key)||'null');
-  if(pending?.signature!==signature){
+  if(pending&&pending.signature!==signature)throw Error('Hay un pedido anterior pendiente de confirmar. Revisa Tickets recientes o el panel y recupera los datos originales antes de enviar otro.');
+  if(!pending){
    record.id=job.jobId;record.at=job.at;
    pending={signature,record};localStorage.setItem(key,JSON.stringify(pending));
   }
@@ -455,6 +456,8 @@ async function confirmGuestOrder(method){
   job.state=pair&&method!=='credit'?'pagado':'cobrar';
   job.reference=job.state==='pagado'?'Pagado en mostrador. Entregar sin cobrar.':labels[method];
   if(!window.NAVARRO_HISTORIAL?.record(job,method))throw Error('Pedido recibido. Conservamos el carrito para guardar su ticket en este dispositivo.');
+  const share=window.NAVARRO_CAJA_EXPRES_V3?.guardarTicketPedido;
+  if(typeof share==='function')share(job,method,!pair);
   await confirmFolio(job);
   resetPrintedSale(job,version,false);
   if(!Object.keys(read('navarro_cart_v1')).length)localStorage.removeItem(key);
@@ -483,9 +486,16 @@ window.addEventListener('online',sendReviews);
 queueMicrotask(sendReviews);
 function queueReport(job,meta){
  try{
-  const record={id:job.jobId,at:new Date().toISOString(),caja:meta.caja,vendedor:meta.vendedor,
+  const record={id:job.jobId,at:job.at,caja:meta.caja,vendedor:meta.vendedor,
    estado:job.state||'none',...(job.state==='cobrar'&&job.reference?{reference:job.reference}:{}),metodo:meta.paymentMethod,subtotal:job.subtotal,flete:job.flete,
    rows:job.rows.map(({id,name,qty,unit,total})=>({id:String(id),name,qty,unit,total}))};
+  // No sustituir una venta previamente encolada si un reintento trae datos distintos.
+  for(const prefix of [REPORT_PREFIX,REVIEW_PREFIX]){
+   const raw=localStorage.getItem(prefix+record.id);if(!raw)continue;
+   const old=JSON.parse(raw);const {at:oldAt,...a}=old,{at:newAt,...b}=record;
+   if(JSON.stringify(a)!==JSON.stringify(b))return false;
+   if(prefix===REPORT_PREFIX)flushReport();else sendReviews();return true;
+  }
   if(!automatic&&!reportsReady){
    localStorage.setItem(REVIEW_PREFIX+record.id,JSON.stringify(record));sendReviews();return true;
   }
