@@ -420,6 +420,7 @@ async function confirmGuestOrder(method){
  busy=true;
  try{
   const job=buildTicket(),version=saleVersion();
+  if(!job.address.trim())throw Error('Escribe la dirección de entrega.');
   const creditChoice=pair&&method==='credit'?window.NAVARRO_CLIENTES_V299?.selection?.('cobrar'):null;
   if(creditChoice){job.creditClientId=creditChoice.id;job.creditBox=creditChoice.box;}else{delete job.creditClientId;delete job.creditBox;}
   const labels={cash:'Efectivo al entregar',card:'Llevar terminal para cobrar',transfer:'Transferencia por verificar',credit:'Método por definir'};
@@ -447,7 +448,7 @@ async function confirmGuestOrder(method){
    const receipt=await response.json();
    if(!receipt.ok||receipt.id!==pending.record.id)throw Error();
   }catch{
-   throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No recibimos confirmación del panel. Conservamos tu carrito y su folio para reintentar.');
+   throw Error(response?.status===409?'El folio ya existe con datos distintos. Conservamos tu carrito para revisarlo.':'No se confirmó el pedido en el panel'+(response?.status?' (HTTP '+response.status+')':' (sin respuesta)')+'. Se conservó el carrito y su folio. Reintenta el mismo pedido, no crees otro.');
   }
   job.jobId=pending.record.id;
   job.at=pending.record.at;

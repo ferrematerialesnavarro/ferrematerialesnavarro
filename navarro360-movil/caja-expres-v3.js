@@ -105,7 +105,7 @@ function quote(){
  return {subtotal,flete:fee,total,count:entries.length,rows,delivery};
 }
 function enviarDomicilio(method){return ['cash','card','transfer','credit'].includes(method) && $('nv-cobro-domicilio')?.checked}
-function textoPedido(q,method='transfer'){
+function textoPedido(q,method='transfer',guest=esInvitado()){
  const lines=['🏗️ *FERREMATERIALES NAVARRO*',q.delivery.delivery?'🚚 *PEDIDO A DOMICILIO*':'🛒 *PEDIDO*','','🛒 *TABLA DE PRODUCTOS*','```'+'PRODUCTO'.padEnd(21)+'CANT'.padStart(6)+'IMPORTE'.padStart(12),'-'.repeat(39)];
  for(const row of q.rows){
   const words=String(row.name).replace(/`/g,"'").trim().split(/\s+/);
@@ -129,10 +129,65 @@ function textoPedido(q,method='transfer'){
   if(q.delivery.phone)lines.push('📱 Teléfono: '+q.delivery.phone);
  }
  const cash=method==='cash',card=method==='card';
- const paid=!esInvitado()&&method!=='credit';
+ const paid=!guest&&method!=='credit';
  lines.push('',cash?'💵 *Método de pago: EFECTIVO*':card?'💳 *Método de pago: TARJETA*':method==='credit'?'Método de pago: POR DEFINIR':'💳 *Método de pago: TRANSFERENCIA*',paid?'✅ *ESTADO: PAGADO*':'⏳ *ESTADO: POR COBRAR*',paid?'🚚 *ENTREGAR SIN COBRAR*':cash?'🚚 *COBRAR AL ENTREGAR*':card?'🚚 *IMPORTANTE: LLEVAR TERMINAL PARA COBRAR AL ENTREGAR*':method==='credit'?'Cobro pendiente.':'Depósito por verificar.');
  return lines.join('\n');
 }
+
+/* V30.4.5: el ticket confirmado es recuperable aunque WhatsApp no abra.
+   No vuelve a registrar la venta al compartir. El grupo se elige en WhatsApp. */
+const SHARE_KEY='navarro360-whatsapp-ticket-confirmado-v3045';
+let shareDialog,shareLink,sharePreview,shareNotice,shareEntry,shareNative,shareTicket=null;
+function whatsappURL(ticket){
+ return (ticket.guest?'https://wa.me/525639129040?text=':'https://wa.me/?text=')+encodeURIComponent(ticket.text);
+}
+function savedShare(){
+ try{const t=JSON.parse(localStorage.getItem(SHARE_KEY)||'null');return t&&typeof t.text==='string'&&t.text.length>0&&t.text.length<=100000&&typeof t.guest==='boolean'&&typeof t.folio==='string'&&t.guest===esInvitado()?t:null}catch{return null}
+}
+function rememberShare(t){
+ shareTicket=t;
+ try{localStorage.setItem(SHARE_KEY,JSON.stringify(t))}catch{}
+ if(shareEntry)shareEntry.hidden=false;
+}
+function buildShareTicket(q,method,guest,folio){
+ if(!q?.rows?.length||!Number.isSafeInteger(q.total)||q.total<=0||!folio)throw Error('No se pudo preparar el ticket.');
+ return {text:textoPedido(q,method,guest)+'\nFolio: '+String(folio),guest,folio:String(folio),at:new Date().toISOString()};
+}
+function shareUI(){
+ if(shareDialog)return;
+ const el=(tag,text,parent)=>{const x=document.createElement(tag);if(text!==undefined)x.textContent=text;if(parent)parent.append(x);return x};
+ const b=(text,parent,fn)=>{const x=el('button',text,parent);x.type='button';x.onclick=fn;return x};
+ shareDialog=el('dialog',undefined,document.body);shareDialog.id='nv3045-share';
+ el('h3','Ticket de pedido listo',shareDialog);
+ shareNotice=el('p','',shareDialog);shareNotice.setAttribute('role','status');
+ sharePreview=el('pre','',shareDialog);
+ shareLink=el('a','Abrir WhatsApp',shareDialog);shareLink.target='_self';shareLink.rel='noopener noreferrer';shareLink.className='nv3045-primary';
+ shareNative=b('Compartir ticket (elegir WhatsApp)',shareDialog,async()=>{
+  if(!shareTicket||typeof navigator.share!=='function')return;
+  try{await navigator.share({text:shareTicket.text});shareNotice.textContent='Si elegiste WhatsApp, revisa que el mensaje se haya enviado.'}
+  catch(e){if(e.name!=='AbortError')shareNotice.textContent='Usa Abrir WhatsApp o Copiar ticket.'}
+ });
+ b('Copiar ticket',shareDialog,async()=>{
+  if(!shareTicket)return;
+  try{await navigator.clipboard.writeText(shareTicket.text);shareNotice.textContent='Ticket copiado. Pégalo en WhatsApp.'}
+  catch{const range=document.createRange();range.selectNodeContents(sharePreview);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);shareNotice.textContent='Selecciona Copiar y pega el ticket en WhatsApp.'}
+ });
+ b('Cerrar',shareDialog,()=>shareDialog.close());
+ const css=el('style',undefined,document.head);css.textContent='#nv3045-share{box-sizing:border-box;width:min(92vw,480px);max-height:86dvh;overflow:auto;border:1px solid #b8d5c0;border-radius:15px;padding:15px;color:#18382a;background:white;font:15px system-ui}#nv3045-share::backdrop{background:#09234499}#nv3045-share pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f1f7f2;border-radius:8px;padding:9px;font:12px/1.45 monospace;max-height:38dvh;overflow:auto}#nv3045-share button,#nv3045-share a{box-sizing:border-box;display:block;width:100%;margin:6px 0;padding:12px;border:1px solid #b8d5c0;border-radius:9px;background:#f1f7f2;color:#205e40;font:800 15px system-ui;text-align:center;text-decoration:none;cursor:pointer}#nv3045-share .nv3045-primary{background:#205e40;color:white}#nv3045-share [hidden],#nv3045-last-share[hidden]{display:none!important}#nv3045-last-share{box-sizing:border-box;width:100%;min-height:44px;margin:6px 0;border:1px solid #b8d5c0;border-radius:9px;background:#f1f7f2;color:#205e40;font:750 13px system-ui}';
+ const close=$('nv-draft-entry')||$('nv-print-ticket-button')||$('nv-no-print');
+ shareEntry=b('Abrir último ticket de WhatsApp',null,()=>{const t=shareTicket&&shareTicket.guest===esInvitado()?shareTicket:savedShare();if(t)showShare(t)});
+ shareEntry.id='nv3045-last-share';shareEntry.hidden=!(shareTicket||savedShare());
+ if(close)close.after(shareEntry);else $('drawer')?.append(shareEntry);
+ window.addEventListener('pageshow',()=>{shareEntry.hidden=!(shareTicket?.guest===esInvitado()||savedShare())});
+}
+function showShare(t){
+ shareUI();shareTicket=t;sharePreview.textContent=t.text;
+ shareNotice.textContent=t.guest?'Envía este ticket al WhatsApp del negocio.':'Elige el grupo Pedidos en WhatsApp y pulsa Enviar. El ticket ya está registrado; abrirlo otra vez no crea otra venta.';
+ shareLink.href=whatsappURL(t);
+ shareNative.hidden=t.guest||typeof navigator.share!=='function';
+ if(!shareDialog.open)shareDialog.showModal();
+}
+
 function parseMoney(v){
  const s=String(v||'').trim().replace(/^\$\s*/,'').replace(/\s/g,'');
  if(!/^\d{1,8}(?:[.,]\d{1,2})?$/.test(s))return null;
@@ -358,18 +413,23 @@ function mount(){
   if(continueButton.disabled)return;
   try{window.NAVARRO_CLIENTES_V299?.bindCheckout?.(view.method.value)}catch(e){announce(e.message,true);return;}
   if(enviarDomicilio(view.method.value)){
-   const message=textoPedido(quote(),view.method.value);
    submitting=true;continueButton.disabled=true;details.inert=true;
    try{
-    const resultado=await window.NAVARRO_CONFIRMAR_PEDIDO(view.method.value);
-    // La sección permanece en el carrito; se oculta al quedar vacío.
-    const invitado=esInvitado();
-    const folio=resultado.folio||resultado;
-    const estado=resultado.pendiente?'Ticket guardado en este dispositivo. Pendiente de sincronizar con el panel.':'Ticket recibido por el panel.';
-    window.alert(estado+' '+(invitado?'Envía el ticket al WhatsApp del negocio.':'Elige el grupo Pedidos en WhatsApp y toca Enviar.'));
-    location.href=(invitado?'https://wa.me/525639129040?text=':'https://wa.me/?text=')+encodeURIComponent(message+'\nFolio: '+folio);
-   }catch(error){announce(error.message||'No se pudo confirmar la recepción del pedido.',true)}
-   finally{submitting=false;details.inert=false;render()}
+    const method=view.method.value,guest=esInvitado();
+    const q=quote();
+    if(!q.delivery.address?.trim())throw Error('Escribe la dirección de entrega antes de confirmar el pedido.');
+    prepareFinalPayment();
+    if(typeof window.NAVARRO_CONFIRMAR_PEDIDO!=='function')throw Error('Recarga NAVARRO 360 para confirmar el pedido.');
+    announce('Registrando pedido y preparando ticket…',false);
+    const resultado=await window.NAVARRO_CONFIRMAR_PEDIDO(method);
+    const folio=resultado?.folio;
+    if(!folio)throw Error('No se recibió el folio. Revisa Tickets recientes antes de repetir.');
+    const t=buildShareTicket(q,method,guest,folio);
+    rememberShare(t);showShare(t);
+   }catch(error){
+    announce(error.message||'No se pudo confirmar la recepción del pedido. El carrito se conserva.',true);
+    window.alert(error.message||'No se pudo confirmar el pedido. Revisa el carrito antes de repetir.');
+   }finally{submitting=false;details.inert=false;render()}
    return;
   }
   if(!applyPayment())return;
@@ -400,6 +460,7 @@ function mount(){
   render();
  }
  syncConfirmCart();
+ if(savedShare())shareUI();
  if(cart)new MutationObserver(()=>{
   syncConfirmCart();
  }).observe(cart,{childList:true,subtree:false});
